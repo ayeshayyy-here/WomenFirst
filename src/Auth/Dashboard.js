@@ -10,7 +10,11 @@ import { useEffect, useState } from 'react';
 import React from 'react';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import pwdIMage from '../../assets/images/Background.jpg'
-import logo from '../../assets/public/logo.png';
+import Attendence from '../../assets/public/Attendence.png';
+import Payment from '../../assets/public/Payments.jpeg';
+import Registration from '../../assets/public/Registraton.png';
+import Request from '../../assets/public/Requests.png';
+import Status from '../../assets/public/Status.png';
 import {
   StyleSheet,
   Image,
@@ -116,7 +120,7 @@ const Dashboard = ({ route, navigation }) => {
               <View style={[styles.row]}>
                 <TouchableOpacity style={[styles.card]}>
                   <View style={styles.cardImage}>
-                    <Image source={logo} style={styles.bannerImage} />
+                    <Image source={Registration} style={styles.Registration} />
                   </View>
                   <View style={styles.cardTextView}>
                     <Text style={styles.cardText}>Registration</Text>
@@ -124,7 +128,7 @@ const Dashboard = ({ route, navigation }) => {
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.card]}>
                   <View style={styles.cardImage}>
-                    <Image style={styles.bannerImage} />
+                    <Image source={Status} style={styles.Request} />
                   </View>
                   <View style={styles.cardTextView}>
                     <Text style={styles.cardText}>Status</Text>
@@ -176,7 +180,7 @@ const Dashboard = ({ route, navigation }) => {
               <View style={[styles.row]}>
                 <TouchableOpacity style={[styles.card]}>
                   <View style={styles.cardImage}>
-                    <Image style={styles.bannerImage} />
+                    <Image source={Attendence} style={styles.Attendence} />
                   </View>
                   <View style={styles.cardTextView}>
                     <Text style={styles.cardText}>Attendence</Text>
@@ -184,7 +188,7 @@ const Dashboard = ({ route, navigation }) => {
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.card]}>
                   <View style={styles.cardImage}>
-                    <Image style={styles.bannerImage} />
+                    <Image source={Payment} style={styles.Payment} />
                   </View>
                   <View style={styles.cardTextView}>
                     <Text style={styles.cardText}>Payment</Text>
@@ -194,15 +198,21 @@ const Dashboard = ({ route, navigation }) => {
               <View style={[styles.row]}>
                 <TouchableOpacity style={[styles.card]}>
                   <View style={styles.cardImage}>
-                    <Image style={styles.bannerImage} />
+                    <Image source={Request} style={styles.Request} />
+                  </View>
+                  <View style={styles.cardTextView}>
+                    <Text style={styles.ReqText}>Requests</Text>
+                  </View>
+                </TouchableOpacity>
+                <View style={[styles.card, { opacity: 0 }]}>
+                  <View style={styles.cardImage}>
+                    <Image source={Request} style={styles.bannerImage} />
                   </View>
                   <View style={styles.cardTextView}>
                     <Text style={styles.cardText}>Request</Text>
                   </View>
-                </TouchableOpacity>
-                <TouchableOpacity>
-                
-                </TouchableOpacity>
+                </View>
+              
               </View>
               {/* <View style={styles.row}>
                 <TouchableOpacity style={styles.card}
@@ -336,11 +346,33 @@ const styles = StyleSheet.create({
     padding: 10,
     margin: 2
   },
-  bannerImage: {
+  Registration: {
     width: '85%',
     height: '85%',
     resizeMode: 'contain',
     // color:'black'
+    top: 10,
+  },
+  Attendence: {
+    width: '85%',
+    height: '85%',
+    resizeMode: 'contain',
+    // color:'black'
+    top: 10,
+  },
+  Payment: {
+    width: '85%',
+    height: '85%',
+    resizeMode: 'contain',
+    // color:'black'
+    top: 10,
+  },
+  Request: {
+    width: '85%',
+    height: '75%',
+    resizeMode: 'contain',
+    // color:'black'
+    top: 10,
   },
   BannerImage: {
     width: '85%',
@@ -435,11 +467,20 @@ const styles = StyleSheet.create({
 
   },
   cardText: {
-    fontSize: 14.50,
-    fontFamily: 'sans-serif',
+    fontSize: 14,
+    // fontFamily: 'sans-serif',
     bottom: 15,
     color: '#000',
     fontWeight: '600'
+
+  },
+  ReqText: {
+    fontSize: 14,
+    // fontFamily: 'sans-serif',
+    bottom: 15,
+    color: '#000',
+    fontWeight: '600',
+    marginTop:5
 
   },
   text: {
