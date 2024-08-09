@@ -5,9 +5,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 
-import Login from './src/Auth/login';
+import Login from './src/Auth/Login';
 import Register from './src/Auth/Register';
-import SplashScreen from 'react-native-splash-screen';
 import Dashboard from './src/Auth/Dashboard';
 
 const Stack = createNativeStackNavigator();

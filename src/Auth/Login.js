@@ -31,7 +31,8 @@ const Login = ({ navigation }) => {
         onChangeText={setPassword}
         secureTextEntry
       />
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
+      <TouchableOpacity style={styles.button}onPress={() => navigation.navigate('Dashboard')}
+>
         <Text style={styles.buttonText}>Login</Text>
       </TouchableOpacity>
     </View>
