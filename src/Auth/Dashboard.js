@@ -8,8 +8,12 @@
 
 import { useEffect, useState } from 'react';
 import React from 'react';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import pwdIMage from '../../assets/images/Background.jpg'
+import logo from '../../assets/public/logo.png';
 import {
   StyleSheet,
+  Image,
   Text,
   TouchableOpacity,
   View,
@@ -18,7 +22,7 @@ import {
 } from 'react-native';
 
 
-import { Image } from "react-native";
+
 
 
 const Dashboard = ({ route, navigation }) => {
@@ -66,17 +70,13 @@ const Dashboard = ({ route, navigation }) => {
 
     <View>
 
-      <ImageBackground style={{ width: '100%', height: '100%', opacity:0.9 }}>
+<ImageBackground source={pwdIMage} style={{ width: '100%', height: '100%', opacity:0.9 }}>
 
 
         <View style={{ flexDirection: 'row', marginBottom: 30, }}>
           <TouchableOpacity>
-            {/* <Icon
-            style={styles.searchIcon}
-            name={'bars'}
-            size={40}
-            color="#fff"
-          />  */}
+            <Icon name="home" size={30} color="#900" />
+        
           </TouchableOpacity>
           <Text style={{ fontFamily: 'sans-serif',fontWeight:600, fontSize: 30, color: 'black',paddingHorizontal:20, paddingTop: 10, padding: 10, }}>Dashboard
           </Text>
@@ -116,10 +116,10 @@ const Dashboard = ({ route, navigation }) => {
               <View style={[styles.row]}>
                 <TouchableOpacity style={[styles.card]}>
                   <View style={styles.cardImage}>
-                    <Image style={styles.bannerImage} />
+                    <Image source={logo} style={styles.bannerImage} />
                   </View>
                   <View style={styles.cardTextView}>
-                    <Text style={styles.cardText}>Complaint</Text>
+                    <Text style={styles.cardText}>Registration</Text>
                   </View>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.card]}>
@@ -127,7 +127,7 @@ const Dashboard = ({ route, navigation }) => {
                     <Image style={styles.bannerImage} />
                   </View>
                   <View style={styles.cardTextView}>
-                    <Text style={styles.cardText}>Complaint</Text>
+                    <Text style={styles.cardText}>Status</Text>
                   </View>
                 </TouchableOpacity>
               
@@ -179,7 +179,7 @@ const Dashboard = ({ route, navigation }) => {
                     <Image style={styles.bannerImage} />
                   </View>
                   <View style={styles.cardTextView}>
-                    <Text style={styles.cardText}>Complaint</Text>
+                    <Text style={styles.cardText}>Attendence</Text>
                   </View>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.card]}>
@@ -187,7 +187,7 @@ const Dashboard = ({ route, navigation }) => {
                     <Image style={styles.bannerImage} />
                   </View>
                   <View style={styles.cardTextView}>
-                    <Text style={styles.cardText}>Complaint</Text>
+                    <Text style={styles.cardText}>Payment</Text>
                   </View>
                 </TouchableOpacity>
               </View>
@@ -197,7 +197,7 @@ const Dashboard = ({ route, navigation }) => {
                     <Image style={styles.bannerImage} />
                   </View>
                   <View style={styles.cardTextView}>
-                    <Text style={styles.cardText}>Complaint</Text>
+                    <Text style={styles.cardText}>Request</Text>
                   </View>
                 </TouchableOpacity>
                 <TouchableOpacity>
