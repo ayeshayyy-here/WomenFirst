@@ -1,9 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
+import { faUser, faUsers, faPaperclip, faFileAlt } from '@fortawesome/free-solid-svg-icons';
 
 const ProgressBar = ({ step }) => {
-  const icons = ['person', 'people', 'attach-file', 'assignment']; // Icons for each step
+  const icons = [faUser, faUsers, faPaperclip, faFileAlt]; // FontAwesome icons for each step
 
   return (
     <View style={styles.container}>
@@ -13,7 +14,7 @@ const ProgressBar = ({ step }) => {
             styles.circle, 
             step > index && styles.circleActive
           ]}>
-            <Icon name={icons[index]} size={24} style={styles.icon} />
+            <FontAwesomeIcon icon={icons[index]} size={22} style={styles.icon} />
           </View>
           <Text style={[
             styles.label, 

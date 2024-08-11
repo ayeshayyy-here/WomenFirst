@@ -8,10 +8,10 @@ import { useNavigation } from '@react-navigation/native';
 import Login from './src/Auth/Login';
 import Register from './src/Auth/Register';
 import Dashboard from './src/Auth/Dashboard';
-import FormP from './src/Auth/FormP';
-import FormG from './src/Auth/FormG';
-import FormA from './src/Auth/FormA';
-import FormD from './src/Auth/FormD';
+import FormP from './src/Auth/FormPersonalinfo';
+import FormG from './src/Auth/FormGuardian';
+import FormA from './src/Auth/FormAttatchments';
+import FormD from './src/Auth/FormDeclaration';
 const Stack = createNativeStackNavigator();
 const App = () => {
   // useEffect(() => {

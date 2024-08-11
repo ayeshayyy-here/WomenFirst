@@ -2,8 +2,14 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import ProgressBar from '../components/ProgressBar';
 import { useNavigation } from '@react-navigation/native';
+import { DatePickerInput } from 'react-native-paper-dates';
+
 
 const FormP = () => {
+  const [dob, setDOB] = useState('');
+  const [expiry, setExpiry] = useState('');
+  const [issuance, setIssuance] = useState('');
+
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -31,35 +37,38 @@ const FormP = () => {
       {/* Personal Information */}
       <View style={styles.section}>
         <Text style={styles.sectionHeader}>Personal Information</Text>
+        <View style={styles.divider} />
         <Text style={styles.text}>Applicant's Name:</Text>
         <TextInput
           style={styles.input}
-          placeholder="Enter applicant name"
-          placeholderTextColor="white"
+          placeholder="Enter Applicant Name"
+          placeholderTextColor="grey"
           value={formData.name}
           onChangeText={(text) => handleInputChange('name', text)}
         />
         <Text style={styles.text}>Permanent Address:</Text>
         <TextInput
           style={styles.input}
-          placeholder="Enter address"
-          placeholderTextColor="white"
+          placeholder="Enter Address"
+          placeholderTextColor="grey"
           value={formData.address}
           onChangeText={(text) => handleInputChange('address', text)}
         />
-        <Text style={styles.text}>Phone No:</Text>
+        <Text style={styles.text}>Phone Number:</Text>
         <TextInput
           style={styles.input}
-          placeholder="Enter phone no"
-          placeholderTextColor="white"
+          placeholder="Enter phone Number"
+          keyboardType="numeric"
+          placeholderTextColor="grey"
           value={formData.phone}
           onChangeText={(text) => handleInputChange('phone', text)}
         />
-        <Text style={styles.text}>Mobile No:</Text>
+        <Text style={styles.text}>Mobile NUmber:</Text>
         <TextInput
           style={styles.input}
-          placeholder="Enter mobile no"
-          placeholderTextColor="white"
+          placeholder="Enter mobile Number"
+          keyboardType="numeric"
+          placeholderTextColor="grey"
           value={formData.mobile}
           onChangeText={(text) => handleInputChange('mobile', text)}
         />
@@ -68,43 +77,58 @@ const FormP = () => {
       {/* CNIC Information */}
       <View style={styles.section}>
         <Text style={styles.sectionHeader}>CNIC Information</Text>
+        <View style={styles.divider} />
         <Text style={styles.text}>CNIC:</Text>
         <TextInput
           style={styles.input}
           placeholder="Enter CNIC"
-          placeholderTextColor="white"
+          keyboardType="numeric"
+          placeholderTextColor="grey"
+          maxLength={13}
           value={formData.cnic}
           onChangeText={(text) => handleInputChange('cnic', text)}
         />
-        <Text style={styles.text}>Date of Expiry:</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter date"
-          placeholderTextColor="white"
-          value={formData.datee}
-          onChangeText={(text) => handleInputChange('datee', text)}
-        />
-        <Text style={styles.text}>Date of Birth:</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter date"
-          placeholderTextColor="white"
-          value={formData.dateb}
-          onChangeText={(text) => handleInputChange('dateb', text)}
-        />
-        <Text style={styles.text}>Date of Issue:</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter date"
-          placeholderTextColor="white"
-          value={formData.dateIssue}
-          onChangeText={(text) => handleInputChange('dateIssue', text)}
-        />
+        <Text style={[styles.text, { marginTop: '5%' }]}>Date of Expiry:</Text>
+           <TouchableOpacity style={{ marginTop: 5, backgroundColor: '#fff', borderRadius: 5, height: 40 }}>
+                  <DatePickerInput
+                    locale="en"
+                    label="" // No value provided for label
+                    value={expiry}
+                    onChange={(expiry) => setExpiry(expiry)}
+                    mode={'flat'}
+                    style={styles.calenderstyle}
+                    // style={[styles.view, { borderColor: !dob && errorValidate ? 'red' : '#fff'}]}
+                  /> 
+                </TouchableOpacity>
+        <Text style={[styles.text, { marginTop: '5%' }]}>Date of Birth:</Text>
+        <TouchableOpacity style={{backgroundColor: '#fff', borderRadius: 5, height: 40 }}>
+                  <DatePickerInput
+                    locale="en"
+                    label="" // No value provided for label
+                    value={dob}
+                    onChange={(dob) => setDOB(dob)}
+                    mode={'flat'}
+                    style={styles.calenderstyle}
+                    // style={[styles.view, { borderColor: !dob && errorValidate ? 'red' : '#fff'}]}
+                  /> 
+                </TouchableOpacity>
+                <Text style={[styles.text, { marginTop: '5%' }]}>Date of Issue:</Text>
+        <TouchableOpacity style={{  backgroundColor: '#fff', borderRadius: 5, height: 40 }}>
+                  <DatePickerInput
+                    locale="en"
+                    label="" // No value provided for label
+                    value={issuance}
+                    onChange={(issuance) => setIssuance(issuance)}
+                    mode={'flat'}
+                    style={styles.calenderstyle}
+                    // style={[styles.view, { borderColor: !dob && errorValidate ? 'red' : '#fff'}]}
+                  /> 
+                </TouchableOpacity>
         <Text style={styles.text}>Any Physical Disability:</Text>
         <TextInput
           style={styles.input}
           placeholder="Specify disability (if any)"
-          placeholderTextColor="white"
+          placeholderTextColor="grey"
           value={formData.disability}
           onChangeText={(text) => handleInputChange('disability', text)}
         />
@@ -113,11 +137,12 @@ const FormP = () => {
       {/* Job Information */}
       <View style={styles.section}>
         <Text style={styles.sectionHeader}>Job Information</Text>
+        <View style={styles.divider} />
         <Text style={styles.text}>Post Held:</Text>
         <TextInput
           style={styles.input}
           placeholder="Enter post held"
-          placeholderTextColor="white"
+          placeholderTextColor="grey"
           value={formData.jobTitle}
           onChangeText={(text) => handleInputChange('jobTitle', text)}
         />
@@ -125,7 +150,7 @@ const FormP = () => {
         <TextInput
           style={styles.input}
           placeholder="Enter start date"
-          placeholderTextColor="white"
+          placeholderTextColor="grey"
           value={formData.jobStartDate}
           onChangeText={(text) => handleInputChange('jobStartDate', text)}
         />
@@ -133,7 +158,7 @@ const FormP = () => {
         <TextInput
           style={styles.input}
           placeholder="Enter salary"
-          placeholderTextColor="white"
+          placeholderTextColor="grey"
           value={formData.salary}
           onChangeText={(text) => handleInputChange('salary', text)}
         />
@@ -153,14 +178,24 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: '#f8f8f8',
   },
+  divider: {
+    height: 0.2,
+    backgroundColor: 'grey',
+    marginVertical: 10,
+    width: '90%',  // Set the width of the divider (e.g., 80% of the container's width)
+    alignSelf: 'center',  // Center the divider within its container
+  },  
+  
   header: {
     fontSize: 20,
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 10,
-    color: '#010048',
-
+    color: '#000',
     padding: 10,
+  },
+  calenderstyle:{
+ height: 50, backgroundColor: '#fff'
   },
   detail: {
     fontSize: 14,
@@ -172,7 +207,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   sectionHeader: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 10,
@@ -181,33 +216,23 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 12,
     fontWeight: 'bold',
-    marginBottom: 5,
+    marginBottom: 8,  // Adjust this value to control the space between text and TextInput
     marginTop: 5,
-    color: '#010048',
+    color: 'black',
   },
-  textInputContainer: {
-    marginTop: 8,
-   
-    borderRadius: 2,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  input: {
-    height: 45,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 5,
-    paddingHorizontal: 10,
-    backgroundColor: 'gray',
-    fontSize: 10,
   
-  },
+  input: {
+    flex: 1,
+    color: 'black',
+    backgroundColor: 'white',
+    borderRadius: 4,
+    height: 40,
+    borderWidth: 0.2,
+    borderColor: 'grey',
+    marginBottom: 8,  // Adds space between each TextInput
+    paddingLeft: 10,
+    fontSize: 12,
+  },   
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
