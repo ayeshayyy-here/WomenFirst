@@ -118,7 +118,7 @@ const Dashboard = ({ route, navigation }) => {
           <View style={{ width: '100%', backgroundColor: '#fff', height: '100%', padding: 20, borderTopLeftRadius: 40, borderTopRightRadius: 40, opacity: 0.9 }}>
             <ScrollView showsVerticalScrollIndicator={false} showsHorizontalScrollIndicator={false}>
               <View style={[styles.row]}>
-                <TouchableOpacity style={[styles.card]}>
+                <TouchableOpacity style={[styles.card]} onPress={() => navigation.navigate('FormP')}>
                   <View style={styles.cardImage}>
                     <Image source={Registration} style={styles.Registration} />
                   </View>

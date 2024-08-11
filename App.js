@@ -1,14 +1,17 @@
 import React, {useEffect} from 'react';
 import { StyleSheet} from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+
 import { NavigationContainer } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 
 import Login from './src/Auth/Login';
 import Register from './src/Auth/Register';
 import Dashboard from './src/Auth/Dashboard';
-
+import FormP from './src/Auth/FormP';
+import FormG from './src/Auth/FormG';
+import FormA from './src/Auth/FormA';
+import FormD from './src/Auth/FormD';
 const Stack = createNativeStackNavigator();
 const App = () => {
   // useEffect(() => {
@@ -41,7 +44,10 @@ const App = () => {
       />
 
       <Stack.Screen name="Dashboard" component={Dashboard} />
-      
+      <Stack.Screen name="FormP" component={FormP} />
+      <Stack.Screen name="FormG" component={FormG} />
+      <Stack.Screen name="FormA" component={FormA} />
+      <Stack.Screen name="FormD" component={FormD} />
     </Stack.Navigator>
   </NavigationContainer>
   );
