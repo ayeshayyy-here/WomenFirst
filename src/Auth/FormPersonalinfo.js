@@ -1,21 +1,21 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+} from 'react-native';
 import ProgressBar from '../components/ProgressBar';
 import { useNavigation } from '@react-navigation/native';
 import { DatePickerInput } from 'react-native-paper-dates';
-import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { faCalendar } from '@fortawesome/free-solid-svg-icons'; 
-import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import syncStorage from 'react-native-sync-storage';
+
 const FormP = () => {
   const [dob, setDOB] = useState('');
   const [expiry, setExpiry] = useState('');
   const [issuance, setIssuance] = useState('');
-  const [time, setTime] = useState(new Date());
-  const [isDateTimePickerVisible, setIsDateTimePickerVisible] = useState(false);
-  const [time1, setTime1] = useState(new Date());
-  const [isDateTimePickerVisible1, setIsDateTimePickerVisible1] = useState(false);
-  const [time2, setTime2] = useState(new Date());
-  const [isDateTimePickerVisible2, setIsDateTimePickerVisible2] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -25,28 +25,35 @@ const FormP = () => {
     jobTitle: '',
     jobStartDate: '',
     salary: '',
+    address: '',
+    mobile: '',
+    disability: '',
   });
 
   const navigation = useNavigation();
 
+  // Load form data from sync storage on component mount
+  useEffect(() => {
+    const savedData = syncStorage.get('formData');
+    if (savedData) {
+      setFormData(savedData);
+      setDOB(savedData.dateb);
+      setExpiry(savedData.datee);
+      setIssuance(savedData.datei);
+    }
+  }, []);
+
   const handleInputChange = (name, value) => {
     setFormData({ ...formData, [name]: value });
   };
+
   const handleNextPress = () => {
+    console.log('Form Data before navigation:', formData);
+    syncStorage.set('formData', formData);
     navigation.navigate('FormG');
   };
-  const handleDateTimeConfirm = date => {
-    setTime(date);
-    setIsDateTimePickerVisible(false);
-  };
-  const handleDateTimeConfirm1 = date => {
-    setTime1(date);
-    setIsDateTimePickerVisible1(false);
-  };
-  const handleDateTimeConfirm2 = date => {
-    setTime2(date);
-    setIsDateTimePickerVisible2(false);
-  };
+  
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.header}>Application Form</Text>
@@ -62,7 +69,7 @@ const FormP = () => {
           placeholder="Enter Applicant Name"
           placeholderTextColor="grey"
           value={formData.name}
-          onChangeText={(text) => handleInputChange('name', text)}
+          onChangeText={text => handleInputChange('name', text)}
         />
         <Text style={styles.text}>Permanent Address:</Text>
         <TextInput
@@ -70,7 +77,7 @@ const FormP = () => {
           placeholder="Enter Address"
           placeholderTextColor="grey"
           value={formData.address}
-          onChangeText={(text) => handleInputChange('address', text)}
+          onChangeText={text => handleInputChange('address', text)}
         />
         <Text style={styles.text}>Phone Number:</Text>
         <TextInput
@@ -80,16 +87,16 @@ const FormP = () => {
           maxLength={11}
           placeholderTextColor="grey"
           value={formData.phone}
-          onChangeText={(text) => handleInputChange('phone', text)}
+          onChangeText={text => handleInputChange('phone', text)}
         />
-        <Text style={styles.text}>Mobile NUmber:</Text>
+        <Text style={styles.text}>Mobile Number:</Text>
         <TextInput
           style={styles.input}
           placeholder="Enter mobile Number"
           keyboardType="numeric"
           placeholderTextColor="grey"
           value={formData.mobile}
-          onChangeText={(text) => handleInputChange('mobile', text)}
+          onChangeText={text => handleInputChange('mobile', text)}
         />
       </View>
 
@@ -105,54 +112,67 @@ const FormP = () => {
           placeholderTextColor="grey"
           maxLength={13}
           value={formData.cnic}
-          onChangeText={(text) => handleInputChange('cnic', text)}
+          onChangeText={text => handleInputChange('cnic', text)}
         />
         <Text style={[styles.text, { marginTop: '5%' }]}>Date of Expiry:</Text>
-           <TouchableOpacity style={{ marginTop: 5, backgroundColor: '#fff', borderRadius: 5, height: 40 }}  onPress={() => setIsDateTimePickerVisible(true)}>
-            <View style={{flexDirection: 'row', alignItems: 'center'}}>
-              <Text style={{color: 'black' , marginTop: '3%', marginLeft: '4%', }}>{time.toLocaleString()}</Text>
-              <FontAwesomeIcon
-  icon={faCalendar}  // Use the 'icon' prop instead of 'name'
-  size={20}
-  color="black"
-  style={{marginLeft: '40%',marginTop: '3%' }}
-/>
-
-            </View>
-                </TouchableOpacity>
+        <TouchableOpacity
+          style={{
+            marginTop: 5,
+            backgroundColor: '#fff',
+            borderRadius: 5,
+            height: 40,
+          }}>
+          <DatePickerInput
+            locale="en"
+            label="" // No value provided for label
+            value={expiry}
+            onChange={expiry => {
+              setExpiry(expiry);
+              handleInputChange('datee', expiry);
+            }}
+            mode={'flat'}
+            style={styles.calenderstyle}
+          />
+        </TouchableOpacity>
         <Text style={[styles.text, { marginTop: '5%' }]}>Date of Birth:</Text>
-        <TouchableOpacity style={{ marginTop: 5, backgroundColor: '#fff', borderRadius: 5, height: 40 }}  onPress={() => setIsDateTimePickerVisible1(true)}>
-            <View style={{flexDirection: 'row', alignItems: 'center'}}>
-              <Text style={{color: 'black' , marginTop: '3%', marginLeft: '4%', }}>{time.toLocaleString()}</Text>
-              <FontAwesomeIcon
-  icon={faCalendar}  // Use the 'icon' prop instead of 'name'
-  size={20}
-  color="black"
-  style={{marginLeft: '40%',marginTop: '3%' }}
-/>
-
-            </View>
-                </TouchableOpacity>
-                <Text style={[styles.text, { marginTop: '5%' }]}>Date of Issue:</Text>
-                <TouchableOpacity style={{ marginTop: 5, backgroundColor: '#fff', borderRadius: 5, height: 40 }}  onPress={() => setIsDateTimePickerVisible2(true)}>
-            <View style={{flexDirection: 'row', alignItems: 'center'}}>
-              <Text style={{color: 'black' , marginTop: '3%', marginLeft: '4%', }}>{time.toLocaleString()}</Text>
-              <FontAwesomeIcon
-  icon={faCalendar}  // Use the 'icon' prop instead of 'name'
-  size={20}
-  color="black"
-  style={{marginLeft: '40%',marginTop: '3%' }}
-/>
-
-            </View>
-                </TouchableOpacity>
-        <Text style={styles.text}>Any Physical Disability:</Text>
+        <TouchableOpacity
+          style={{ backgroundColor: '#fff', borderRadius: 5, height: 40 }}>
+          <DatePickerInput
+            locale="en"
+            label="" // No value provided for label
+            value={dob}
+            onChange={dob => {
+              setDOB(dob);
+              handleInputChange('dateb', dob);
+            }}
+            mode={'flat'}
+            style={styles.calenderstyle}
+          />
+        </TouchableOpacity>
+        <Text style={[styles.text, { marginTop: '5%' }]}>Date of Issue:</Text>
+        <TouchableOpacity
+          style={{ backgroundColor: '#fff', borderRadius: 5, height: 40 }}>
+          <DatePickerInput
+            locale="en"
+            label="" // No value provided for label
+            value={issuance}
+            onChange={issuance => {
+              setIssuance(issuance);
+              handleInputChange('datei', issuance);
+            }}
+            mode={'flat'}
+            style={styles.calenderstyle}
+          />
+        </TouchableOpacity>
+        <Text style={[styles.text, { marginTop: 10 }]}>
+          Any Physical Disability:
+        </Text>
         <TextInput
           style={styles.input}
           placeholder="Specify disability (if any)"
           placeholderTextColor="grey"
           value={formData.disability}
-          onChangeText={(text) => handleInputChange('disability', text)}
+          onChangeText={text => handleInputChange('disability', text)}
         />
       </View>
 
@@ -166,7 +186,7 @@ const FormP = () => {
           placeholder="Enter post held"
           placeholderTextColor="grey"
           value={formData.jobTitle}
-          onChangeText={(text) => handleInputChange('jobTitle', text)}
+          onChangeText={text => handleInputChange('jobTitle', text)}
         />
         <Text style={styles.text}>Since When Working on Current Job:</Text>
         <TextInput
@@ -174,7 +194,7 @@ const FormP = () => {
           placeholder="Enter start date"
           placeholderTextColor="grey"
           value={formData.jobStartDate}
-          onChangeText={(text) => handleInputChange('jobStartDate', text)}
+          onChangeText={text => handleInputChange('jobStartDate', text)}
         />
         <Text style={styles.text}>Salary:</Text>
         <TextInput
@@ -182,7 +202,7 @@ const FormP = () => {
           placeholder="Enter salary"
           placeholderTextColor="grey"
           value={formData.salary}
-          onChangeText={(text) => handleInputChange('salary', text)}
+          onChangeText={text => handleInputChange('salary', text)}
         />
       </View>
 
@@ -191,27 +211,6 @@ const FormP = () => {
           <Text style={styles.buttonText}>Next</Text>
         </TouchableOpacity>
       </View>
-      <DateTimePickerModal
-        isVisible={isDateTimePickerVisible}
-        mode="datetime"
-        date={time}
-        onConfirm={handleDateTimeConfirm}
-        onCancel={() => setIsDateTimePickerVisible(false)}
-      />
-           <DateTimePickerModal
-        isVisible={isDateTimePickerVisible1}
-        mode="datetime"
-        date={time1}
-        onConfirm={handleDateTimeConfirm1}
-        onCancel={() => setIsDateTimePickerVisible1(false)}
-      />
-           <DateTimePickerModal
-        isVisible={isDateTimePickerVisible2}
-        mode="datetime"
-        date={time2}
-        onConfirm={handleDateTimeConfirm2}
-        onCancel={() => setIsDateTimePickerVisible2(false)}
-      />
     </ScrollView>
   );
 };
@@ -225,10 +224,10 @@ const styles = StyleSheet.create({
     height: 0.2,
     backgroundColor: 'grey',
     marginVertical: 10,
-    width: '90%',  // Set the width of the divider (e.g., 80% of the container's width)
-    alignSelf: 'center',  // Center the divider within its container
-  },  
-  
+    width: '90%', // Set the width of the divider (e.g., 80% of the container's width)
+    alignSelf: 'center', // Center the divider within its container
+  },
+
   header: {
     fontSize: 20,
     fontWeight: 'bold',
@@ -237,8 +236,9 @@ const styles = StyleSheet.create({
     color: '#000',
     padding: 10,
   },
-  calenderstyle:{
- height: 50, backgroundColor: '#fff'
+  calenderstyle: {
+    height: 50,
+    backgroundColor: '#fff',
   },
   detail: {
     fontSize: 14,
@@ -259,11 +259,11 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 12,
     fontWeight: 'bold',
-    marginBottom: 8,  // Adjust this value to control the space between text and TextInput
+    marginBottom: 8, // Adjust this value to control the space between text and TextInput
     marginTop: 5,
     color: 'black',
   },
-  
+
   input: {
     flex: 1,
     color: 'black',
@@ -272,10 +272,10 @@ const styles = StyleSheet.create({
     height: 40,
     borderWidth: 0.2,
     borderColor: 'grey',
-    marginBottom: 8,  // Adds space between each TextInput
+    marginBottom: 8, // Adds space between each TextInput
     paddingLeft: 10,
     fontSize: 12,
-  },   
+  },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'center',

@@ -127,7 +127,7 @@ const FormG = () => {
 
       <View style={styles.buttonContainer}>
       <TouchableOpacity style={styles.button} onPress={handlePrevPress}>
-          <Text style={styles.buttonText}>Prev</Text>
+          <Text style={styles.buttonText}>Back</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.button} onPress={handleNextPress}>
           <Text style={styles.buttonText}>Next</Text>
@@ -210,8 +210,11 @@ const styles = StyleSheet.create({
  
   buttonContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginTop: 20,
+    width: '100%', // Ensures the container takes full width
+    paddingHorizontal: 16, // Optional: Adds padding around the container
   },
   button: {
     backgroundColor: '#010048',
