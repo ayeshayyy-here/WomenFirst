@@ -11,7 +11,7 @@ import React from 'react';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import pwdIMage from '../../assets/images/Background.jpg'
 import Attendence from '../../assets/public/Attendence.png';
-import Payment from '../../assets/public/Payments.jpeg';
+import Payment from '../../assets/public/Payment.png';
 import Registration from '../../assets/public/Registraton.png';
 import Request from '../../assets/public/Requests.png';
 import Status from '../../assets/public/Status.png';
@@ -128,7 +128,7 @@ const Dashboard = ({ route, navigation }) => {
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.card]}>
                   <View style={styles.cardImage}>
-                    <Image source={Status} style={styles.Request} />
+                    <Image source={Status} style={styles.Status} />
                   </View>
                   <View style={styles.cardTextView}>
                     <Text style={styles.cardText}>Status</Text>
@@ -191,7 +191,7 @@ const Dashboard = ({ route, navigation }) => {
                     <Image source={Payment} style={styles.Payment} />
                   </View>
                   <View style={styles.cardTextView}>
-                    <Text style={styles.cardText}>Payment</Text>
+                    <Text style={styles.ReqText}>Payment</Text>
                   </View>
                 </TouchableOpacity>
               </View>
@@ -353,6 +353,13 @@ const styles = StyleSheet.create({
     // color:'black'
     top: 10,
   },
+  Status: {
+    width: '85%',
+    height: '85%',
+    resizeMode: 'contain',
+    // color:'black'
+    top: 10,
+  },
   Attendence: {
     width: '85%',
     height: '85%',
@@ -362,7 +369,7 @@ const styles = StyleSheet.create({
   },
   Payment: {
     width: '85%',
-    height: '85%',
+    height: '75%',
     resizeMode: 'contain',
     // color:'black'
     top: 10,
