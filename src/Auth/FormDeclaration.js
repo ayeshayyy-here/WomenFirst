@@ -38,31 +38,31 @@ const FormD = () => {
         <TextInput
           style={styles.input}
           placeholder="Enter applicant name"
-          placeholderTextColor="white"
+          placeholderTextColor="grey"
           value={formData.name}
           onChangeText={(text) => handleInputChange('name', text)}
         />
-        <Text style={styles.text}>designation:</Text>
+        <Text style={styles.text}>Designation:</Text>
         <TextInput
           style={styles.input}
-          placeholder="Enter address"
-          placeholderTextColor="white"
+          placeholder="Enter Designation"
+          placeholderTextColor="grey"
           value={formData.address}
           onChangeText={(text) => handleInputChange('address', text)}
         />
         <Text style={styles.text}>Department/Organization:</Text>
         <TextInput
           style={styles.input}
-          placeholder="Enter phone no"
-          placeholderTextColor="white"
+          placeholder="Enter Department/Organization"
+          placeholderTextColor="grey"
           value={formData.phone}
           onChangeText={(text) => handleInputChange('phone', text)}
         />
             <Text style={styles.text}>Address:</Text>
         <TextInput
           style={styles.input}
-          placeholder="Enter phone no"
-          placeholderTextColor="white"
+          placeholder="Enter Address"
+          placeholderTextColor="grey"
           value={formData.phone}
           onChangeText={(text) => handleInputChange('phone', text)}
         />
@@ -70,16 +70,17 @@ const FormD = () => {
         <TextInput
           style={styles.input}
           placeholder="Enter mobile no"
-          placeholderTextColor="white"
+          keyboardType="numeric"
+          placeholderTextColor="grey"
           value={formData.mobile}
           onChangeText={(text) => handleInputChange('mobile', text)}
         />
           <Text style={styles.text}>Email:</Text>
         <TextInput
           style={styles.input}
-          placeholder="Enter mobile no"
-          placeholderTextColor="white"
-          value={formData.mobile}
+          placeholder="Enter Email"
+          placeholderTextColor="grey"
+          value={formData.mobile} 
           onChangeText={(text) => handleInputChange('mobile', text)}
         />
       </View>
@@ -133,33 +134,23 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 12,
     fontWeight: 'bold',
-    marginBottom: 5,
+    marginBottom: 8,  // Adjust this value to control the space between text and TextInput
     marginTop: 5,
-    color: '#010048',
+    color: 'black',
   },
-  textInputContainer: {
-    marginTop: 8,
-   
-    borderRadius: 2,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  input: {
-    height: 45,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 5,
-    paddingHorizontal: 10,
-    backgroundColor: 'gray',
-    fontSize: 10,
   
-  },
+  input: {
+    flex: 1,
+    color: 'black',
+    backgroundColor: 'white',
+    borderRadius: 4,
+    height: 40,
+    borderWidth: 0.2,
+    borderColor: 'grey',
+    marginBottom: 8,  // Adds space between each TextInput
+    paddingLeft: 10,
+    fontSize: 12,
+  },  
   declare: {
     fontSize: 16,
     fontWeight: 'bold',
