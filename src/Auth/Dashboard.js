@@ -9,7 +9,7 @@
 import { useEffect, useState } from 'react';
 import React from 'react';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import pwdIMage from '../../assets/images/Background.jpg'
+import pwdIMage from '../../assets/images/Background.jpg';
 import Attendence from '../../assets/public/Attendence.png';
 import Payment from '../../assets/public/Payment.png';
 import Registration from '../../assets/public/Registraton.png';

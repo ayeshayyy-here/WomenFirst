@@ -28,7 +28,7 @@ const App = () => {
         name="Login"
         component={Login}
         options={{
-          headerShown: true,
+          headerShown: false,
           headerStyle: {backgroundColor: '#CD1D0C'},
           headerTintColor: 'white',
         }}
