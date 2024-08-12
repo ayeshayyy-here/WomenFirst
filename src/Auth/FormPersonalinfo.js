@@ -3,13 +3,19 @@ import { View, Text, TextInput, Button, StyleSheet, ScrollView, TouchableOpacity
 import ProgressBar from '../components/ProgressBar';
 import { useNavigation } from '@react-navigation/native';
 import { DatePickerInput } from 'react-native-paper-dates';
-
-
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
+import { faCalendar } from '@fortawesome/free-solid-svg-icons'; 
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
 const FormP = () => {
   const [dob, setDOB] = useState('');
   const [expiry, setExpiry] = useState('');
   const [issuance, setIssuance] = useState('');
-
+  const [time, setTime] = useState(new Date());
+  const [isDateTimePickerVisible, setIsDateTimePickerVisible] = useState(false);
+  const [time1, setTime1] = useState(new Date());
+  const [isDateTimePickerVisible1, setIsDateTimePickerVisible1] = useState(false);
+  const [time2, setTime2] = useState(new Date());
+  const [isDateTimePickerVisible2, setIsDateTimePickerVisible2] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -28,6 +34,18 @@ const FormP = () => {
   };
   const handleNextPress = () => {
     navigation.navigate('FormG');
+  };
+  const handleDateTimeConfirm = date => {
+    setTime(date);
+    setIsDateTimePickerVisible(false);
+  };
+  const handleDateTimeConfirm1 = date => {
+    setTime1(date);
+    setIsDateTimePickerVisible1(false);
+  };
+  const handleDateTimeConfirm2 = date => {
+    setTime2(date);
+    setIsDateTimePickerVisible2(false);
   };
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -59,6 +77,7 @@ const FormP = () => {
           style={styles.input}
           placeholder="Enter phone Number"
           keyboardType="numeric"
+          maxLength={11}
           placeholderTextColor="grey"
           value={formData.phone}
           onChangeText={(text) => handleInputChange('phone', text)}
@@ -89,40 +108,43 @@ const FormP = () => {
           onChangeText={(text) => handleInputChange('cnic', text)}
         />
         <Text style={[styles.text, { marginTop: '5%' }]}>Date of Expiry:</Text>
-           <TouchableOpacity style={{ marginTop: 5, backgroundColor: '#fff', borderRadius: 5, height: 40 }}>
-                  <DatePickerInput
-                    locale="en"
-                    label="" // No value provided for label
-                    value={expiry}
-                    onChange={(expiry) => setExpiry(expiry)}
-                    mode={'flat'}
-                    style={styles.calenderstyle}
-                    // style={[styles.view, { borderColor: !dob && errorValidate ? 'red' : '#fff'}]}
-                  /> 
+           <TouchableOpacity style={{ marginTop: 5, backgroundColor: '#fff', borderRadius: 5, height: 40 }}  onPress={() => setIsDateTimePickerVisible(true)}>
+            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+              <Text style={{color: 'black' , marginTop: '3%', marginLeft: '4%', }}>{time.toLocaleString()}</Text>
+              <FontAwesomeIcon
+  icon={faCalendar}  // Use the 'icon' prop instead of 'name'
+  size={20}
+  color="black"
+  style={{marginLeft: '40%',marginTop: '3%' }}
+/>
+
+            </View>
                 </TouchableOpacity>
         <Text style={[styles.text, { marginTop: '5%' }]}>Date of Birth:</Text>
-        <TouchableOpacity style={{backgroundColor: '#fff', borderRadius: 5, height: 40 }}>
-                  <DatePickerInput
-                    locale="en"
-                    label="" // No value provided for label
-                    value={dob}
-                    onChange={(dob) => setDOB(dob)}
-                    mode={'flat'}
-                    style={styles.calenderstyle}
-                    // style={[styles.view, { borderColor: !dob && errorValidate ? 'red' : '#fff'}]}
-                  /> 
+        <TouchableOpacity style={{ marginTop: 5, backgroundColor: '#fff', borderRadius: 5, height: 40 }}  onPress={() => setIsDateTimePickerVisible1(true)}>
+            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+              <Text style={{color: 'black' , marginTop: '3%', marginLeft: '4%', }}>{time.toLocaleString()}</Text>
+              <FontAwesomeIcon
+  icon={faCalendar}  // Use the 'icon' prop instead of 'name'
+  size={20}
+  color="black"
+  style={{marginLeft: '40%',marginTop: '3%' }}
+/>
+
+            </View>
                 </TouchableOpacity>
                 <Text style={[styles.text, { marginTop: '5%' }]}>Date of Issue:</Text>
-        <TouchableOpacity style={{  backgroundColor: '#fff', borderRadius: 5, height: 40 }}>
-                  <DatePickerInput
-                    locale="en"
-                    label="" // No value provided for label
-                    value={issuance}
-                    onChange={(issuance) => setIssuance(issuance)}
-                    mode={'flat'}
-                    style={styles.calenderstyle}
-                    // style={[styles.view, { borderColor: !dob && errorValidate ? 'red' : '#fff'}]}
-                  /> 
+                <TouchableOpacity style={{ marginTop: 5, backgroundColor: '#fff', borderRadius: 5, height: 40 }}  onPress={() => setIsDateTimePickerVisible2(true)}>
+            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+              <Text style={{color: 'black' , marginTop: '3%', marginLeft: '4%', }}>{time.toLocaleString()}</Text>
+              <FontAwesomeIcon
+  icon={faCalendar}  // Use the 'icon' prop instead of 'name'
+  size={20}
+  color="black"
+  style={{marginLeft: '40%',marginTop: '3%' }}
+/>
+
+            </View>
                 </TouchableOpacity>
         <Text style={styles.text}>Any Physical Disability:</Text>
         <TextInput
@@ -169,6 +191,27 @@ const FormP = () => {
           <Text style={styles.buttonText}>Next</Text>
         </TouchableOpacity>
       </View>
+      <DateTimePickerModal
+        isVisible={isDateTimePickerVisible}
+        mode="datetime"
+        date={time}
+        onConfirm={handleDateTimeConfirm}
+        onCancel={() => setIsDateTimePickerVisible(false)}
+      />
+           <DateTimePickerModal
+        isVisible={isDateTimePickerVisible1}
+        mode="datetime"
+        date={time1}
+        onConfirm={handleDateTimeConfirm1}
+        onCancel={() => setIsDateTimePickerVisible1(false)}
+      />
+           <DateTimePickerModal
+        isVisible={isDateTimePickerVisible2}
+        mode="datetime"
+        date={time2}
+        onConfirm={handleDateTimeConfirm2}
+        onCancel={() => setIsDateTimePickerVisible2(false)}
+      />
     </ScrollView>
   );
 };

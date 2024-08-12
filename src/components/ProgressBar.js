@@ -14,7 +14,7 @@ const ProgressBar = ({ step }) => {
             styles.circle, 
             step > index && styles.circleActive
           ]}>
-            <FontAwesomeIcon icon={icons[index]} size={22} style={styles.icon} />
+            <FontAwesomeIcon icon={icons[index]} size={14} style={styles.icon} />
           </View>
           <Text style={[
             styles.label, 
