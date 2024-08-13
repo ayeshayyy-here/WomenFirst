@@ -1,65 +1,86 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Switch, Pressable, Alert, ImageBackground } from 'react-native';
+import React, { useState, createRef } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Pressable, ImageBackground, Image } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient'; // Import LinearGradient
 import pwdIMage from '../../assets/images/Background.jpg';
+import loginImage from '../../assets/images/login.png';  // Import the login image
+import emailImage from '../../assets/images/email.png';  // Import the email image
+import passwordImage from '../../assets/images/password.png';  // Import the password image
 
 const Login = ({ navigation }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [click,setClick] = useState(false);
 
-  // const handleLogin = () => {
-  //   if (username === 'admin' && password === 'password') {
-  //     Alert.alert('Login Success', 'Welcome to the app!');
-  //     // Navigate to another screen if needed
-  //     // navigation.navigate('Home');
-  //   } else {
-  //     Alert.alert('Login Failed', 'Invalid username or password');
-  //   }
-  // };
+  // Create references for the TextInput components
+  const usernameInputRef = createRef();
+  const passwordInputRef = createRef();
+
+  // Function to focus the username input
+  const focusUsernameInput = () => {
+    usernameInputRef.current.focus();
+  };
+
+  // Function to focus the password input
+  const focusPasswordInput = () => {
+    passwordInputRef.current.focus();
+  };
 
   return (
     <ImageBackground
-      source={pwdIMage} // Replace with your background image URL
+      source={pwdIMage}
       style={styles.backgroundImage}
     >
-      <View style={styles.overlay} />
+      <View style={styles.topLine} />
+      <Text style={styles.title}>Welcome Back</Text>
       <View style={styles.container}>
-        <Text style={styles.title}>Login</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Username"
-          placeholderTextColor="#aaa"
-          value={username}
-          onChangeText={setUsername}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          placeholderTextColor="#aaa"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
-        <View style={styles.rememberView}>
-            <View style={styles.switch}>
-                <Switch  value={click} onValueChange={setClick} trackColor={{true : "#06225B" , false : "white"}} />
-                <Text style={styles.rememberText}>Remember Me</Text>
-            </View>
-            <View>
-                <Pressable onPress={() => Alert.alert("Forget Password!")}>
-                    <Text style={styles.forgetText}>Forgot Password?</Text>
-                </Pressable>
-            </View>
+
+        <View style={styles.inputContainer1}>
+          <Image source={emailImage} style={styles.icon} /> 
+          <TextInput
+            ref={usernameInputRef} // Attach the reference
+            style={styles.input}
+            placeholder="Email"
+            placeholderTextColor="#9A9A9A"
+            value={username}
+            onChangeText={setUsername}
+          />
         </View>
-        <TouchableOpacity style={styles.button}onPress={() => navigation.navigate('Dashboard')}>
-          <Text style={styles.buttonText}>Login</Text>
+
+        <View style={styles.inputContainer}>
+          <Image source={passwordImage} style={styles.icon} /> 
+          <TextInput
+            ref={passwordInputRef} // Attach the reference
+            style={styles.input}
+            placeholder="Password"
+            placeholderTextColor="#9A9A9A"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+          />
+        </View>
+
+        <TouchableOpacity>
+          <Text style={styles.forgotPassword}>Forgot Password?</Text>
         </TouchableOpacity>
-        <View>
-          <Pressable onPress={() => navigation.navigate('Register')}>
-            <Text style={styles.footerText}>Don't Have Account?  <Text style={styles.signup}>Sign Up</Text></Text>
-          </Pressable>
-        </View>
+
+        <LinearGradient
+      colors={['#562f6a', '#dc2430']} // First color on the left, second color on the right
+      start={{ x: 0, y: 0 }} // Gradient starts from the left side
+      end={{ x: 1, y: 0 }}   // Gradient ends at the right side
+      style={styles.button}
+    >
+      <TouchableOpacity onPress={() => navigation.navigate('Dashboard')}>
+        <Text style={styles.buttonText}>Sign In</Text>
+      </TouchableOpacity>
+    </LinearGradient>
+
+        <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+          <Text style={styles.footerText}>
+            Not a member? <Text style={styles.signup}>Sign up</Text>
+          </Text>
+        </TouchableOpacity>
       </View>
+      <Image source={loginImage} style={styles.loginImage} />
+
     </ImageBackground>
   );
 };
@@ -71,81 +92,88 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  overlay: {
-    position: 'absolute',
-    top: 0,
+  topLine: {
+    width: '100%',
+    height: 0.5, // Thickness of the line
+    backgroundColor: '#000', // Color of the line
+    bottom: 5,
     left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Optional: darken the background image
   },
   container: {
     width: '90%',
-    height: '45%',
-    padding: 15,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)', // Semi-transparent background for the form
-    borderRadius: 10,
+    // padding: 10,
+    alignItems: 'center',
+    marginTop: 10, // Adjust if needed to make space for the top line
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginTop: 15,
-    marginBottom: 30,
-    color: '#333',
-    textAlign: 'center',
+    fontSize: 25,
+    marginLeft: '6%',
+    color: '#000',
+    marginBottom: '25%',
+    textAlign: 'left', // Align text to the left
+    alignSelf: 'flex-start', // Align the text view to the start of the container
+  },
+  inputContainer1: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E5',
+    marginBottom: 20,
+    width: '100%',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E5',
+    marginBottom: 10,
+    width: '100%',
   },
   input: {
+    flex: 1,
     height: 40,
-    width: '100%',
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 5,
-    marginBottom: 20,
-    paddingHorizontal: 10,
-    backgroundColor: '#fff',
+    // padding: 5,
+    fontSize: 14,
+    color: '#000',
+  },
+  icon: {
+    width: 100, // Increased width
+    height: 30, // Increased height
+    marginRight: -20,
+    marginLeft:-30
+  },
+  forgotPassword: {
+    alignSelf: 'flex-end',
+    fontWeight:'bold',
+    color: '#06225B',
+    fontSize:12,
+    marginBottom: 15,
+    marginLeft:'60%'
   },
   button: {
-    backgroundColor: '#007bff',
-    paddingVertical: 10,
-    borderRadius: 10,
-    width: '100%',
+    borderRadius: 25,
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 50,
+    marginBottom: 10,
   },
   buttonText: {
-    color: '#fff',
-    textAlign: 'center',
+    color: '#FFF',
     fontSize: 18,
+  },
+  footerText: {
+    color: '#9A9A9A',
+    fontSize: 14,
+  },
+  signup: {
+    color: '#06225B',
     fontWeight: 'bold',
   },
-  rememberView: {
-    width: "100%",
-    justifyContent: "space-between", // Distribute space between elements
-    alignItems: "center",
-    flexDirection: "row",
-    marginBottom: 8,
-    color: "#333",
-  },
-  switch: {
-    flexDirection: "row",
-    gap: 1,
-    alignItems: "center",
-    color: "#333",
-  },
-  rememberText: {
-    fontSize: 13,
-    color: "#333",
-  },
-  forgetText: {
-    fontSize: 11,
-    color: "#365FC4",
-  },
-  footerText : {
-    textAlign: "center",
-    color: '#333',
-    padding: 15,
-  },
-  signup : {
-    color: "#365FC4",
-    fontSize : 13
+  loginImage: {
+    width: '100%',
+    height: 350, // Increase the height of the image
+    resizeMode: 'contain',
+    marginTop: 10,
   },
 });
 

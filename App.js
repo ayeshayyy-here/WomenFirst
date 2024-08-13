@@ -36,11 +36,11 @@ const App = () => {
       <Stack.Screen
         name="Register"
         component={Register}
-        options={{
-          headerShown: true,
-          headerStyle: {backgroundColor: '#CD1D0C'},
-          headerTintColor: 'white',
-        }}
+        // options={{
+        //   headerShown: true,
+        //   headerStyle: {backgroundColor: '#CD1D0C'},
+        //   headerTintColor: 'white',
+        // }}
       />
 
       <Stack.Screen name="Dashboard" component={Dashboard} />
