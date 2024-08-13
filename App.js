@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { NavigationContainer } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
+import SplashScreen from 'react-native-splash-screen';
 
 import Login from './src/Auth/Login';
 import Register from './src/Auth/Register';
@@ -14,9 +15,9 @@ import FormA from './src/Auth/FormAttatchments';
 import FormD from './src/Auth/FormDeclaration';
 const Stack = createNativeStackNavigator();
 const App = () => {
-  // useEffect(() => {
-  //   SplashScreen.hide();
-  // }, []);
+  useEffect(() => {
+    SplashScreen.hide();
+  }, []);
 
   return (
     
