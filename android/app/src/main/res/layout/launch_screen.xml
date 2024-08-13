@@ -2,7 +2,7 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background=@mipmap/splashscreen"> <!-- You can use an image or color as a background -->
+    android:background="@mipmap/splashscreen"> <!-- Use quotes around the value -->
 
     <ImageView
         android:id="@+id/logo"
