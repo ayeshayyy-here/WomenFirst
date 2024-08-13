@@ -1,14 +1,18 @@
 import React, { useState, createRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Pressable, ImageBackground, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, ImageBackground, Image } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient'; // Import LinearGradient
 import pwdIMage from '../../assets/images/Background.jpg';
 import registerImage from '../../assets/images/register.png';  // Import the login image
 import emailImage from '../../assets/images/email.png';  // Import the email image
 import passwordImage from '../../assets/images/password.png';  // Import the password image
+import Districtpic from '../../assets/images/district.png';
+import DOB from '../../assets/images/dob.png';
 
 const Register = ({ navigation }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [district, setDistrict] = useState('');
+  const [modalVisible, setModalVisible] = useState(false);
 
   // Create references for the TextInput components
   const usernameInputRef = createRef();
@@ -58,10 +62,41 @@ const Register = ({ navigation }) => {
             secureTextEntry
           />
         </View>
-
-        <TouchableOpacity>
+        
+        {/* <View style={styles.inputContainer}> */}
+          {/* <Image source={passwordImage} style={styles.icon} />  */}
+          <TouchableOpacity
+              onPress={() => setModalVisible(true)}
+              style={styles.inputContainer}
+            >
+              <Image source={Districtpic} style={styles.icon} /> 
+              <TextInput
+                style={styles.input}
+                placeholder="District"
+                placeholderTextColor="#9A9A9A"
+                value={district}
+                onChangeText={setDistrict}
+                editable={false} // Make it non-editable to prevent text entry
+              />
+            </TouchableOpacity>
+        {/* </View> */}
+        <TouchableOpacity
+              onPress={() => setModalVisible(true)}
+              style={styles.inputContainer}
+            >
+              <Image source={DOB} style={styles.icon} /> 
+              <TextInput
+                style={styles.input}
+                placeholder="Date of Birth"
+                placeholderTextColor="#9A9A9A"
+                value={district}
+                onChangeText={setDistrict}
+                editable={false} // Make it non-editable to prevent text entry
+              />
+            </TouchableOpacity>
+        {/* <TouchableOpacity>
           <Text style={styles.forgotPassword}>Forgot Password?</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         <LinearGradient
       colors={['#562f6a', '#dc2430']} // First color on the left, second color on the right
@@ -82,6 +117,27 @@ const Register = ({ navigation }) => {
       </View>
       <Image source={registerImage} style={styles.loginImage} />
 
+ <Modal
+            animationType="fade"
+            transparent={true}
+            visible={modalVisible}
+            onRequestClose={() => {
+              setModalVisible(!modalVisible);
+            }}
+          >
+            <View style={styles.modalContainer}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Select District</Text>
+                {/* You can add more components inside the modal as needed */}
+                <TouchableOpacity
+                  style={styles.modalButton}
+                  onPress={() => setModalVisible(false)}
+                >
+                  <Text style={styles.modalButtonText}>Close</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
     </ImageBackground>
   );
 };
@@ -97,7 +153,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 0.5, // Thickness of the line
     backgroundColor: '#000', // Color of the line
-    bottom: 40,
+    bottom: 10,
     left: 0,
   },
   container: {
@@ -127,7 +183,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E5E5',
-    marginBottom: 20,
+    marginBottom: 10,
     width: '100%',
   },
   inputContainer: {
@@ -164,7 +220,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 50,
-    marginBottom: 10,
+    marginTop: 20,
   },
   buttonText: {
     color: '#FFF',
@@ -182,7 +238,34 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 350, // Increase the height of the image
     resizeMode: 'contain',
-    marginTop: 10,
+    // marginTop: 20,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent background
+  },
+  modalContent: {
+    width: '80%',
+    padding: 20,
+    backgroundColor: '#FFF',
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    marginBottom: 15,
+  },
+  modalButton: {
+    marginTop: 20,
+    padding: 10,
+    backgroundColor: '#562f6a',
+    borderRadius: 5,
+  },
+  modalButtonText: {
+    color: '#FFF',
+    fontSize: 16,
   },
 });
 
