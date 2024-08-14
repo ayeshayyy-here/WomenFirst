@@ -11,6 +11,7 @@ import {
   PermissionsAndroid,
   Image,
 } from 'react-native';
+import {Dropdown} from 'react-native-element-dropdown';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import ProgressBar from '../components/ProgressBar';
 import { useNavigation } from '@react-navigation/native';
@@ -39,7 +40,8 @@ const FormP = () => {
   const [selectedAttachment, setSelectedAttachment] = useState('');
   const [capturedImage, setCapturedImage] = useState(null);
   const [stateFunctions, setStateFunctions] = useState({});
-
+  const [isFocus, setIsFocus] = useState(false);
+  const [selectedOption, setSelectedOption] = useState(null);
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -124,6 +126,11 @@ const FormP = () => {
     }
   };
   
+  const options = [
+    {id: 1, name: 'Complaint'},
+    {id: 2, name: 'General Query'},
+    {id: 3, name: 'Advice / Suggestion'},
+  ];
 
   const handleUploadClick = (attachmentName) => {
     setSelectedAttachment(attachmentName);
@@ -194,6 +201,44 @@ const FormP = () => {
           value={formData.mobile}
           onChangeText={text => handleInputChange('mobile', text)}
         />
+          <Text style={styles.text}>Choose District to Apply </Text>
+            <View>
+              <Dropdown
+                style={[styles.input, isFocus && {borderColor: '#1E577C'}]}
+                placeholderStyle={styles.placeholderStyle}
+                selectedTextStyle={styles.selectedTextStyle}
+                inputSearchStyle={styles.inputSearchStyle}
+                itemTextStyle={styles.itemTextStyle}
+                search
+                searchPlaceholder="Search..."
+                data={options}
+                labelField="name"
+                valueField="id"
+                placeholder="Select an option"
+                onFocus={() => setIsFocus(true)}
+                value={selectedOption}
+                onChange={value => setSelectedOption(value)}
+              />
+            </View>
+            <Text style={styles.text}>Choose Institute </Text>
+            <View>
+              <Dropdown
+                style={[styles.input, isFocus && {borderColor: '#1E577C'}]}
+                placeholderStyle={styles.placeholderStyle}
+                selectedTextStyle={styles.selectedTextStyle}
+                inputSearchStyle={styles.inputSearchStyle}
+                itemTextStyle={styles.itemTextStyle}
+                search
+                searchPlaceholder="Search..."
+                data={options}
+                labelField="name"
+                valueField="id"
+                placeholder="Select an option"
+                onFocus={() => setIsFocus(true)}
+                value={selectedOption}
+                onChange={value => setSelectedOption(value)}
+              />
+            </View>
       </View>
 
       {/* CNIC Information */}
@@ -259,6 +304,7 @@ const FormP = () => {
           value={formData.disability}
           onChangeText={text => handleInputChange('disability', text)}
         />
+        
       </View>
 
       {/* Job Information */}
@@ -303,16 +349,84 @@ const FormP = () => {
           value={formData.salary}
           onChangeText={text => handleInputChange('salary', text)}
         />
-        <Text style={[styles.text]}>Job Type:</Text>
+        <Text style={styles.text}>Job Type</Text>
+            <View>
+              <Dropdown
+                style={[styles.input, isFocus && {borderColor: '#1E577C'}]}
+                placeholderStyle={styles.placeholderStyle}
+                selectedTextStyle={styles.selectedTextStyle}
+                inputSearchStyle={styles.inputSearchStyle}
+                itemTextStyle={styles.itemTextStyle}
+                search
+                searchPlaceholder="Search..."
+                data={options}
+                labelField="name"
+                valueField="id"
+                placeholder="Select an option"
+                onFocus={() => setIsFocus(true)}
+                value={selectedOption}
+                onChange={value => setSelectedOption(value)}
+              />
+            </View>
+            <Text style={styles.text}>BPS</Text>
+            <View>
+              <Dropdown
+                style={[styles.input, isFocus && {borderColor: '#1E577C'}]}
+                placeholderStyle={styles.placeholderStyle}
+                selectedTextStyle={styles.selectedTextStyle}
+                inputSearchStyle={styles.inputSearchStyle}
+                itemTextStyle={styles.itemTextStyle}
+                search
+                searchPlaceholder="Search..."
+                data={options}
+                labelField="name"
+                valueField="id"
+                placeholder="Select an option"
+                onFocus={() => setIsFocus(true)}
+                value={selectedOption}
+                onChange={value => setSelectedOption(value)}
+              />
+            </View>
+         <Text style={[styles.sectionHead,{marginTop:10}]}>Duty Hours in Summer</Text>
+         <View style={styles.divider} />
+         <Text style={styles.textt}>Start Time:</Text>
         <TextInput
           style={styles.input}
-          placeholder="Select Type"
+          placeholder="Enter Time"
+          keyboardType="numeric"
           placeholderTextColor="grey"
           value={formData.salary}
           onChangeText={text => handleInputChange('salary', text)}
         />
-         <Text style={[styles.sectionHeader,{marginTop:10}]}>Duty Hours in Summer</Text>
-         <View style={styles.divider} />
+                  <Text style={styles.textt}>End Time:</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter Time"
+          keyboardType="numeric"
+          placeholderTextColor="grey"
+          value={formData.salary}
+          onChangeText={text => handleInputChange('salary', text)}
+        />
+            <Text style={[styles.sectionHead,{marginTop:10}]}>Duty Hours in Winter</Text>
+            <View style={styles.divider} />
+          <Text style={styles.textt}>Start Time:</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter Time"
+          keyboardType="numeric"
+          placeholderTextColor="grey"
+          value={formData.salary}
+          onChangeText={text => handleInputChange('salary', text)}
+        />
+                  <Text style={styles.textt}>End Time:</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter Time"
+          keyboardType="numeric"
+          placeholderTextColor="grey"
+          value={formData.salary}
+          onChangeText={text => handleInputChange('salary', text)}
+        />
       </View>
 
       <Modal
@@ -407,8 +521,22 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     color: '#010048',
   },
+  sectionHead: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 10,
+    color: '#010048',
+  },
   text: {
     fontSize: 12,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    marginTop: 5,
+    color: 'black',
+  },
+  textt: {
+    fontSize: 10,
     fontWeight: 'bold',
     marginBottom: 8,
     marginTop: 5,
@@ -425,6 +553,29 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     paddingLeft: 10,
     fontSize: 12,
+  },
+  placeholderStyle: {
+   color: 'grey',
+   paddingHorizontal: 5,
+    fontSize: 12,
+  },
+  inputSearchStyle:{
+    color: 'black',
+    backgroundColor: 'white',
+    borderRadius: 4,
+    height: 35,
+    borderWidth: 0.2,
+    marginBottom: 8,
+    marginTop: 8,
+    paddingLeft: 10,
+    fontSize: 12,
+  },
+  itemTextStyle: {
+    color: 'grey',
+    borderColor: 'grey',
+    marginBottom: 2,
+    paddingLeft: 10,
+    fontSize: 10,
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -488,13 +639,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 10,
-    borderRadius: 50, // Rounded circle container
+    borderRadius: 50,
     width: 100,
     height: 100,
     borderWidth: 2,
     borderColor: '#fff',
     overflow: 'hidden',
-    alignSelf: 'center', // Center the image container horizontally
+    alignSelf: 'center',
   },
   image: {
     width: '100%',
