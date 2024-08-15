@@ -78,7 +78,7 @@ const Register = ({ navigation }) => {
             placeholderTextColor="#9A9A9A"
             value={district}
             onChangeText={setDistrict}
-            editable={false} // Make it non-editable to prevent text entry
+            editable={false} 
           />
         </TouchableOpacity>
         

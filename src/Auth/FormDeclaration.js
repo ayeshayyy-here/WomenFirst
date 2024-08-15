@@ -85,6 +85,13 @@ const FormD = () => {
         />
       </View>
       <Text style={styles.declare}>Personal Declaration</Text>
+      <Text style={styles.subtext}>I Name hereby apply for admission in the Working Women Hostel and undertake to
+         abide by the Rules & Regulations notified from time to time of the Hostel, which i have throughly read and also undertaken to pay all charges regularly
+          </Text>
+          <Text style={styles.Nametext}>Name:</Text>
+          <Text style={styles.Nametext}>Designation:</Text>
+          <Text style={styles.Nametext}>Date:</Text>
+
       <Text style={styles.declare}>Guardian/Father/Husband Declaration</Text>
     
 
@@ -125,7 +132,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   sectionHeader: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 10,
@@ -156,6 +163,18 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 10,
     color: '#010048',
+  },
+  subtext: {
+    fontSize: 12,
+    // fontWeight: 'bold',
+    marginBottom: 10,
+    color: 'grey',
+  },
+  Nametext: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: 'black',
   },
   buttonContainer: {
     flexDirection: 'row',

@@ -42,6 +42,10 @@ const FormP = () => {
   const [stateFunctions, setStateFunctions] = useState({});
   const [isFocus, setIsFocus] = useState(false);
   const [selectedOption, setSelectedOption] = useState(null);
+  const [districtOption, setDistrictOption] = useState(null);  // For District dropdown
+  const [instituteOption, setInstituteOption] = useState(null);  // For Institute dropdown
+  const [jobTypeOption, setJobTypeOption] = useState(null);  // For Job Type dropdown
+  const [bpsOption, setBpsOption] = useState(null);  // For BPS dropdown
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -131,6 +135,13 @@ const FormP = () => {
     {id: 2, name: 'General Query'},
     {id: 3, name: 'Advice / Suggestion'},
   ];
+  const jobtype = [
+    {id: 1, name: 'Punjab Government Employee'},
+    {id: 2, name: 'Federal Government Employee'},
+    {id: 3, name: 'Private Employee'},
+    {id: 4, name: 'Adhoc'},
+    {id: 5, name: 'Government Contract'},
+  ];
 
   const handleUploadClick = (attachmentName) => {
     setSelectedAttachment(attachmentName);
@@ -216,8 +227,8 @@ const FormP = () => {
                 valueField="id"
                 placeholder="Select an option"
                 onFocus={() => setIsFocus(true)}
-                value={selectedOption}
-                onChange={value => setSelectedOption(value)}
+                value={districtOption}  // Updated state
+                onChange={value => setDistrictOption(value)}  // Updated state
               />
             </View>
             <Text style={styles.text}>Choose Institute </Text>
@@ -235,8 +246,8 @@ const FormP = () => {
                 valueField="id"
                 placeholder="Select an option"
                 onFocus={() => setIsFocus(true)}
-                value={selectedOption}
-                onChange={value => setSelectedOption(value)}
+                value={instituteOption}  // Updated state
+                onChange={value => setInstituteOption(value)}
               />
             </View>
       </View>
@@ -359,13 +370,13 @@ const FormP = () => {
                 itemTextStyle={styles.itemTextStyle}
                 search
                 searchPlaceholder="Search..."
-                data={options}
+                data={jobtype}
                 labelField="name"
                 valueField="id"
                 placeholder="Select an option"
                 onFocus={() => setIsFocus(true)}
-                value={selectedOption}
-                onChange={value => setSelectedOption(value)}
+                value={jobTypeOption}
+                onChange={value => setJobTypeOption(value)}
               />
             </View>
             <Text style={styles.text}>BPS</Text>
@@ -383,8 +394,8 @@ const FormP = () => {
                 valueField="id"
                 placeholder="Select an option"
                 onFocus={() => setIsFocus(true)}
-                value={selectedOption}
-                onChange={value => setSelectedOption(value)}
+                value={bpsOption}
+                onChange={value => setBpsOption(value)}
               />
             </View>
          <Text style={[styles.sectionHead,{marginTop:10}]}>Duty Hours in Summer</Text>
@@ -522,7 +533,7 @@ const styles = StyleSheet.create({
     color: '#010048',
   },
   sectionHead: {
-    fontSize: 12,
+    fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 10,
@@ -571,11 +582,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   itemTextStyle: {
-    color: 'grey',
+    color: 'black',
     borderColor: 'grey',
     marginBottom: 2,
     paddingLeft: 10,
-    fontSize: 10,
+    fontSize: 12,
   },
   buttonContainer: {
     flexDirection: 'row',
