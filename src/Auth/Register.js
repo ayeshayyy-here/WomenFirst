@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -9,18 +9,21 @@ import {
   ImageBackground,
   Image,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  ToastAndroid,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import pwdIMage from '../../assets/images/Background.jpg';
 import registerImage from '../../assets/images/register.png';
 import emailImage from '../../assets/images/email.png';
 import passwordImage from '../../assets/images/password.png';
-import Icon from 'react-native-vector-icons/FontAwesome';
 import Districtpic from '../../assets/images/district.png';
 import DOB from '../../assets/images/dob.png';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
-const Register = ({navigation}) => {
+const Register = ({ navigation }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [district, setDistrict] = useState('');
@@ -42,164 +45,215 @@ const Register = ({navigation}) => {
 
     // Check if the selected date is less than 18 years ago
     if (currentDate > minDate) {
-      Alert.alert('Invalid Date', 'You must be at least 18 years old.');
+      ToastAndroid.show('You must be at least 18 years old.', ToastAndroid.LONG);
+      setDate(null); // Clear the date if invalid
     } else {
       setDate(currentDate);
     }
   };
 
+  const handleSubmit = () => {
+    let valid = true;
+    
+    if (!username) {
+      ToastAndroid.show('Email is required.', ToastAndroid.LONG);
+      valid = false;
+    }
+    if (!password) {
+      ToastAndroid.show('Password is required.', ToastAndroid.LONG);
+      valid = false;
+    }
+    if (!district) {
+      ToastAndroid.show('Please select a district.', ToastAndroid.LONG);
+      valid = false;
+    }
+    if (!date) {
+      ToastAndroid.show('Please select your Date of Birth.', ToastAndroid.LONG);
+      valid = false;
+    }
+    
+    if (valid) {
+      // Proceed with form submission, e.g., navigation or API call
+      navigation.navigate('Dashboard');
+    }
+  };
+
   return (
-    <ImageBackground source={pwdIMage} style={styles.backgroundImage}>
-      <View style={styles.topLine} />
-      <Text style={styles.title}>Sign Up</Text>
-      <Text style={styles.subtitle}>
-        Please provide the following information
-      </Text>
-      <View style={styles.container}>
-        <View style={styles.inputContainer1}>
-          <Image source={emailImage} style={styles.icon} />
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            placeholderTextColor="#9A9A9A"
-            value={username}
-            onChangeText={setUsername}
-          />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Image source={passwordImage} style={styles.icon} />
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            placeholderTextColor="#9A9A9A"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-        </View>
-
-        <TouchableOpacity
-          onPress={() => setModalVisible(true)}
-          style={styles.inputContainer}>
-          <Image source={Districtpic} style={styles.icon} />
-          <TextInput
-            style={styles.input}
-            placeholder="District"
-            placeholderTextColor="#9A9A9A"
-            value={district}
-            onChangeText={setDistrict}
-            editable={false}
-          />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.inputContainer}
-          onPress={() => setShowDatePicker(true)} // Open DateTimePicker on press
-        >
-          <Image source={DOB} style={styles.icon} />
-          <TextInput
-            style={styles.input}
-            placeholder="Date of Birth"
-            placeholderTextColor="#9A9A9A"
-            value={date ? date.toDateString() : ''} // Display selected date or placeholder
-            editable={false} // Make it non-editable so only picker can change the date
-          />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('Dashboard')}>
-          <LinearGradient
-            colors={['#4c1e86', '#d42b4d']} // Adjusted to match the gradient in the image
-            start={{x: 0, y: 0}} // Gradient starts from the left side
-            end={{x: 1, y: 0}} // Gradient ends at the right side
-            style={styles.button}>
-            <Text style={styles.buttonText}>Submit</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-          <Text style={styles.footerText}>
-            Already a member? <Text style={styles.signup}>Sign In</Text>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView contentContainerStyle={styles.scrollView}>
+        <ImageBackground source={pwdIMage} style={styles.backgroundImage}>
+          <View style={styles.topLine} />
+          <Text style={styles.title}>Sign Up</Text>
+          <Text style={styles.subtitle}>
+            Please provide the following information
           </Text>
-        </TouchableOpacity>
-      </View>
-      <Image source={registerImage} style={styles.loginImage} />
+          <View style={styles.centeredContent}>
+            <View style={styles.formContainer}>
+              <View style={styles.inputContainer1}>
+                <Image source={emailImage} style={styles.icon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Email"
+                  placeholderTextColor="#9A9A9A"
+                  value={username}
+                  onChangeText={setUsername}
+                />
+              </View>
 
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => {
-          setModalVisible(!modalVisible);
-        }}>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select District</Text>
-            <TouchableOpacity
-              style={styles.modalButton}
-              onPress={() => setModalVisible(false)}>
-              <Text style={styles.modalButtonText}>Close</Text>
-            </TouchableOpacity>
+              <View style={styles.inputContainer}>
+                <Image source={passwordImage} style={styles.icon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Password"
+                  placeholderTextColor="#9A9A9A"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                />
+              </View>
+
+              <TouchableOpacity
+                onPress={() => setModalVisible(true)}
+                style={styles.inputContainer}
+              >
+                <Image source={Districtpic} style={styles.icon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="District"
+                  placeholderTextColor="#9A9A9A"
+                  value={district}
+                  onChangeText={setDistrict}
+                  editable={false}
+                />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.inputContainer}
+                onPress={() => setShowDatePicker(true)} // Open DateTimePicker on press
+              >
+                <Image source={DOB} style={styles.icon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Date of Birth"
+                  placeholderTextColor="#9A9A9A"
+                  value={date ? date.toDateString() : ''} // Display selected date or placeholder
+                  editable={false} // Make it non-editable so only picker can change the date
+                />
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={handleSubmit}>
+                <LinearGradient
+                  colors={['#4c1e86', '#d42b4d']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.button}
+                >
+                  <Text style={styles.buttonText}>Submit</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                <Text style={styles.footerText}>
+                  Already a member? <Text style={styles.signup}>Sign In</Text>
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <Image source={registerImage} style={styles.loginImage} />
           </View>
-        </View>
-      </Modal>
+        </ImageBackground>
 
-      {showDatePicker && (
-        <DateTimePicker
-          value={date || new Date()} // Default to current date if no date is selected
-          mode="date" // Set mode to "date"
-          display="default"
-          onChange={handleDateChange}
-        />
-      )}
-    </ImageBackground>
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={modalVisible}
+          onRequestClose={() => {
+            setModalVisible(!modalVisible);
+          }}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Select District</Text>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.modalButtonText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {showDatePicker && (
+          <DateTimePicker
+            value={date || new Date()} // Default to current date if no date is selected
+            mode="date" // Set mode to "date"
+            display="default"
+            onChange={handleDateChange}
+          />
+        )}
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  backgroundImage: {
+  container: {
     flex: 1,
-    resizeMode: 'cover',
+  },
+  topLine: {
+    width: '120%',
+    height: 0.3,
+    backgroundColor: '#000',
+    left: 0,
+    marginTop: '14%',
+  },
+  scrollView: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  topLine: {
+  backgroundImage: {
     width: '100%',
-    height: 0.5, // Thickness of the line
-    backgroundColor: '#000', // Color of the line
-    bottom: 0,
-    left: 0,
+    height: '100%',
+    resizeMode: 'cover',
   },
-  container: {
-    width: '90%',
-    // padding: 10,
+  centeredContent: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 10, // Adjust if needed to make space for the top line
+    width: '100%',
+  },
+  formContainer: {
+    width: '90%',
+    alignItems: 'center',
+    marginTop: 30, // Adjust space from the top
   },
   title: {
     fontSize: 25,
-    marginLeft: '6%',
+    marginBottom: 5,
+    marginTop:'5%',
     color: '#000',
-    marginTop: 10,
-    marginBottom: '1%',
-    textAlign: 'left', // Align text to the left
-    alignSelf: 'flex-start', // Align the text view to the start of the container
+    marginLeft: '7%', // Adjust this value as needed
     fontWeight: '300',
     fontFamily: 'Dubai-Regular',
   },
+  
   subtitle: {
     fontSize: 14,
-    marginLeft: '6%',
+    // marginBottom: 10,
     color: 'grey',
-    marginBottom: '2%',
-    textAlign: 'left', // Align text to the left
-    alignSelf: 'flex-start', // Align the text view to the start of the container
+    marginLeft: '7%', // Adjust this value as needed
+    // textAlign: 'left', 
   },
   inputContainer1: {
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E5E5',
-    marginBottom: 10,
+    marginTop: 10,
     width: '100%',
   },
   inputContainer: {
@@ -207,13 +261,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E5E5',
-    marginBottom: 10,
+    marginTop: 10,
     width: '100%',
   },
   input: {
     flex: 1,
     height: 40,
-    // padding: 5,
     fontSize: 14,
     color: '#000',
   },
@@ -223,21 +276,12 @@ const styles = StyleSheet.create({
     marginRight: -20,
     marginLeft: -30,
   },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    fontWeight: 'bold',
-    color: '#06225B',
-    fontSize: 12,
-    marginBottom: 15,
-    marginLeft: '60%',
-  },
   button: {
     borderRadius: 25,
     alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 60,
     marginTop: 20,
-    // marginBottom: 10,
   },
   buttonText: {
     color: '#FFF',
@@ -256,7 +300,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 350, // Increase the height of the image
     resizeMode: 'contain',
-    // marginTop: 20,
   },
   modalContainer: {
     flex: 1,
@@ -275,12 +318,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginBottom: 15,
   },
-  // modalButton: {
-  //   marginTop: 20,
-  //   padding: 10,
-  //   backgroundColor: '#562f6a',
-  //   borderRadius: 5,
-  // },
   modalButtonText: {
     color: 'red',
     fontSize: 12,
