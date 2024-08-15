@@ -1,5 +1,15 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, ImageBackground, Image, Alert } from 'react-native';
+import React, {useState} from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Modal,
+  ImageBackground,
+  Image,
+  Alert,
+} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import pwdIMage from '../../assets/images/Background.jpg';
 import registerImage from '../../assets/images/register.png';
@@ -10,7 +20,7 @@ import Districtpic from '../../assets/images/district.png';
 import DOB from '../../assets/images/dob.png';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
-const Register = ({ navigation }) => {
+const Register = ({navigation}) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [district, setDistrict] = useState('');
@@ -20,7 +30,11 @@ const Register = ({ navigation }) => {
 
   // Calculate the minimum date for 18 years age restriction
   const today = new Date();
-  const minDate = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
+  const minDate = new Date(
+    today.getFullYear() - 18,
+    today.getMonth(),
+    today.getDate(),
+  );
 
   const handleDateChange = (event, selectedDate) => {
     const currentDate = selectedDate || date;
@@ -35,17 +49,15 @@ const Register = ({ navigation }) => {
   };
 
   return (
-    <ImageBackground
-      source={pwdIMage}
-      style={styles.backgroundImage}
-    >
+    <ImageBackground source={pwdIMage} style={styles.backgroundImage}>
       <View style={styles.topLine} />
       <Text style={styles.title}>Sign Up</Text>
-      <Text style={styles.subtitle}>Please provide the following information</Text>
+      <Text style={styles.subtitle}>
+        Please provide the following information
+      </Text>
       <View style={styles.container}>
-
         <View style={styles.inputContainer1}>
-          <Image source={emailImage} style={styles.icon} /> 
+          <Image source={emailImage} style={styles.icon} />
           <TextInput
             style={styles.input}
             placeholder="Email"
@@ -56,7 +68,7 @@ const Register = ({ navigation }) => {
         </View>
 
         <View style={styles.inputContainer}>
-          <Image source={passwordImage} style={styles.icon} /> 
+          <Image source={passwordImage} style={styles.icon} />
           <TextInput
             style={styles.input}
             placeholder="Password"
@@ -66,27 +78,26 @@ const Register = ({ navigation }) => {
             secureTextEntry
           />
         </View>
-        
+
         <TouchableOpacity
           onPress={() => setModalVisible(true)}
-          style={styles.inputContainer}
-        >
-          <Image source={Districtpic} style={styles.icon} /> 
+          style={styles.inputContainer}>
+          <Image source={Districtpic} style={styles.icon} />
           <TextInput
             style={styles.input}
             placeholder="District"
             placeholderTextColor="#9A9A9A"
             value={district}
             onChangeText={setDistrict}
-            editable={false} 
+            editable={false}
           />
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={styles.inputContainer}
           onPress={() => setShowDatePicker(true)} // Open DateTimePicker on press
         >
-          <Image source={DOB} style={styles.icon} /> 
+          <Image source={DOB} style={styles.icon} />
           <TextInput
             style={styles.input}
             placeholder="Date of Birth"
@@ -95,16 +106,15 @@ const Register = ({ navigation }) => {
             editable={false} // Make it non-editable so only picker can change the date
           />
         </TouchableOpacity>
-        
-        <LinearGradient
-          colors={['#4c1e86', '#d42b4d']} // Adjusted to match the gradient in the image
-          start={{x: 0, y: 0}} // Gradient starts from the left side
-          end={{x: 1, y: 0}} // Gradient ends at the right side
-          style={styles.button}>
-          <TouchableOpacity onPress={() => navigation.navigate('Dashboard')}>
+        <TouchableOpacity onPress={() => navigation.navigate('Dashboard')}>
+          <LinearGradient
+            colors={['#4c1e86', '#d42b4d']} // Adjusted to match the gradient in the image
+            start={{x: 0, y: 0}} // Gradient starts from the left side
+            end={{x: 1, y: 0}} // Gradient ends at the right side
+            style={styles.button}>
             <Text style={styles.buttonText}>Submit</Text>
-          </TouchableOpacity>
-        </LinearGradient>
+          </LinearGradient>
+        </TouchableOpacity>
 
         <TouchableOpacity onPress={() => navigation.navigate('Login')}>
           <Text style={styles.footerText}>
@@ -120,15 +130,13 @@ const Register = ({ navigation }) => {
         visible={modalVisible}
         onRequestClose={() => {
           setModalVisible(!modalVisible);
-        }}
-      >
+        }}>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Select District</Text>
             <TouchableOpacity
               style={styles.modalButton}
-              onPress={() => setModalVisible(false)}
-            >
+              onPress={() => setModalVisible(false)}>
               <Text style={styles.modalButtonText}>Close</Text>
             </TouchableOpacity>
           </View>
@@ -171,14 +179,14 @@ const styles = StyleSheet.create({
     fontSize: 25,
     marginLeft: '6%',
     color: '#000',
-    marginTop:10,
+    marginTop: 10,
     marginBottom: '1%',
     textAlign: 'left', // Align text to the left
     alignSelf: 'flex-start', // Align the text view to the start of the container
-    fontWeight:'300',
+    fontWeight: '300',
     fontFamily: 'Dubai-Regular',
   },
-    subtitle: {
+  subtitle: {
     fontSize: 14,
     marginLeft: '6%',
     color: 'grey',
@@ -213,22 +221,22 @@ const styles = StyleSheet.create({
     width: 100, // Increased width
     height: 30, // Increased height
     marginRight: -20,
-    marginLeft:-30
+    marginLeft: -30,
   },
   forgotPassword: {
     alignSelf: 'flex-end',
-    fontWeight:'bold',
+    fontWeight: 'bold',
     color: '#06225B',
-    fontSize:12,
+    fontSize: 12,
     marginBottom: 15,
-    marginLeft:'60%'
+    marginLeft: '60%',
   },
   button: {
     borderRadius: 25,
     alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 60,
-    marginTop:20,
+    marginTop: 20,
     // marginBottom: 10,
   },
   buttonText: {
@@ -238,7 +246,7 @@ const styles = StyleSheet.create({
   footerText: {
     color: '#9A9A9A',
     fontSize: 14,
-    marginTop:10
+    marginTop: 10,
   },
   signup: {
     color: '#06225B',
@@ -267,15 +275,15 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginBottom: 15,
   },
-  modalButton: {
-    marginTop: 20,
-    padding: 10,
-    backgroundColor: '#562f6a',
-    borderRadius: 5,
-  },
+  // modalButton: {
+  //   marginTop: 20,
+  //   padding: 10,
+  //   backgroundColor: '#562f6a',
+  //   borderRadius: 5,
+  // },
   modalButtonText: {
-    color: '#FFF',
-    fontSize: 16,
+    color: 'red',
+    fontSize: 12,
   },
 });
 

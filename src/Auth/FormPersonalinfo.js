@@ -570,6 +570,10 @@ const styles = StyleSheet.create({
    paddingHorizontal: 5,
     fontSize: 12,
   },
+  selectedTextStyle: {
+    color: 'black',
+    fontSize:13
+  },
   inputSearchStyle:{
     color: 'black',
     backgroundColor: 'white',
