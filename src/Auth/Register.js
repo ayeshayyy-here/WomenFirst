@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,11 +8,11 @@ import {
   Modal,
   ImageBackground,
   Image,
-  Alert,
+  ToastAndroid,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  ToastAndroid,
+  Alert
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import pwdIMage from '../../assets/images/Background.jpg';
@@ -25,11 +25,16 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 
 const Register = ({ navigation }) => {
   const [username, setUsername] = useState('');
+  const [useremail, setUseremail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [district, setDistrict] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
-  const [date, setDate] = useState(null); // Set initial state to null
+  const [date, setDate] = useState(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [districts, setDistricts] = useState([]);
+  const [districtId, setDistrictId] = useState([]);
+
 
   // Calculate the minimum date for 18 years age restriction
   const today = new Date();
@@ -39,44 +44,112 @@ const Register = ({ navigation }) => {
     today.getDate(),
   );
 
+  // Fetch districts data from API
+  useEffect(() => {
+    fetch('https://wwh.punjab.gov.pk/api/districts')
+      .then((response) => response.json())
+      .then((data) => {
+        // console.log('Fetched districts data:', data);
+        setDistricts(data.districts);
+      })
+      .catch((error) => {
+        console.error('Error fetching districts:', error);
+      });
+  }, []);
+
   const handleDateChange = (event, selectedDate) => {
     const currentDate = selectedDate || date;
     setShowDatePicker(false);
 
-    // Check if the selected date is less than 18 years ago
     if (currentDate > minDate) {
-      ToastAndroid.show('You must be at least 18 years old.', ToastAndroid.LONG);
-      setDate(null); // Clear the date if invalid
+      Alert.alert(
+        'Age Restriction',
+        'You must be at least 18 years old.',
+        [{ text: 'OK' }]
+      );
+      setDate(null);
     } else {
       setDate(currentDate);
     }
   };
 
-  const handleSubmit = () => {
-    let valid = true;
-    
+  const handleDistrictSelect = (district) => {
+    setDistrict(district.name);
+    setDistrictId(district.id); // Add this line to store the districtId
+    setModalVisible(false);
+  };
+  
+
+  const handleSubmit = async () => {
+
+    // Existing validation
     if (!username) {
-      ToastAndroid.show('Email is required.', ToastAndroid.LONG);
-      valid = false;
+      ToastAndroid.show('Please Enter your Name.', ToastAndroid.LONG);
+      return;
     }
-    if (!password) {
-      ToastAndroid.show('Password is required.', ToastAndroid.LONG);
-      valid = false;
+    if (!useremail) {
+      ToastAndroid.show('Email is required.', ToastAndroid.LONG);
+      return;
     }
     if (!district) {
       ToastAndroid.show('Please select a district.', ToastAndroid.LONG);
-      valid = false;
+      return;
     }
     if (!date) {
       ToastAndroid.show('Please select your Date of Birth.', ToastAndroid.LONG);
-      valid = false;
+      return;
     }
-    
-    if (valid) {
-      // Proceed with form submission, e.g., navigation or API call
-      navigation.navigate('Dashboard');
+    if (!password) {
+      ToastAndroid.show('Password is required.', ToastAndroid.LONG);
+      return;
     }
+    if (password.length < 8) {
+      ToastAndroid.show('Password must be at least 8 characters long.', ToastAndroid.LONG);
+      return;
+    }
+    if (password !== confirmPassword) {
+      ToastAndroid.show('Passwords do not match.', ToastAndroid.LONG);
+      return;
+    }
+  
+    fetch('https://wwh.punjab.gov.pk/api/register', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: username, // Changed to 'name'
+        email: useremail, // Added email field
+        district: districtId, // Include districtId
+        dob: date.toISOString().split('T')[0],// Format as YYYY-MM-DD
+        password,
+        password_confirmation: confirmPassword, // Added password_confirmation field
+      }),
+    })
+      .then(async (response) => {
+        const text = await response.text(); // Read response as text
+        console.log('Response Text:', text); // Log the raw response text
+        try {
+          const data = JSON.parse(text); // Attempt to parse as JSON
+          console.log('Registration Response:', data); // Log the response data
+          if (data.success) {
+            ToastAndroid.show('User Registered Successfully!', ToastAndroid.LONG);
+            navigation.navigate('Login');
+          } else {
+            ToastAndroid.show('Registration failed. Please try again.', ToastAndroid.LONG);
+          }
+        } catch (e) {
+          console.error('Error parsing JSON:', e); // Handle JSON parsing error
+          ToastAndroid.show('An error occurred. Please try again.', ToastAndroid.LONG);
+        }
+      })
+      .catch((error) => {
+        console.error('Error registering user:', error);
+        ToastAndroid.show('An error occurred. Please try again.', ToastAndroid.LONG);
+      });
   };
+
+  
 
   return (
     <KeyboardAvoidingView
@@ -92,26 +165,24 @@ const Register = ({ navigation }) => {
           </Text>
           <View style={styles.centeredContent}>
             <View style={styles.formContainer}>
+            <View style={styles.inputContainer1}>
+                <Image source={emailImage} style={styles.icon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Name"
+                  placeholderTextColor="#9A9A9A"
+                  value={username}
+                  onChangeText={setUsername}
+                />
+              </View>
               <View style={styles.inputContainer1}>
                 <Image source={emailImage} style={styles.icon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Email"
                   placeholderTextColor="#9A9A9A"
-                  value={username}
-                  onChangeText={setUsername}
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Image source={passwordImage} style={styles.icon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Password"
-                  placeholderTextColor="#9A9A9A"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
+                  value={useremail}
+                  onChangeText={setUseremail}
                 />
               </View>
 
@@ -125,24 +196,46 @@ const Register = ({ navigation }) => {
                   placeholder="District"
                   placeholderTextColor="#9A9A9A"
                   value={district}
-                  onChangeText={setDistrict}
                   editable={false}
                 />
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.inputContainer}
-                onPress={() => setShowDatePicker(true)} // Open DateTimePicker on press
+                onPress={() => setShowDatePicker(true)}
               >
                 <Image source={DOB} style={styles.icon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Date of Birth"
                   placeholderTextColor="#9A9A9A"
-                  value={date ? date.toDateString() : ''} // Display selected date or placeholder
-                  editable={false} // Make it non-editable so only picker can change the date
+                  value={date ? date.toDateString() : ''}
+                  editable={false}
                 />
               </TouchableOpacity>
+
+              <View style={styles.inputContainer}>
+                <Image source={passwordImage} style={styles.icon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Password"
+                  placeholderTextColor="#9A9A9A"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                />
+              </View>
+              <View style={styles.inputContainer}>
+                <Image source={passwordImage} style={styles.icon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Confirm Password"
+                  placeholderTextColor="#9A9A9A"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry
+                />
+              </View>
 
               <TouchableOpacity onPress={handleSubmit}>
                 <LinearGradient
@@ -166,30 +259,46 @@ const Register = ({ navigation }) => {
         </ImageBackground>
 
         <Modal
-          animationType="fade"
-          transparent={true}
-          visible={modalVisible}
-          onRequestClose={() => {
-            setModalVisible(!modalVisible);
-          }}
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Select District</Text>
-              <TouchableOpacity
-                style={styles.modalButton}
-                onPress={() => setModalVisible(false)}
-              >
-                <Text style={styles.modalButtonText}>Close</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
+  animationType="fade"
+  transparent={true}
+  visible={modalVisible}
+  onRequestClose={() => {
+    setModalVisible(!modalVisible);
+  }}
+>
+  <View style={styles.modalOverlay}>
+    <View style={styles.modalContainer}>
+      <Text style={styles.modalTitle}>Select District</Text>
+      <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
+        {districts.length > 0 ? (
+          districts.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              onPress={() => handleDistrictSelect(item)} // Pass the entire district object
+              style={styles.modalButton}
+            >
+              <Text style={styles.modalButtonText}>{item.name}</Text>
+            </TouchableOpacity>
+          ))
+        ) : (
+          <Text style={styles.modalButtonText}>No districts available</Text>
+        )}
+      </ScrollView>
+      <TouchableOpacity
+        style={styles.modalCloseButton}
+        onPress={() => setModalVisible(false)}
+      >
+        <Text style={styles.modalButtonText}>Close</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+</Modal>
+
 
         {showDatePicker && (
           <DateTimePicker
-            value={date || new Date()} // Default to current date if no date is selected
-            mode="date" // Set mode to "date"
+            value={date || new Date()}
+            mode="date"
             display="default"
             onChange={handleDateChange}
           />
@@ -301,26 +410,44 @@ const styles = StyleSheet.create({
     height: 350, // Increase the height of the image
     resizeMode: 'contain',
   },
-  modalContainer: {
+  modalOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent background
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
-  modalContent: {
+  modalContainer: {
     width: '80%',
-    padding: 20,
-    backgroundColor: '#FFF',
+    maxHeight: '80%',
+    backgroundColor: '#fff',
     borderRadius: 10,
-    alignItems: 'center',
+    elevation: 5,
   },
   modalTitle: {
     fontSize: 18,
-    marginBottom: 15,
+    fontWeight: 'bold',
+    margin: 10,
+    textAlign:'center'
+  },
+  modalList: {
+    maxHeight: 300, // Adjust height as needed
+    
+  },
+  modalButton: {
+    padding: 10,
+    // borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
   },
   modalButtonText: {
-    color: 'red',
-    fontSize: 12,
+    fontSize: 16,
+    textAlign:'center'
+
+  },
+  modalCloseButton: {
+    padding: 10,
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#ddd',
   },
 });
 
