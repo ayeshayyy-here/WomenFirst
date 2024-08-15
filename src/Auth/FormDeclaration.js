@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, ScrollView, Modal, TouchableOpacity, TouchableWithoutFeedback } from 'react-native';
 import ProgressBar from '../components/ProgressBar';
 import { useNavigation } from '@react-navigation/native';
+import DocumentPicker from 'react-native-document-picker';
+import Icon from 'react-native-vector-icons/FontAwesome';
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
+import { faPlusCircle } from '@fortawesome/free-solid-svg-icons';
+
+
 
 const FormD = () => {
   const [formData, setFormData] = useState({
@@ -16,7 +22,19 @@ const FormD = () => {
   });
 
   const navigation = useNavigation();
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedAttachment, setSelectedAttachment] = useState('');
+  const [isFileSelected, setIsFileSelected] = useState(false);
 
+  const initialState = {
+    URI: '',
+    Type: '',
+    Name: '',
+  };
+
+  const [stateFunctions, setStateFunctions] = useState({
+    attachdeclaration: initialState,
+  })
   const handleInputChange = (name, value) => {
     setFormData({ ...formData, [name]: value });
   };
@@ -26,6 +44,61 @@ const FormD = () => {
   const handlePrevPress = () => {
     navigation.navigate('FormA');
   };
+  const openGallery = async () => {
+    try {
+      const response = await DocumentPicker.pick({
+        allowMultiSelection: false,
+        type: [DocumentPicker.types.allFiles],
+      });
+
+      setStateFunctions(prev => ({
+        ...prev,
+        [selectedAttachment]: { ...prev[selectedAttachment], Name: response[0].name, URI: response[0].uri, Type: response[0].type },
+      }));
+      setIsFileSelected(true);
+      setModalVisible(false);
+    } catch (error) {
+      console.error('Document picking error:', error);
+      setIsFileSelected(false);
+    }
+  };
+
+  const handleUploadClick = (attachmentName) => {
+    setSelectedAttachment(attachmentName);
+    setModalVisible(true);
+  };
+
+  const renderAttachment = (label, attachmentName) => (
+    <View style={styles.attachmentWrapper}>
+      {/* <Text style={styles.text}>{label}</Text> */}
+      <View style={styles.mainWrapper}>
+        <TouchableOpacity onPress={() => handleUploadClick(attachmentName)} style={styles.iconWrapper}>
+          <FontAwesomeIcon
+            icon={faPlusCircle}
+            size={30}
+            color={stateFunctions[attachmentName].Name ? 'green' : 'black'}
+            marginLeft={10}
+          />
+        </TouchableOpacity>
+        {stateFunctions[attachmentName].Name ? (
+          <View style={styles.fileNameWrapper}>
+            {stateFunctions[attachmentName].Type === 'image' ? (
+              <Image
+                source={{ uri: stateFunctions[attachmentName].URI }}
+                style={styles.previewImage}
+              />
+            ) : (
+              <Text style={styles.fileNameText}>{stateFunctions[attachmentName].Name}</Text>
+            )}
+          </View>
+        ) : null}
+      </View>
+      <View style={styles.divider} />
+    </View>
+  );
+  
+
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.header}>Application Form</Text>
@@ -84,16 +157,73 @@ const FormD = () => {
           onChangeText={(text) => handleInputChange('mobile', text)}
         />
       </View>
-      <Text style={styles.declare}>Personal Declaration</Text>
+      <Text style={styles.declare}>Personal Declaration :</Text>
+      <View style={styles.divider2} />
       <Text style={styles.subtext}>I Name hereby apply for admission in the Working Women Hostel and undertake to
          abide by the Rules & Regulations notified from time to time of the Hostel, which i have throughly read and also undertaken to pay all charges regularly
-          </Text>
-          <Text style={styles.Nametext}>Name:</Text>
-          <Text style={styles.Nametext}>Designation:</Text>
-          <Text style={styles.Nametext}>Date:</Text>
+      </Text>
+      <Text style={styles.Nametext}>Name: 
+        <Text style={styles.subtext}> The Applicant Name</Text>
+      </Text>
+      <Text style={styles.Nametext}>Designation:
+        <Text style={styles.subtext}> The Applicant Job Designation</Text>
+      </Text>
+      <Text style={styles.Nametext}>Date: 
+       <Text style={styles.subtext}>  12-08-2024</Text>
+      </Text>
+     
 
-      <Text style={styles.declare}>Guardian/Father/Husband Declaration</Text>
-    
+      <Text style={styles.declare}>Guardian/Father/Husband Declaration :</Text>
+      <View style={styles.divider2} />
+      <Text style={styles.subtext}>I mister, Guardian of Miss/Mrs Name(the Applicant) request that she may be allow to get admission in the hostel under prescribed terms and conditions as well the reles & regulations.She may be allowed to see the following persons at the hostel premises on prescribed days of visit. </Text>
+      <Text style={styles.Nametext}>Name: 
+        <Text style={styles.subtext}> Mister</Text>
+      </Text>
+      <Text style={styles.Nametext}>RelationShip:
+        <Text style={styles.subtext}> Guardian</Text>
+      </Text>
+      <Text style={styles.Nametext}>Address: 
+       <Text style={styles.subtext}>  Lahore</Text>
+      </Text>
+      <Text style={styles.Nametext}>Mobile:
+        <Text style={styles.subtext}> The Guardian Mobile No.</Text>
+      </Text>
+      <Text style={styles.Nametext}>Signature: 
+       <Text style={styles.subtext}> The Guardian Signature </Text>
+      </Text>
+      <Text style={styles.Nametext}>Date: 
+       <Text style={styles.subtext}>  12-08-2024</Text>
+      </Text>
+      
+
+      <Text style={styles.declare}>Attach Declaration :</Text>
+      <View style={styles.divider2} />
+      <Text style={styles.Nametext}>Note: 
+         <Text style={styles.subtext}>Please take a snapshot of Declaration and it will be Attached here.</Text>
+      </Text>
+      <View style={styles.divider} />
+       {renderAttachment("Attach Declaration", "attachdeclaration")}
+      <Modal
+        visible={modalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setModalVisible(false)}>
+        <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Choose an option</Text>
+                <View style={styles.modalOptionsRow}>
+                  <TouchableOpacity style={styles.modalButton} onPress={openGallery}>
+                    <Icon name="file" size={30} color="black" />
+                    <Text style={styles.modalButtonText}>Upload File</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
 
       <View style={styles.buttonContainer}>
       <TouchableOpacity style={styles.button} onPress={handlePrevPress}>
@@ -159,10 +289,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },  
   declare: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#010048',
+    // marginBottom: 2,
+    color: 'black',
   },
   subtext: {
     fontSize: 12,
@@ -198,6 +328,83 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
   },
+  divider: {
+    height: 0.4,
+    backgroundColor: 'grey',
+    marginVertical: 10,
+    width: '100%',
+  },
+  divider1: {
+    height: 1,
+    backgroundColor: 'grey',
+    marginVertical: 10,
+    width: '45%',
+    marginTop: 2,
+  },
+  divider2: {
+    height: 1,
+    backgroundColor: 'grey',
+    marginVertical: 10,
+    width: '100%',
+    marginTop: 2,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+    padding: 20,
+    paddingBottom: 30,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  modalOptionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    
+  },
+  modalButton: {
+    flexDirection: 'row',
+    marginTop:10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+  },
+  modalButtonText: {
+    color: '#010048',
+    fontSize: 16,
+    // fontWeight: 'bold',
+    marginLeft: 10,
+    marginTop:10
+  },
+  mainWrapper: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  attachmentWrapper: {
+    marginBottom: 20,
+  },
+  iconWrapper: {
+    marginTop: 5,
+    marginBottom: 5,
+  },
+  line: {
+    width: 200,
+    height: 2,
+    alignItems: 'center',
+  },
+  
 });
 
 export default FormD;
