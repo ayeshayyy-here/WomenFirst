@@ -1,4 +1,4 @@
-import React, { useState, createRef } from 'react';
+import React, { useState, useEffect, createRef } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import loginImage from '../../assets/images/login.png';
 import emailImage from '../../assets/images/email.png';
 import passwordImage from '../../assets/images/password.png';
 import Loader from '../components/Loader'; // Import the custom Loader component
+import EncryptedStorage from 'react-native-encrypted-storage';
 
 const Login = ({ navigation }) => {
   const [username, setUsername] = useState('');
@@ -27,6 +28,23 @@ const Login = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false); // State for showing/hiding password
   const usernameInputRef = createRef();
   const passwordInputRef = createRef();
+
+  useEffect(() => {
+    // Check if user is already logged in
+    const checkLoggedIn = async () => {
+      try {
+        const user = await EncryptedStorage.getItem('user');
+        if (user) {
+          // Navigate to dashboard if user is already logged in
+          navigation.navigate('Dashboard', { user: JSON.parse(user) });
+        }
+      } catch (error) {
+        console.error('Error checking login status:', error);
+      }
+    };
+
+    checkLoggedIn();
+  }, []);
 
   const validateFields = () => {
     if (!username.trim()) {
@@ -66,6 +84,9 @@ const Login = ({ navigation }) => {
       console.log('API Response:', result); // Log the entire response for debugging
 
       if (response.ok) {
+        // Store user details in encrypted storage
+        await EncryptedStorage.setItem('user', JSON.stringify(result.user));
+
         // If login is successful, navigate to the dashboard
         ToastAndroid.show('Login Successful', ToastAndroid.SHORT);
         navigation.navigate('Dashboard', { user: result.user });
@@ -161,7 +182,6 @@ const Login = ({ navigation }) => {
     </KeyboardAvoidingView>
   );
 };
-
 const styles = StyleSheet.create({
   backgroundImage: {
     flex: 1,
