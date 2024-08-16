@@ -14,6 +14,7 @@ import {
   ScrollView,
   Alert
 } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 import LinearGradient from 'react-native-linear-gradient';
 import pwdIMage from '../../assets/images/Background.jpg';
 import registerImage from '../../assets/images/register.png';
@@ -22,6 +23,7 @@ import passwordImage from '../../assets/images/password.png';
 import Districtpic from '../../assets/images/district.png';
 import DOB from '../../assets/images/dob.png';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import Loader from '../components/Loader';
 
 const Register = ({ navigation }) => {
   const [username, setUsername] = useState('');
@@ -34,6 +36,9 @@ const Register = ({ navigation }) => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [districts, setDistricts] = useState([]);
   const [districtId, setDistrictId] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredDistricts, setFilteredDistricts] = useState([]);
 
 
   // 18 years age restriction
@@ -56,6 +61,17 @@ const Register = ({ navigation }) => {
         console.error('Error fetching districts:', error);
       });
   }, []);
+  // Search function
+  useEffect(() => {
+    if (searchQuery === '') {
+      setFilteredDistricts(districts); // Reset to all districts if search query is empty
+    } else {
+      const filtered = districts.filter((district) =>
+        district.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredDistricts(filtered);
+    }
+  }, [searchQuery, districts]);
 
   const handleDateChange = (event, selectedDate) => {
     const currentDate = selectedDate || date;
@@ -111,7 +127,7 @@ const Register = ({ navigation }) => {
       ToastAndroid.show('Passwords do not match.', ToastAndroid.LONG);
       return;
     }
-  
+    setLoading(true);
     fetch('https://wwh.punjab.gov.pk/api/register', {
       method: 'POST',
       headers: {
@@ -146,6 +162,10 @@ const Register = ({ navigation }) => {
       .catch((error) => {
         console.error('Error registering user:', error);
         ToastAndroid.show('An error occurred. Please try again.', ToastAndroid.LONG);
+      })
+      .finally(() => {
+        // Hide loader after submission
+        setLoading(false);
       });
   };
 
@@ -156,7 +176,7 @@ const Register = ({ navigation }) => {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={styles.scrollView}>
+      <ScrollView contentContainerStyle={styles.scrollView} showsVerticalScrollIndicator={false}>
         <ImageBackground source={pwdIMage} style={styles.backgroundImage}>
           <View style={styles.topLine} />
           <Text style={styles.title}>Sign Up</Text>
@@ -259,40 +279,52 @@ const Register = ({ navigation }) => {
         </ImageBackground>
 
         <Modal
-  animationType="fade"
-  transparent={true}
-  visible={modalVisible}
-  onRequestClose={() => {
-    setModalVisible(!modalVisible);
-  }}
->
-  <View style={styles.modalOverlay}>
-    <View style={styles.modalContainer}>
-      <Text style={styles.modalTitle}>Select District</Text>
-      <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
-        {districts.length > 0 ? (
-          districts.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              onPress={() => handleDistrictSelect(item)} // Pass the entire district object
-              style={styles.modalButton}
-            >
-              <Text style={styles.modalButtonText}>{item.name}</Text>
-            </TouchableOpacity>
-          ))
-        ) : (
-          <Text style={styles.modalButtonText}>No districts available</Text>
-        )}
-      </ScrollView>
-      <TouchableOpacity
-        style={styles.modalCloseButton}
-        onPress={() => setModalVisible(false)}
-      >
-        <Text style={styles.modalButtonText}>Close</Text>
-      </TouchableOpacity>
-    </View>
-  </View>
-</Modal>
+            animationType="fade"
+            transparent={true}
+            visible={modalVisible}
+            onRequestClose={() => {
+              setModalVisible(!modalVisible);
+            }}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContainer}>
+                <Text style={styles.modalTitle}>Select District</Text>
+
+                <View style={styles.searchContainer}>
+                  <Icon name="search" size={24} color="#9A9A9A" style={styles.searchIcon} />
+                  <TextInput
+                    style={styles.searchInput}
+                    placeholder="Search District"
+                    placeholderTextColor="#9A9A9A"
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                  />
+                </View>
+
+                <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
+                  {filteredDistricts.length > 0 ? (
+                    filteredDistricts.map((item) => (
+                      <TouchableOpacity
+                        key={item.id}
+                        onPress={() => handleDistrictSelect(item)} 
+                        style={styles.modalButton}
+                      >
+                        <Text style={styles.modalButtonText}>{item.name}</Text>
+                      </TouchableOpacity>
+                    ))
+                  ) : (
+                    <Text style={styles.modalButtonText}>No districts available</Text>
+                  )}
+                </ScrollView>
+                <TouchableOpacity
+                  style={styles.modalCloseButton}
+                  onPress={() => setModalVisible(false)}
+                >
+                  <Text style={styles.closebuttontext}>Close</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
 
 
         {showDatePicker && (
@@ -303,6 +335,7 @@ const Register = ({ navigation }) => {
             onChange={handleDateChange}
           />
         )}
+        {loading && <Loader />}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -328,6 +361,21 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+    margin: 10,
+  },
+  searchIcon: {
+    marginRight: 10,
+  },
+  searchInput: {
+    flex: 1,
+    padding: 8,
+    fontSize: 16,
   },
   centeredContent: {
     flex: 1,
@@ -442,6 +490,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign:'center'
 
+  },
+  closebuttontext:{
+    fontSize: 16,
+    textAlign:'center',
+    color:'red'
   },
   modalCloseButton: {
     padding: 10,

@@ -41,12 +41,24 @@ const FormP = () => {
   const [capturedImage, setCapturedImage] = useState(null);
   const [stateFunctions, setStateFunctions] = useState({});
   const [isFocus, setIsFocus] = useState(false);
+  const [districts, setDistricts] = useState([]);
   const [selectedOption, setSelectedOption] = useState(null);
   const [districtOption, setDistrictOption] = useState(null);  // For District dropdown
   const [instituteOption, setInstituteOption] = useState(null);  // For Institute dropdown
   const [jobTypeOption, setJobTypeOption] = useState(null);  // For Job Type dropdown
   const [bpsOption, setBpsOption] = useState(null);  // For BPS dropdown
   const navigation = useNavigation();
+
+  useEffect(() => {
+    fetch('https://wwh.punjab.gov.pk/api/districts')
+      .then((response) => response.json())
+      .then((data) => {
+        setDistricts(data.districts);  // Assuming the data structure
+      })
+      .catch((error) => {
+        console.error('Error fetching districts:', error);
+      });
+  }, []);
 
   useEffect(() => {
     const savedData = syncStorage.get('formData');
@@ -215,20 +227,20 @@ const FormP = () => {
           <Text style={styles.text}>Choose District to Apply </Text>
             <View>
               <Dropdown
-                style={[styles.input, isFocus && {borderColor: '#1E577C'}]}
+                style={[styles.input, isFocus && { borderColor: '#1E577C' }]}
                 placeholderStyle={styles.placeholderStyle}
                 selectedTextStyle={styles.selectedTextStyle}
                 inputSearchStyle={styles.inputSearchStyle}
                 itemTextStyle={styles.itemTextStyle}
                 search
                 searchPlaceholder="Search..."
-                data={options}
+                data={districts}
                 labelField="name"
                 valueField="id"
                 placeholder="Select an option"
                 onFocus={() => setIsFocus(true)}
-                value={districtOption}  // Updated state
-                onChange={value => setDistrictOption(value)}  // Updated state
+                value={districtOption}  // State for selected option
+                onChange={item => setDistrictOption(item.id)}  // Update selected state
               />
             </View>
             <Text style={styles.text}>Choose Institute </Text>
