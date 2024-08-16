@@ -1,18 +1,21 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, ScrollView,ToastAndroid, TouchableOpacity } from 'react-native';
 import ProgressBar from '../components/ProgressBar';
 import { useNavigation } from '@react-navigation/native';
+
 
 const FormG = () => {
   const [formData, setFormData] = useState({
     name: '',
-    phone: '',
-    cnic: '',
-    datee: '',
-    dateb: '',
-    jobTitle: '',
-    jobStartDate: '',
-    salary: '',
+    address:'',
+    email:'',
+    occupation:'',
+    mobile: '',
+    ename:'',
+    eaddress:'',
+    eemail:'',
+    eoccupation:'',
+    relationship: '',
   });
 
   const navigation = useNavigation();
@@ -21,6 +24,67 @@ const FormG = () => {
     setFormData({ ...formData, [name]: value });
   };
   const handleNextPress = () => {
+
+    // //Validate Father/Husband/Guardian Name
+    // if (!formData.name) {
+    //   ToastAndroid.show('Please enter Father/Husband/Guardian Name', ToastAndroid.LONG);
+    //   return;
+    // }
+    
+    // //Validate Address
+    // if (!formData.address) {
+    //   ToastAndroid.show('Please enter Address', ToastAndroid.LONG);
+    //   return;
+    // }
+
+    // //Validate Email Address
+    // if (!formData.email) {
+    //   ToastAndroid.show('Please enter Email Address', ToastAndroid.LONG);
+    //   return;
+    // }
+
+    // //Validate occupation
+    // if (!formData.occupation) {
+    //   ToastAndroid.show('Please enter Occupation', ToastAndroid.LONG);
+    //   return;
+    // }
+
+    // //Validate mobile
+    // if (!formData.mobile) {
+    //   ToastAndroid.show('Please enter Mobile Number', ToastAndroid.LONG);
+    //   return;
+    // }
+
+    // //Validate Father/Husband/Guardian name in case of emergence
+    // if (!formData.ename) {
+    //   ToastAndroid.show('Please enter Father/Husband/Guardian name to informed in case of emergence', ToastAndroid.LONG);
+    //   return;
+    // }
+
+    // //Validate Address to informed in case of emergence
+    // if (!formData.eaddress) {
+    //   ToastAndroid.show('Please enter Address to informed in case of emergence', ToastAndroid.LONG);
+    //   return;
+    // }
+
+    // //Validate Email Address to informed in case of emergence
+    // if (!formData.eemail) {
+    //   ToastAndroid.show('Please enter Email Address to informed in case of emergence', ToastAndroid.LONG);
+    //   return;
+    // }
+
+    // //Validate Occupation to informed in case of emergence
+    // if (!formData.eoccupation) {
+    //   ToastAndroid.show('Please Occupation to informed in case of emergence', ToastAndroid.LONG);
+    //   return;
+    // }
+
+    // //Validate Relationship
+    // if (!formData.relationship) {
+    //   ToastAndroid.show('Please enter Name of Relationship', ToastAndroid.LONG);
+    //   return;
+    // }
+
     navigation.navigate('FormA');
   };
   const handlePrevPress = () => {
@@ -57,16 +121,16 @@ const FormG = () => {
           style={styles.input}
           placeholder="Enter Email Address"
           placeholderTextColor="grey"
-          value={formData.phone}
-          onChangeText={(text) => handleInputChange('phone', text)}
+          value={formData.email}
+          onChangeText={(text) => handleInputChange('email', text)}
         />
             <Text style={styles.text}>Occupation:</Text>
         <TextInput
           style={styles.input}
           placeholder="Enter Occupation"
           placeholderTextColor="grey"
-          value={formData.phone}
-          onChangeText={(text) => handleInputChange('phone', text)}
+          value={formData.occupation}
+          onChangeText={(text) => handleInputChange('occupation', text)}
         />
         <Text style={styles.text}>Mobile No:</Text>
         <TextInput
@@ -87,40 +151,40 @@ const FormG = () => {
           style={styles.input}
           placeholder="Enter Name"
           placeholderTextColor="grey"
-          value={formData.name}
-          onChangeText={(text) => handleInputChange('name', text)}
+          value={formData.ename}
+          onChangeText={(text) => handleInputChange('ename', text)}
         />
         <Text style={styles.text}>Address:</Text>
         <TextInput
           style={styles.input}
           placeholder="Enter Address"
           placeholderTextColor="grey"
-          value={formData.address}
-          onChangeText={(text) => handleInputChange('address', text)}
+          value={formData.eaddress}
+          onChangeText={(text) => handleInputChange('eaddress', text)}
         />
         <Text style={styles.text}>Email Address:</Text>
         <TextInput
           style={styles.input}
           placeholder="Enter Email Address"
           placeholderTextColor="grey"
-          value={formData.phone}
-          onChangeText={(text) => handleInputChange('phone', text)}
+          value={formData.eemail}
+          onChangeText={(text) => handleInputChange('eemail', text)}
         />
             <Text style={styles.text}>Occupation:</Text>
         <TextInput
           style={styles.input}
           placeholder="Enter Occupation"
           placeholderTextColor="grey"
-          value={formData.phone}
-          onChangeText={(text) => handleInputChange('phone', text)}
+          value={formData.eoccupation}
+          onChangeText={(text) => handleInputChange('eoccupation', text)}
         />
         <Text style={styles.text}>Relationship:</Text>
         <TextInput
           style={styles.input}
           placeholder="Select Relationship"
           placeholderTextColor="grey"
-          value={formData.mobile}
-          onChangeText={(text) => handleInputChange('mobile', text)}
+          value={formData.relationship}
+          onChangeText={(text) => handleInputChange('relationship', text)}
         />
       </View>
     

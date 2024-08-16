@@ -12,7 +12,7 @@ import {
   PermissionsAndroid,
   Image,
 } from 'react-native';
-import {Dropdown} from 'react-native-element-dropdown';
+import { Dropdown } from 'react-native-element-dropdown';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import ProgressBar from '../components/ProgressBar';
 import { useNavigation } from '@react-navigation/native';
@@ -30,12 +30,18 @@ const FormP = () => {
     dateb: '',
     datei: '',
     jobheld: '',
-    serving:'',
+    serving: '',
     jobStartDate: '',
     salary: '',
     address: '',
     mobile: '',
     disability: '',
+    applieddate: '',
+    placeofissue: '',
+    starttimes:'',
+    endtimes:'',
+    starttimew:'',
+    endtimew:'',
   });
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedAttachment, setSelectedAttachment] = useState('');
@@ -48,6 +54,7 @@ const FormP = () => {
   const [instituteOption, setInstituteOption] = useState(null);  // For Institute dropdown
   const [jobTypeOption, setJobTypeOption] = useState(null);  // For Job Type dropdown
   const [bpsOption, setBpsOption] = useState(null);  // For BPS dropdown
+  // const [applieddate, setApplieddate] = useState(null);
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -112,10 +119,10 @@ const FormP = () => {
         allowMultiSelection: false,
         type: [DocumentPicker.types.images], // This filters to only allow images (PNG, JPG, JPEG)
       });
-  
+
       const fileType = response[0].type;
       const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
-  
+
       if (allowedTypes.includes(fileType)) {
         setStateFunctions(prev => ({
           ...prev,
@@ -128,7 +135,7 @@ const FormP = () => {
       } else {
         alert('Only PNG, JPG, and JPEG files are allowed.');
       }
-  
+
       setModalVisible(false);
     } catch (error) {
       if (DocumentPicker.isCancel(error)) {
@@ -139,121 +146,163 @@ const FormP = () => {
     }
   };
   const handleNextPress = () => {
-    if (!capturedImage && !stateFunctions[selectedAttachment]?.URI) {
-      ToastAndroid.show('Please capture or upload your profile image.', ToastAndroid.LONG);
-      return;
-    }
-    if (!formData.name) {
-      ToastAndroid.show('Please enter your name.' , ToastAndroid.LONG);
-      return;
-    }
-  
-    // Validate Permanent Address
-    if (!formData.address) {
-      ToastAndroid.show('Please enter your address.' , ToastAndroid.LONG);
-      return;
-    }
-  
-    // Validate Phone Number
-    if (!formData.phone || formData.phone.length !== 11 ) {
-      ToastAndroid.show('Please enter a valid 11-digit phone number.', ToastAndroid.LONG);
-      return;
-    }
-  
-    // Validate Mobile Number
-    if (!formData.mobile || formData.mobile.length !== 11 ) {
-      ToastAndroid.show('Please enter a valid 11-digit mobile number.', ToastAndroid.LONG);
-      return;
-    }
-  
-    // Validate District
-    if (!districtOption) {
-      ToastAndroid.show('Please select a district.' , ToastAndroid.LONG);
-      return;
-    }
-  
-    // Validate Institute
-    if (!instituteOption) {
-      ToastAndroid.show('Please select an institute.', ToastAndroid.LONG);
-      return;
-    }
-  
-    // Validate CNIC
-    if (!formData.cnic.trim() || formData.cnic.length !== 13) {
-      ToastAndroid.show('Please enter a valid 13-digit CNIC number.', ToastAndroid.LONG);
-      return;
-    }
-  
-    // Validate Date of Expiry
-    if (!formData.datee) {
-      ToastAndroid.show('Please select the date of expiry.', ToastAndroid.LONG);
-      return;
-    }
-  
-    // Validate Date of Birth
-    if (!formData.dateb) {
-      ToastAndroid.show('Please select your date of birth.', ToastAndroid.LONG);
-      return;
-    }
-  
-    // Validate Date of Issue
-    if (!formData.datei) {
-      ToastAndroid.show('Please select the date of issue.', ToastAndroid.LONG);
-      return;
-    }
-  
-    // Validate Job Information
-    if (!formData.jobheld) {
-      ToastAndroid.show('Please enter the post you currently hold.', ToastAndroid.LONG);
-      return;
-    }
-  
-    if (!formData.serving) {
-      ToastAndroid.show('Please enter the duration you have been serving in your current job.', ToastAndroid.LONG);
-      return;
-    }
-  
-    // Validate Job Start Date
-    if (!formData.jobStartDate) {
-      ToastAndroid.show('Please select the job start date.', ToastAndroid.LONG);
-      return;
-    }
-  
-    // Validate Salary
-    if (!formData.salary || isNaN(formData.salary)) {
-      ToastAndroid.show('Please enter a valid salary.', ToastAndroid.LONG);
-      return;
-    }
-  
-    // Validate Job Type
-    if (!jobTypeOption) {
-      ToastAndroid.show('Please select a job type.', ToastAndroid.LONG);
-      return;
-    }
-  
-    // Validate BPS
-    if (!bpsOption) {
-      ToastAndroid.show('Please select your BPS.', ToastAndroid.LONG);
-      return;
-    }
-  
-    // If all validations pass, save the form data and navigate to the next screen
-    console.log('Form Data before navigation:', formData);
-    syncStorage.set('formData', formData);
+    // if (!capturedImage && !stateFunctions[selectedAttachment]?.URI) {
+    //   ToastAndroid.show('Please capture or upload your profile image.', ToastAndroid.LONG);
+    //   return;
+    // }
+    // if (!formData.name) {
+    //   ToastAndroid.show('Please enter your name.', ToastAndroid.LONG);
+    //   return;
+    // }
+
+    // // Validate Permanent Address
+    // if (!formData.address) {
+    //   ToastAndroid.show('Please enter your address.', ToastAndroid.LONG);
+    //   return;
+    // }
+
+    // // Validate Phone Number
+    // if (!formData.phone || formData.phone.length !== 11) {
+    //   ToastAndroid.show('Please enter a valid 11-digit phone number.', ToastAndroid.LONG);
+    //   return;
+    // }
+
+    // // Validate Mobile Number
+    // if (!formData.mobile || formData.mobile.length !== 11) {
+    //   ToastAndroid.show('Please enter a valid 11-digit mobile number.', ToastAndroid.LONG);
+    //   return;
+    // }
+
+    // // Validate District
+    // if (!districtOption) {
+    //   ToastAndroid.show('Please select a district.', ToastAndroid.LONG);
+    //   return;
+    // }
+
+    // // Validate Institute
+    // if (!instituteOption) {
+    //   ToastAndroid.show('Please select an institute.', ToastAndroid.LONG);
+    //   return;
+    // }
+
+    // //validate Applied date
+    // if (!formData.applieddate) {
+    //   ToastAndroid.show('Please select the date of Apllied.', ToastAndroid.LONG);
+    //   return;
+    // }
+
+    // // Validate CNIC
+    // if (!formData.cnic.trim() || formData.cnic.length !== 13) {
+    //   ToastAndroid.show('Please enter a valid 13-digit CNIC number.', ToastAndroid.LONG);
+    //   return;
+    // }
+
+    // // Validate Date of Expiry
+    // if (!formData.datee) {
+    //   ToastAndroid.show('Please select the date of expiry.', ToastAndroid.LONG);
+    //   return;
+    // }
+
+    // // Validate Date of Birth
+    // if (!formData.dateb) {
+    //   ToastAndroid.show('Please select your date of birth.', ToastAndroid.LONG);
+    //   return;
+    // }
+
+    // // Validate Date of Issue
+    // if (!formData.datei) {
+    //   ToastAndroid.show('Please select the date of issue.', ToastAndroid.LONG);
+    //   return;
+    // }
+
+    // // Validate Date of Issue
+    // if (!formData.placeofissue) {
+    //   ToastAndroid.show('Please enter the CNIC issue place.', ToastAndroid.LONG);
+    //   return;
+    // }
+
+    // // Validate Date of Issue
+    // if (!formData.disability) {
+    //   ToastAndroid.show('Please enter the disability(if you have).', ToastAndroid.LONG);
+    //   return;
+    // }
+
+    // // Validate Job Information
+    // if (!formData.jobheld) {
+    //   ToastAndroid.show('Please enter the post you currently hold.', ToastAndroid.LONG);
+    //   return;
+    // }
+
+    // if (!formData.serving) {
+    //   ToastAndroid.show('Please enter the duration you have been serving in your current job.', ToastAndroid.LONG);
+    //   return;
+    // }
+
+    // // Validate Job Start Date
+    // if (!formData.jobStartDate) {
+    //   ToastAndroid.show('Please select the job start date.', ToastAndroid.LONG);
+    //   return;
+    // }
+
+    // // Validate Salary
+    // if (!formData.salary || isNaN(formData.salary)) {
+    //   ToastAndroid.show('Please enter a valid salary.', ToastAndroid.LONG);
+    //   return;
+    // }
+
+    // // Validate Job Type
+    // if (!jobTypeOption) {
+    //   ToastAndroid.show('Please select a job type.', ToastAndroid.LONG);
+    //   return;
+    // }
+
+    // // Validate BPS
+    // if (!bpsOption) {
+    //   ToastAndroid.show('Please select your BPS.', ToastAndroid.LONG);
+    //   return;
+    // }
+
+    // // Validate Start time in Summer
+    // if (!formData.starttimes) {
+    //   ToastAndroid.show('Please enter the post you currently hold.', ToastAndroid.LONG);
+    //   return;
+    // }
+
+    // // Validate End time in Summer
+    // if (!formData.endtimes) {
+    //   ToastAndroid.show('Please enter the post you currently hold.', ToastAndroid.LONG);
+    //   return;
+    // }
+
+    // //Validate Start time in Winter
+    //  if (!formData.starttimew) {
+    //   ToastAndroid.show('Please enter the post you currently hold.', ToastAndroid.LONG);
+    //   return;
+    // }
+
+    // // Validate End time in Winter
+    // if (!formData.endtimew) {
+    //   ToastAndroid.show('Please enter the post you currently hold.', ToastAndroid.LONG);
+    //   return;
+    // }
+
+    // // If all validations pass, save the form data and navigate to the next screen
+    // console.log('Form Data before navigation:', formData);
+    // syncStorage.set('formData', formData);
     navigation.navigate('FormG');
   };
-  
+
   const options = [
-    {id: 1, name: 'Complaint'},
-    {id: 2, name: 'General Query'},
-    {id: 3, name: 'Advice / Suggestion'},
+    { id: 1, name: 'Complaint' },
+    { id: 2, name: 'General Query' },
+    { id: 3, name: 'Advice / Suggestion' },
   ];
   const jobtype = [
-    {id: 1, name: 'Punjab Government Employee'},
-    {id: 2, name: 'Federal Government Employee'},
-    {id: 3, name: 'Private Employee'},
-    {id: 4, name: 'Adhoc'},
-    {id: 5, name: 'Government Contract'},
+    { id: 1, name: 'Punjab Government Employee' },
+    { id: 2, name: 'Federal Government Employee' },
+    { id: 3, name: 'Private Employee' },
+    { id: 4, name: 'Adhoc' },
+    { id: 5, name: 'Government Contract' },
   ];
 
   const handleUploadClick = (attachmentName) => {
@@ -270,7 +319,7 @@ const FormP = () => {
       <View style={styles.section}>
         <Text style={styles.sectionHeader}>Personal Information</Text>
         <View style={styles.divider} />
-        
+
         {/* Display image or upload icon based on capturedImage */}
         {!capturedImage && !stateFunctions[selectedAttachment]?.URI ? (
           <View style={styles.iconWrapper}>
@@ -289,7 +338,7 @@ const FormP = () => {
             />
           </View>
         )}
-        
+
         <Text style={styles.text}>Applicant's Name:</Text>
         <TextInput
           style={styles.input}
@@ -325,44 +374,57 @@ const FormP = () => {
           value={formData.mobile}
           onChangeText={text => handleInputChange('mobile', text)}
         />
-          <Text style={styles.text}>Choose District to Apply </Text>
-            <View>
-              <Dropdown
-                style={[styles.input, isFocus && { borderColor: '#1E577C' }]}
-                placeholderStyle={styles.placeholderStyle}
-                selectedTextStyle={styles.selectedTextStyle}
-                inputSearchStyle={styles.inputSearchStyle}
-                itemTextStyle={styles.itemTextStyle}
-                search
-                searchPlaceholder="Search..."
-                data={districts}
-                labelField="name"
-                valueField="id"
-                placeholder="Select an option"
-                onFocus={() => setIsFocus(true)}
-                value={districtOption}  // State for selected option
-                onChange={item => setDistrictOption(item.id)}  // Update selected state
-              />
-            </View>
-            <Text style={styles.text}>Choose Institute </Text>
-            <View>
-              <Dropdown
-                style={[styles.input, isFocus && {borderColor: '#1E577C'}]}
-                placeholderStyle={styles.placeholderStyle}
-                selectedTextStyle={styles.selectedTextStyle}
-                inputSearchStyle={styles.inputSearchStyle}
-                itemTextStyle={styles.itemTextStyle}
-                search
-                searchPlaceholder="Search..."
-                data={options}
-                labelField="name"
-                valueField="id"
-                placeholder="Select an option"
-                onFocus={() => setIsFocus(true)}
-                value={instituteOption}  // Updated state
-                onChange={value => setInstituteOption(value)}
-              />
-            </View>
+        <Text style={styles.text}>Choose District to Apply </Text>
+        <View>
+          <Dropdown
+            style={[styles.input, isFocus && { borderColor: '#1E577C' }]}
+            placeholderStyle={styles.placeholderStyle}
+            selectedTextStyle={styles.selectedTextStyle}
+            inputSearchStyle={styles.inputSearchStyle}
+            itemTextStyle={styles.itemTextStyle}
+            search
+            searchPlaceholder="Search..."
+            data={districts}
+            labelField="name"
+            valueField="id"
+            placeholder="Select an option"
+            onFocus={() => setIsFocus(true)}
+            value={districtOption}  // State for selected option
+            onChange={item => setDistrictOption(item.id)}  // Update selected state
+          />
+        </View>
+        <Text style={styles.text}>Choose Institute </Text>
+        <View>
+          <Dropdown
+            style={[styles.input, isFocus && { borderColor: '#1E577C' }]}
+            placeholderStyle={styles.placeholderStyle}
+            selectedTextStyle={styles.selectedTextStyle}
+            inputSearchStyle={styles.inputSearchStyle}
+            itemTextStyle={styles.itemTextStyle}
+            search
+            searchPlaceholder="Search..."
+            data={options}
+            labelField="name"
+            valueField="id"
+            placeholder="Select an option"
+            onFocus={() => setIsFocus(true)}
+            value={instituteOption}  // Updated state
+            onChange={value => setInstituteOption(value)}
+          />
+        </View>
+        <Text style={[styles.text, { marginTop: '5%' }]}>Applied Date:</Text>
+        <TouchableOpacity style={styles.datePickerWrapper}>
+          <DatePickerInput
+            locale="en"
+            label="" // No value provided for label
+            value={formData.applieddate}
+            onChange={applieddate => {
+              setFormData(prev => ({ ...prev, applieddate }));
+            }}
+            mode={'flat'}
+            style={styles.calenderstyle}
+          />
+        </TouchableOpacity>
       </View>
 
       {/* CNIC Information */}
@@ -418,6 +480,16 @@ const FormP = () => {
             style={styles.calenderstyle}
           />
         </TouchableOpacity>
+
+        <Text style={[styles.text, { marginTop: '10%' }]}>Place of Issue:</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter place where CNIC issue"
+          placeholderTextColor="grey"
+          value={formData.placeofissue}
+          onChangeText={text => handleInputChange('placeofissue', text)}
+        />
+
         <Text style={[styles.text, { marginTop: 20 }]}>
           Any Physical Disability:
         </Text>
@@ -428,7 +500,7 @@ const FormP = () => {
           value={formData.disability}
           onChangeText={text => handleInputChange('disability', text)}
         />
-        
+
       </View>
 
       {/* Job Information */}
@@ -441,17 +513,22 @@ const FormP = () => {
           placeholder="Enter Post"
           placeholderTextColor="grey"
           value={formData.jobheld}
-          onChangeText={text => handleInputChange('jobTitle', text)}
+          onChangeText={text => handleInputChange('jobheld', text)}
         />
-         <Text style={styles.text}>Since When Serving on Current Job:</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter Current Job"
-          placeholderTextColor="grey"
-          value={formData.serving}
-          onChangeText={text => handleInputChange('jobTitle', text)}
-        />
-        <Text style={styles.text}>Job Start Date:</Text>
+        <Text style={styles.text}>Since When Serving on Current Job:</Text>
+        <TouchableOpacity style={styles.datePickerWrapper}>
+          <DatePickerInput
+            locale="en"
+            label="" // No value provided for label
+            value={formData.serving}
+            onChange={serving => {
+              setFormData(prev => ({ ...prev, serving }));
+            }}
+            mode={'flat'}
+            style={styles.calenderstyle}
+          />
+        </TouchableOpacity>
+        <Text style={[styles.text, { marginTop: 20 }]}>Job Start Date:</Text>
         <TouchableOpacity style={styles.datePickerWrapper}>
           <DatePickerInput
             locale="en"
@@ -474,82 +551,82 @@ const FormP = () => {
           onChangeText={text => handleInputChange('salary', text)}
         />
         <Text style={styles.text}>Job Type</Text>
-            <View>
-              <Dropdown
-                style={[styles.input, isFocus && {borderColor: '#1E577C'}]}
-                placeholderStyle={styles.placeholderStyle}
-                selectedTextStyle={styles.selectedTextStyle}
-                inputSearchStyle={styles.inputSearchStyle}
-                itemTextStyle={styles.itemTextStyle}
-                search
-                searchPlaceholder="Search..."
-                data={jobtype}
-                labelField="name"
-                valueField="id"
-                placeholder="Select an option"
-                onFocus={() => setIsFocus(true)}
-                value={jobTypeOption}
-                onChange={value => setJobTypeOption(value)}
-              />
-            </View>
-            <Text style={styles.text}>BPS</Text>
-            <View>
-              <Dropdown
-                style={[styles.input, isFocus && {borderColor: '#1E577C'}]}
-                placeholderStyle={styles.placeholderStyle}
-                selectedTextStyle={styles.selectedTextStyle}
-                inputSearchStyle={styles.inputSearchStyle}
-                itemTextStyle={styles.itemTextStyle}
-                search
-                searchPlaceholder="Search..."
-                data={options}
-                labelField="name"
-                valueField="id"
-                placeholder="Select an option"
-                onFocus={() => setIsFocus(true)}
-                value={bpsOption}
-                onChange={value => setBpsOption(value)}
-              />
-            </View>
-         <Text style={[styles.sectionHead,{marginTop:10}]}>Duty Hours in Summer</Text>
-         <View style={styles.divider} />
-         <Text style={styles.textt}>Start Time:</Text>
+        <View>
+          <Dropdown
+            style={[styles.input, isFocus && { borderColor: '#1E577C' }]}
+            placeholderStyle={styles.placeholderStyle}
+            selectedTextStyle={styles.selectedTextStyle}
+            inputSearchStyle={styles.inputSearchStyle}
+            itemTextStyle={styles.itemTextStyle}
+            search
+            searchPlaceholder="Search..."
+            data={jobtype}
+            labelField="name"
+            valueField="id"
+            placeholder="Select an option"
+            onFocus={() => setIsFocus(true)}
+            value={jobTypeOption}
+            onChange={value => setJobTypeOption(value)}
+          />
+        </View>
+        <Text style={styles.text}>BPS</Text>
+        <View>
+          <Dropdown
+            style={[styles.input, isFocus && { borderColor: '#1E577C' }]}
+            placeholderStyle={styles.placeholderStyle}
+            selectedTextStyle={styles.selectedTextStyle}
+            inputSearchStyle={styles.inputSearchStyle}
+            itemTextStyle={styles.itemTextStyle}
+            search
+            searchPlaceholder="Search..."
+            data={options}
+            labelField="name"
+            valueField="id"
+            placeholder="Select an option"
+            onFocus={() => setIsFocus(true)}
+            value={bpsOption}
+            onChange={value => setBpsOption(value)}
+          />
+        </View>
+        <Text style={[styles.sectionHead, { marginTop: 10 }]}>Duty Hours in Summer</Text>
+        <View style={styles.divider} />
+        <Text style={styles.textt}>Start Time:</Text>
         <TextInput
           style={styles.input}
           placeholder="Enter Time"
           keyboardType="numeric"
           placeholderTextColor="grey"
-          value={formData.salary}
-          onChangeText={text => handleInputChange('salary', text)}
+          value={formData.starttimes}
+          onChangeText={text => handleInputChange('starttimes', text)}
         />
-                  <Text style={styles.textt}>End Time:</Text>
+        <Text style={styles.textt}>End Time:</Text>
         <TextInput
           style={styles.input}
           placeholder="Enter Time"
           keyboardType="numeric"
           placeholderTextColor="grey"
-          value={formData.salary}
-          onChangeText={text => handleInputChange('salary', text)}
+          value={formData.endtimes}
+          onChangeText={text => handleInputChange('endtimes', text)}
         />
-            <Text style={[styles.sectionHead,{marginTop:10}]}>Duty Hours in Winter</Text>
-            <View style={styles.divider} />
-          <Text style={styles.textt}>Start Time:</Text>
+        <Text style={[styles.sectionHead, { marginTop: 10 }]}>Duty Hours in Winter</Text>
+        <View style={styles.divider} />
+        <Text style={styles.textt}>Start Time:</Text>
         <TextInput
           style={styles.input}
           placeholder="Enter Time"
           keyboardType="numeric"
           placeholderTextColor="grey"
-          value={formData.salary}
-          onChangeText={text => handleInputChange('salary', text)}
+          value={formData.starttimew}
+          onChangeText={text => handleInputChange('starttimew', text)}
         />
-                  <Text style={styles.textt}>End Time:</Text>
+        <Text style={styles.textt}>End Time:</Text>
         <TextInput
           style={styles.input}
           placeholder="Enter Time"
           keyboardType="numeric"
           placeholderTextColor="grey"
-          value={formData.salary}
-          onChangeText={text => handleInputChange('salary', text)}
+          value={formData.endtimew}
+          onChangeText={text => handleInputChange('endtimew', text)}
         />
       </View>
 
@@ -679,15 +756,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   placeholderStyle: {
-   color: 'grey',
-   paddingHorizontal: 5,
+    color: 'grey',
+    paddingHorizontal: 5,
     fontSize: 12,
   },
   selectedTextStyle: {
     color: 'black',
-    fontSize:13
+    fontSize: 13
   },
-  inputSearchStyle:{
+  inputSearchStyle: {
     color: 'black',
     backgroundColor: 'white',
     borderRadius: 4,
