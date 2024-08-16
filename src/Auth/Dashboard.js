@@ -23,7 +23,7 @@ import {
   ImageBackground,
   ScrollView,
 } from 'react-native';
-
+import EncryptedStorage from 'react-native-encrypted-storage';
 
 
 
@@ -35,6 +35,21 @@ const Dashboard = ({ route, navigation }) => {
   const [fullname, setFullName] = useState('');
 
 
+
+  // Function to handle logout
+  const handleLogout = async () => {
+    try {
+      // Remove user data from encrypted storage
+      await EncryptedStorage.removeItem('user');
+      await EncryptedStorage.removeItem('formData'); // If you also want to clear form data
+  
+      // Navigate to the login screen
+      navigation.navigate('Login');
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
+  };
+  
 
 //   useEffect(() => {
 //     const user = syncStorage.get('user_detail');
@@ -80,9 +95,7 @@ const Dashboard = ({ route, navigation }) => {
           <Text style={{ fontFamily: 'sans-serif',fontWeight:600, fontSize: 30, color: 'black',paddingHorizontal:20, paddingTop: 10, padding: 10, }}>Dashboard
           </Text>
           <View style={{ justifyContent: 'space-between', flexDirection: 'row', paddingHorizontal: 30, marginLeft: 'auto' }}>
-           
-            <TouchableOpacity
-              onPress={() => handleLogout(navigation)}
+          <TouchableOpacity onPress={handleLogout} 
               style={styles.ButtonStyle}
               activeOpacity={0.5}>
               <Text style={[styles.text, { textAlign: 'center' }]}>Logout</Text>
