@@ -54,7 +54,7 @@ const Register = ({ navigation }) => {
     fetch('https://wwh.punjab.gov.pk/api/districts')
       .then((response) => response.json())
       .then((data) => {
-        // console.log('Fetched districts data:', data);
+        console.log('Fetched districts data:', data);
         setDistricts(data.districts);
       })
       .catch((error) => {

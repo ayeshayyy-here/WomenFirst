@@ -7,6 +7,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Modal,
+  ToastAndroid,
   TouchableWithoutFeedback,
   PermissionsAndroid,
   Image,
@@ -71,11 +72,7 @@ const FormP = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleNextPress = () => {
-    console.log('Form Data before navigation:', formData);
-    syncStorage.set('formData', formData);
-    navigation.navigate('FormG');
-  };
+
 
   const openCamera = async () => {
     setModalVisible(false);
@@ -140,6 +137,110 @@ const FormP = () => {
         console.error('Document picking error:', error);
       }
     }
+  };
+  const handleNextPress = () => {
+    if (!capturedImage && !stateFunctions[selectedAttachment]?.URI) {
+      ToastAndroid.show('Please capture or upload your profile image.', ToastAndroid.LONG);
+      return;
+    }
+    if (!formData.name) {
+      ToastAndroid.show('Please enter your name.' , ToastAndroid.LONG);
+      return;
+    }
+  
+    // Validate Permanent Address
+    if (!formData.address) {
+      ToastAndroid.show('Please enter your address.' , ToastAndroid.LONG);
+      return;
+    }
+  
+    // Validate Phone Number
+    if (!formData.phone || formData.phone.length !== 11 ) {
+      ToastAndroid.show('Please enter a valid 11-digit phone number.', ToastAndroid.LONG);
+      return;
+    }
+  
+    // Validate Mobile Number
+    if (!formData.mobile || formData.mobile.length !== 11 ) {
+      ToastAndroid.show('Please enter a valid 11-digit mobile number.', ToastAndroid.LONG);
+      return;
+    }
+  
+    // Validate District
+    if (!districtOption) {
+      ToastAndroid.show('Please select a district.' , ToastAndroid.LONG);
+      return;
+    }
+  
+    // Validate Institute
+    if (!instituteOption) {
+      ToastAndroid.show('Please select an institute.', ToastAndroid.LONG);
+      return;
+    }
+  
+    // Validate CNIC
+    if (!formData.cnic.trim() || formData.cnic.length !== 13) {
+      ToastAndroid.show('Please enter a valid 13-digit CNIC number.', ToastAndroid.LONG);
+      return;
+    }
+  
+    // Validate Date of Expiry
+    if (!formData.datee) {
+      ToastAndroid.show('Please select the date of expiry.', ToastAndroid.LONG);
+      return;
+    }
+  
+    // Validate Date of Birth
+    if (!formData.dateb) {
+      ToastAndroid.show('Please select your date of birth.', ToastAndroid.LONG);
+      return;
+    }
+  
+    // Validate Date of Issue
+    if (!formData.datei) {
+      ToastAndroid.show('Please select the date of issue.', ToastAndroid.LONG);
+      return;
+    }
+  
+    // Validate Job Information
+    if (!formData.jobheld) {
+      ToastAndroid.show('Please enter the post you currently hold.', ToastAndroid.LONG);
+      return;
+    }
+  
+    if (!formData.serving) {
+      ToastAndroid.show('Please enter the duration you have been serving in your current job.', ToastAndroid.LONG);
+      return;
+    }
+  
+    // Validate Job Start Date
+    if (!formData.jobStartDate) {
+      ToastAndroid.show('Please select the job start date.', ToastAndroid.LONG);
+      return;
+    }
+  
+    // Validate Salary
+    if (!formData.salary || isNaN(formData.salary)) {
+      ToastAndroid.show('Please enter a valid salary.', ToastAndroid.LONG);
+      return;
+    }
+  
+    // Validate Job Type
+    if (!jobTypeOption) {
+      ToastAndroid.show('Please select a job type.', ToastAndroid.LONG);
+      return;
+    }
+  
+    // Validate BPS
+    if (!bpsOption) {
+      ToastAndroid.show('Please select your BPS.', ToastAndroid.LONG);
+      return;
+    }
+  
+    // If all validations pass, save the form data and navigate to the next screen
+    console.log('Form Data before navigation:', formData);
+    syncStorage.set('formData', formData);
+    navigation.navigate('FormG');
   };
   
   const options = [
