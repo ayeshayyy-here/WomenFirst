@@ -36,7 +36,7 @@ const Register = ({ navigation }) => {
   const [districtId, setDistrictId] = useState([]);
 
 
-  // Calculate the minimum date for 18 years age restriction
+  // 18 years age restriction
   const today = new Date();
   const minDate = new Date(
     today.getFullYear() - 18,
@@ -75,7 +75,7 @@ const Register = ({ navigation }) => {
 
   const handleDistrictSelect = (district) => {
     setDistrict(district.name);
-    setDistrictId(district.id); // Add this line to store the districtId
+    setDistrictId(district.id); // to store the districtId
     setModalVisible(false);
   };
   
@@ -118,20 +118,20 @@ const Register = ({ navigation }) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        name: username, // Changed to 'name'
-        email: useremail, // Added email field
-        district: districtId, // Include districtId
+        name: username, 
+        email: useremail, 
+        district: districtId, 
         dob: date.toISOString().split('T')[0],// Format as YYYY-MM-DD
         password,
-        password_confirmation: confirmPassword, // Added password_confirmation field
+        password_confirmation: confirmPassword, 
       }),
     })
       .then(async (response) => {
-        const text = await response.text(); // Read response as text
-        console.log('Response Text:', text); // Log the raw response text
+        const text = await response.text(); 
+        console.log('Response Text:', text); 
         try {
-          const data = JSON.parse(text); // Attempt to parse as JSON
-          console.log('Registration Response:', data); // Log the response data
+          const data = JSON.parse(text); 
+          console.log('Registration Response:', data); 
           if (data.success) {
             ToastAndroid.show('User Registered Successfully!', ToastAndroid.LONG);
             navigation.navigate('Login');
@@ -139,7 +139,7 @@ const Register = ({ navigation }) => {
             ToastAndroid.show('Registration failed. Please try again.', ToastAndroid.LONG);
           }
         } catch (e) {
-          console.error('Error parsing JSON:', e); // Handle JSON parsing error
+          console.error('Error parsing JSON:', e); 
           ToastAndroid.show('An error occurred. Please try again.', ToastAndroid.LONG);
         }
       })
