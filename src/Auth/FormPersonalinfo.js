@@ -21,7 +21,7 @@ import syncStorage from 'react-native-sync-storage';
 import DocumentPicker from 'react-native-document-picker';
 import { launchCamera } from 'react-native-image-picker';
 
-const FormP = () => {
+const FormP = ({route, navigation}) => {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -54,8 +54,7 @@ const FormP = () => {
   const [instituteOption, setInstituteOption] = useState(null);  // For Institute dropdown
   const [jobTypeOption, setJobTypeOption] = useState(null);  // For Job Type dropdown
   const [bpsOption, setBpsOption] = useState(null);  // For BPS dropdown
-  // const [applieddate, setApplieddate] = useState(null);
-  const navigation = useNavigation();
+
 
   useEffect(() => {
     fetch('https://wwh.punjab.gov.pk/api/districts')
@@ -68,12 +67,36 @@ const FormP = () => {
       });
   }, []);
 
+  const [userName, setUserName] = useState('');
+
   useEffect(() => {
-    const savedData = syncStorage.get('formData');
-    if (savedData) {
-      setFormData(savedData);
+    const { user } = route.params || {};
+    
+    // console.log('User from route.params:', user); // Logs user from route.params
+    
+    if (user) {
+      setUserName(user.name);
+    } else {
+      const getUserDetails = async () => {
+        try {
+          const storedUser = await syncStorage.get('user');
+          console.log('User from syncStorage:', storedUser); // Logs user from syncStorage
+          
+          if (storedUser) {
+            const parsedUser = JSON.parse(storedUser);
+            if (parsedUser.name) {
+              setUserName(parsedUser.name);
+            }
+          }
+        } catch (error) {
+          console.error('Error retrieving user details:', error);
+        }
+      };
+  
+      getUserDetails();
     }
   }, []);
+  
 
   const handleInputChange = (name, value) => {
     setFormData({ ...formData, [name]: value });
@@ -344,7 +367,7 @@ const FormP = () => {
           style={styles.input}
           placeholder="Enter Applicant Name"
           placeholderTextColor="grey"
-          value={formData.name}
+          value={userName}
           onChangeText={text => handleInputChange('name', text)}
         />
         <Text style={styles.text}>Permanent Address:</Text>
