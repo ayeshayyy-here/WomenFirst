@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, ScrollView, Modal, TouchableOpacity, TouchableWithoutFeedback } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, ScrollView, Modal, TouchableOpacity, TouchableWithoutFeedback, ToastAndroid } from 'react-native';
 import ProgressBar from '../components/ProgressBar';
 import { useNavigation } from '@react-navigation/native';
 import DocumentPicker from 'react-native-document-picker';
@@ -12,13 +12,11 @@ import { faPlusCircle } from '@fortawesome/free-solid-svg-icons';
 const FormD = () => {
   const [formData, setFormData] = useState({
     name: '',
+    designation: '',
+    department: '',
+    address: '',
     phone: '',
-    cnic: '',
-    datee: '',
-    dateb: '',
-    jobTitle: '',
-    jobStartDate: '',
-    salary: '',
+    email: '',
   });
 
   const navigation = useNavigation();
@@ -39,8 +37,64 @@ const FormD = () => {
     setFormData({ ...formData, [name]: value });
   };
   const handleNextPress = () => {
-    navigation.navigate('FormA');
+    // // Validate Name
+    // if (!formData.name) {
+    //   ToastAndroid.show('Please enter the name', ToastAndroid.LONG);
+    //   return;
+    // }
+  
+    // // Validate designation
+    // if (!formData.designation) {
+    //   ToastAndroid.show('Please enter the designation', ToastAndroid.LONG);
+    //   return;
+    // }
+  
+    // // Validate Department
+    // if (!formData.department) {
+    //   ToastAndroid.show('Please enter the Department/Organization', ToastAndroid.LONG);
+    //   return;
+    // }
+  
+    // // Validate address
+    // if (!formData.address) {
+    //   ToastAndroid.show('Please enter the Address', ToastAndroid.LONG);
+    //   return;
+    // }
+  
+    // // Validate mobile no
+    // if (!formData.phone || formData.phone.length !== 11) {
+    //   ToastAndroid.show('Please enter a valid 11-digit mobile number.', ToastAndroid.LONG);
+    //   return;
+    // }
+  
+    // // Validate email
+    // if (!formData.email) {
+    //   ToastAndroid.show('Please enter the Email Address', ToastAndroid.LONG);
+    //   return;
+    // }
+  
+    // // Validate Attach Declaration
+    // const requiredAttachments = [
+    //   'attachdeclaration',
+    // ];
+  
+    // // Check if all required attachments have been uploaded
+    // const missingAttachments = requiredAttachments.filter(
+    //   attachment => !stateFunctions[attachment].URI
+    // );
+  
+    // if (missingAttachments.length > 0) {
+    //   // Show a toast with the name of the first missing attachment
+    //   ToastAndroid.show(
+    //     `Please upload the ${missingAttachments[0].replace(/([A-Z])/g, ' $1').trim()}`,
+    //     ToastAndroid.LONG
+    //   );
+    //   return;
+    // }
+  
+    navigation.navigate('Dashboard');
   };
+  
   const handlePrevPress = () => {
     navigation.navigate('FormA');
   };
@@ -96,7 +150,7 @@ const FormD = () => {
       <View style={styles.divider} />
     </View>
   );
-  
+
 
 
   return (
@@ -120,24 +174,24 @@ const FormD = () => {
           style={styles.input}
           placeholder="Enter Designation"
           placeholderTextColor="grey"
-          value={formData.address}
-          onChangeText={(text) => handleInputChange('address', text)}
+          value={formData.designation}
+          onChangeText={(text) => handleInputChange('designation', text)}
         />
         <Text style={styles.text}>Department/Organization:</Text>
         <TextInput
           style={styles.input}
           placeholder="Enter Department/Organization"
           placeholderTextColor="grey"
-          value={formData.phone}
-          onChangeText={(text) => handleInputChange('phone', text)}
+          value={formData.department}
+          onChangeText={(text) => handleInputChange('department', text)}
         />
-            <Text style={styles.text}>Address:</Text>
+        <Text style={styles.text}>Address:</Text>
         <TextInput
           style={styles.input}
           placeholder="Enter Address"
           placeholderTextColor="grey"
-          value={formData.phone}
-          onChangeText={(text) => handleInputChange('phone', text)}
+          value={formData.address}
+          onChangeText={(text) => handleInputChange('address', text)}
         />
         <Text style={styles.text}>Mobile No:</Text>
         <TextInput
@@ -145,64 +199,64 @@ const FormD = () => {
           placeholder="Enter mobile no"
           keyboardType="numeric"
           placeholderTextColor="grey"
-          value={formData.mobile}
-          onChangeText={(text) => handleInputChange('mobile', text)}
+          value={formData.phone}
+          onChangeText={(text) => handleInputChange('phone', text)}
         />
-          <Text style={styles.text}>Email:</Text>
+        <Text style={styles.text}>Email:</Text>
         <TextInput
           style={styles.input}
           placeholder="Enter Email"
           placeholderTextColor="grey"
-          value={formData.mobile} 
-          onChangeText={(text) => handleInputChange('mobile', text)}
+          value={formData.email}
+          onChangeText={(text) => handleInputChange('email', text)}
         />
       </View>
       <Text style={styles.declare}>Personal Declaration :</Text>
       <View style={styles.divider2} />
       <Text style={styles.subtext}>I Name hereby apply for admission in the Working Women Hostel and undertake to
-         abide by the Rules & Regulations notified from time to time of the Hostel, which i have throughly read and also undertaken to pay all charges regularly
+        abide by the Rules & Regulations notified from time to time of the Hostel, which i have throughly read and also undertaken to pay all charges regularly
       </Text>
-      <Text style={styles.Nametext}>Name: 
+      <Text style={styles.Nametext}>Name:
         <Text style={styles.subtext}> The Applicant Name</Text>
       </Text>
       <Text style={styles.Nametext}>Designation:
         <Text style={styles.subtext}> The Applicant Job Designation</Text>
       </Text>
-      <Text style={styles.Nametext}>Date: 
-       <Text style={styles.subtext}>  12-08-2024</Text>
+      <Text style={styles.Nametext}>Date:
+        <Text style={styles.subtext}>  12-08-2024</Text>
       </Text>
-     
+
 
       <Text style={styles.declare}>Guardian/Father/Husband Declaration :</Text>
       <View style={styles.divider2} />
       <Text style={styles.subtext}>I mister, Guardian of Miss/Mrs Name(the Applicant) request that she may be allow to get admission in the hostel under prescribed terms and conditions as well the reles & regulations.She may be allowed to see the following persons at the hostel premises on prescribed days of visit. </Text>
-      <Text style={styles.Nametext}>Name: 
+      <Text style={styles.Nametext}>Name:
         <Text style={styles.subtext}> Mister</Text>
       </Text>
       <Text style={styles.Nametext}>RelationShip:
         <Text style={styles.subtext}> Guardian</Text>
       </Text>
-      <Text style={styles.Nametext}>Address: 
-       <Text style={styles.subtext}>  Lahore</Text>
+      <Text style={styles.Nametext}>Address:
+        <Text style={styles.subtext}>  Lahore</Text>
       </Text>
       <Text style={styles.Nametext}>Mobile:
         <Text style={styles.subtext}> The Guardian Mobile No.</Text>
       </Text>
-      <Text style={styles.Nametext}>Signature: 
-       <Text style={styles.subtext}> The Guardian Signature </Text>
+      <Text style={styles.Nametext}>Signature:
+        <Text style={styles.subtext}> The Guardian Signature </Text>
       </Text>
-      <Text style={styles.Nametext}>Date: 
-       <Text style={styles.subtext}>  12-08-2024</Text>
+      <Text style={styles.Nametext}>Date:
+        <Text style={styles.subtext}>  12-08-2024</Text>
       </Text>
-      
+
 
       <Text style={styles.declare}>Attach Declaration :</Text>
       <View style={styles.divider2} />
-      <Text style={styles.Nametext}>Note: 
-         <Text style={styles.subtext}>Please take a snapshot of Declaration and it will be Attached here.</Text>
+      <Text style={styles.Nametext}>Note:
+        <Text style={styles.subtext}>Please take a snapshot of Declaration and it will be Attached here.</Text>
       </Text>
       <View style={styles.divider} />
-       {renderAttachment("Attach Declaration", "attachdeclaration")}
+      {renderAttachment("Attach Declaration", "attachdeclaration")}
       <Modal
         visible={modalVisible}
         transparent={true}
@@ -226,13 +280,13 @@ const FormD = () => {
       </Modal>
 
       <View style={styles.buttonContainer}>
-      <TouchableOpacity style={styles.button} onPress={handlePrevPress}>
+        <TouchableOpacity style={styles.button} onPress={handlePrevPress}>
           <Text style={styles.buttonText}>Back  </Text>
         </TouchableOpacity>
-      <TouchableOpacity style={styles.button}>
+        <TouchableOpacity style={styles.button} onPress={handleNextPress}>
           <Text style={styles.buttonText}>Submit</Text>
         </TouchableOpacity>
-     
+
       </View>
     </ScrollView>
   );
@@ -275,7 +329,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
     color: 'black',
   },
-  
+
   input: {
     flex: 1,
     color: 'black',
@@ -287,7 +341,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,  // Adds space between each TextInput
     paddingLeft: 10,
     fontSize: 12,
-  },  
+  },
   declare: {
     fontSize: 17,
     fontWeight: 'bold',
@@ -370,11 +424,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
-    
+
   },
   modalButton: {
     flexDirection: 'row',
-    marginTop:10,
+    marginTop: 10,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 10,
@@ -385,7 +439,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     // fontWeight: 'bold',
     marginLeft: 10,
-    marginTop:10
+    marginTop: 10
   },
   mainWrapper: {
     flex: 1,
@@ -404,7 +458,7 @@ const styles = StyleSheet.create({
     height: 2,
     alignItems: 'center',
   },
-  
+
 });
 
 export default FormD;

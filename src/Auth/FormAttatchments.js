@@ -9,6 +9,7 @@ import {
   Image,
   Modal,
   TouchableWithoutFeedback,
+  ToastAndroid,
 } from 'react-native';
 import ProgressBar from '../components/ProgressBar';
 import { useNavigation } from '@react-navigation/native';
@@ -24,7 +25,7 @@ const FormA = () => {
     Type: '',
     Name: '',
   };
-  
+
   const [stateFunctions, setStateFunctions] = useState({
     originalApplication: initialState,
     permissionFromParents: initialState,
@@ -40,7 +41,7 @@ const FormA = () => {
     idCardPhoto2: initialState,
     guaranteeLetter1: initialState,
     guaranteeLetter2: initialState,
-    domicile: initialState
+    domicile: initialState,
   });
 
   const [isFileSelected, setIsFileSelected] = useState(false);
@@ -50,6 +51,39 @@ const FormA = () => {
   const [selectedAttachment, setSelectedAttachment] = useState('');
 
   const handleNextPress = () => {
+    // Define the required attachments
+    // const requiredAttachments = [
+    //   'originalApplication',
+    //   'permissionFromParents',
+    //   'idCardAttested',
+    //   'applicantPhotoAttested',
+    //   'appointmentLetterAttested',
+    //   'characterCertificate',
+    //   'certificateOfAppointment',
+    //   'affidavit',
+    //   'medicalCertificate',
+    //   'guardianIdCard',
+    //   'idCardPhoto1',
+    //   'idCardPhoto2',
+    //   'guaranteeLetter1',
+    //   'guaranteeLetter2',
+    //   'domicile',
+    // ];
+
+    // // Check if all required attachments have been uploaded
+    // const missingAttachments = requiredAttachments.filter(
+    //   attachment => !stateFunctions[attachment].URI
+    // );
+
+    // if (missingAttachments.length > 0) {
+    //   // Show a toast with the name of the first missing attachment
+    //   ToastAndroid.show(
+    //     `Please upload the ${missingAttachments[0].replace(/([A-Z])/g, ' $1').trim()}`,
+    //     ToastAndroid.LONG
+    //   );
+    //   return;
+    // }
+
     navigation.navigate('FormD');
   };
 
@@ -142,9 +176,6 @@ const FormA = () => {
       <View style={styles.divider} />
     </View>
   );
-  
-  
-  
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -153,7 +184,7 @@ const FormA = () => {
 
       <View style={styles.section}>
         <Text style={styles.sectionHeader}>Upload Attachments</Text>
-      <View style={styles.divider} />
+        <View style={styles.divider} />
         {renderAttachment("Original Application on Stamp Paper", "originalApplication")}
         {renderAttachment("Permission From Parents", "permissionFromParents")}
         {renderAttachment("ID Card (attested)", "idCardAttested")}
@@ -184,12 +215,10 @@ const FormA = () => {
                 <Text style={styles.modalTitle}>Choose an option</Text>
                 <View style={styles.modalOptionsRow}>
                   <TouchableOpacity style={styles.modalButton} onPress={openCamera}>
-                   
                     <Icon name="camera" size={30} color="black" />
                     <Text style={styles.modalButtonText}>Capture Image</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.modalButton} onPress={openGallery}>
-                   
                     <Icon name="file" size={30} color="black" />
                     <Text style={styles.modalButtonText}>Upload File</Text>
                   </TouchableOpacity>
@@ -282,8 +311,6 @@ const styles = StyleSheet.create({
     width: '100%', // Ensures the container takes full width
     paddingHorizontal: 16, // Optional: Adds padding around the container
   },
-  
-  
   button: {
     backgroundColor: '#010048',
     paddingVertical: 10,
@@ -322,8 +349,6 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   modalButton: {
-    // flexDirection: 'row',
-    // marginTop:10,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 10,
@@ -332,7 +357,6 @@ const styles = StyleSheet.create({
   modalButtonText: {
     color: '#010048',
     fontSize: 16,
-    // fontWeight: 'bold',
     marginLeft: 10,
     marginTop:10
   },
