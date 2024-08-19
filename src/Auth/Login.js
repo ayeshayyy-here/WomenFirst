@@ -37,6 +37,9 @@ const Login = ({ navigation }) => {
       try {
         const user = await EncryptedStorage.getItem('user');
         if (user) {
+          // Store user details in sync storage if they exist in encrypted storage
+          syncStorage.set('user', user);
+  
           // Navigate to dashboard if user is already logged in
           navigation.navigate('Dashboard', { user: JSON.parse(user) });
         }
@@ -44,9 +47,10 @@ const Login = ({ navigation }) => {
         console.error('Error checking login status:', error);
       }
     };
-
+  
     checkLoggedIn();
   }, []);
+  
 
   const validateFields = () => {
     if (!username.trim()) {
@@ -64,11 +68,11 @@ const Login = ({ navigation }) => {
     if (!validateFields()) {
       return; // Do not proceed if validation fails
     }
-
+  
     console.log('Logging in with:', { email: username, password });
-
+  
     setLoading(true); // Show loader
-
+  
     try {
       const response = await fetch('https://wwh.punjab.gov.pk/api/login', {
         method: 'POST',
@@ -80,17 +84,18 @@ const Login = ({ navigation }) => {
           password: password,
         }),
       });
-
+  
       const result = await response.json();
       
       console.log('API Response:', result); // Log the entire response for debugging
-
+  
       if (response.ok) {
-        // Store user details in sync storage
-      syncStorage.set('user', JSON.stringify(result.user));
         // Store user details in encrypted storage
         await EncryptedStorage.setItem('user', JSON.stringify(result.user));
-
+        
+        // Store user details in sync storage
+        syncStorage.set('user', JSON.stringify(result.user));
+  
         // If login is successful, navigate to the dashboard
         ToastAndroid.show('Login Successful', ToastAndroid.SHORT);
         navigation.navigate('Dashboard', { user: result.user });
@@ -105,6 +110,7 @@ const Login = ({ navigation }) => {
       setLoading(false); // Hide loader
     }
   };
+  
 
   return (
     <KeyboardAvoidingView
