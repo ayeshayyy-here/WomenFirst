@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -12,14 +12,14 @@ import {
   PermissionsAndroid,
   Image,
 } from 'react-native';
-import { Dropdown } from 'react-native-element-dropdown';
+import {Dropdown} from 'react-native-element-dropdown';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import ProgressBar from '../components/ProgressBar';
-import { useNavigation } from '@react-navigation/native';
-import { DatePickerInput } from 'react-native-paper-dates';
+import {useNavigation} from '@react-navigation/native';
+import {DatePickerInput} from 'react-native-paper-dates';
 import syncStorage from 'react-native-sync-storage';
 import DocumentPicker from 'react-native-document-picker';
-import { launchCamera } from 'react-native-image-picker';
+import {launchCamera} from 'react-native-image-picker';
 
 const FormP = ({route, navigation}) => {
   const [formData, setFormData] = useState({
@@ -38,10 +38,10 @@ const FormP = ({route, navigation}) => {
     disability: '',
     applieddate: '',
     placeofissue: '',
-    starttimes:'',
-    endtimes:'',
-    starttimew:'',
-    endtimew:'',
+    starttimes: '',
+    endtimes: '',
+    starttimew: '',
+    endtimew: '',
   });
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedAttachment, setSelectedAttachment] = useState('');
@@ -50,17 +50,20 @@ const FormP = ({route, navigation}) => {
   const [isFocus, setIsFocus] = useState(false);
   const [districts, setDistricts] = useState([]);
   const [selectedOption, setSelectedOption] = useState(null);
-  const [districtOption, setDistrictOption] = useState(null);  // For District dropdown
+  const [districtOption, setDistrictOption] = useState(null); // For District dropdown
   const [institutes, setInstitutes] = useState([]); // Holds the list of institutes
   const [selectedInstitute, setSelectedInstitute] = useState(null); // Holds the selected institute
-  const [jobTypeOption, setJobTypeOption] = useState(null);  // For Job Type dropdown
-  const [bpsOption, setBpsOption] = useState(null);  // For BPS dropdown
+  const [jobTypeOption, setJobTypeOption] = useState(null); // For Job Type dropdown
+  const [bpsOption, setBpsOption] = useState(null); // For BPS dropdown
+  const [userName, setUserName] = useState('');
   useEffect(() => {
     const fetchInstitutes = async () => {
       try {
-        const response = await fetch('https://wwh.punjab.gov.pk/api/get-institutes');
+        const response = await fetch(
+          'https://wwh.punjab.gov.pk/api/get-institutes',
+        );
         const data = await response.json();
-        
+
         if (data && Array.isArray(data.institutes)) {
           console.log('Institutes Array:', data.institutes); // Log the array to the console
           setInstitutes(data.institutes);
@@ -74,26 +77,21 @@ const FormP = ({route, navigation}) => {
 
     fetchInstitutes();
   }, []);
-  
-
   useEffect(() => {
     fetch('https://wwh.punjab.gov.pk/api/districts')
-      .then((response) => response.json())
-      .then((data) => {
-        setDistricts(data.districts);  // Assuming the data structure
+      .then(response => response.json())
+      .then(data => {
+        setDistricts(data.districts); // Assuming the data structure
       })
-      .catch((error) => {
+      .catch(error => {
         console.error('Error fetching districts:', error);
       });
   }, []);
-
-  const [userName, setUserName] = useState('');
-
   useEffect(() => {
-    const { user } = route.params || {};
-    
+    const {user} = route.params || {};
+
     // console.log('User from route.params:', user); // Logs user from route.params
-    
+
     if (user) {
       setUserName(user.name);
     } else {
@@ -101,7 +99,7 @@ const FormP = ({route, navigation}) => {
         try {
           const storedUser = await syncStorage.get('user');
           console.log('User from syncStorage:', storedUser); // Logs user from syncStorage
-          
+
           if (storedUser) {
             const parsedUser = JSON.parse(storedUser);
             if (parsedUser.name) {
@@ -112,17 +110,14 @@ const FormP = ({route, navigation}) => {
           console.error('Error retrieving user details:', error);
         }
       };
-  
+
       getUserDetails();
     }
   }, []);
-  
 
   const handleInputChange = (name, value) => {
-    setFormData({ ...formData, [name]: value });
+    setFormData({...formData, [name]: value});
   };
-
-
 
   const openCamera = async () => {
     setModalVisible(false);
@@ -149,7 +144,11 @@ const FormP = ({route, navigation}) => {
           setCapturedImage(imageUri);
           setStateFunctions(prev => ({
             ...prev,
-            [selectedAttachment]: { Name: fileName, URI: imageUri, Type: 'image' },
+            [selectedAttachment]: {
+              Name: fileName,
+              URI: imageUri,
+              Type: 'image',
+            },
           }));
         }
       });
@@ -335,20 +334,24 @@ const FormP = ({route, navigation}) => {
     navigation.navigate('FormG');
   };
 
-  const options = [
-    { id: 1, name: 'Complaint' },
-    { id: 2, name: 'General Query' },
-    { id: 3, name: 'Advice / Suggestion' },
-  ];
   const jobtype = [
-    { id: 1, name: 'Punjab Government Employee' },
-    { id: 2, name: 'Federal Government Employee' },
-    { id: 3, name: 'Private Employee' },
-    { id: 4, name: 'Adhoc' },
-    { id: 5, name: 'Government Contract' },
+    {id: 1, name: 'Punjab Government Employee'},
+    {id: 2, name: 'Federal Government Employee'},
+    {id: 3, name: 'Private Employee'},
+    {id: 4, name: 'Adhoc'},
+    {id: 5, name: 'Government Contract'},
   ];
+  const [options, setOptions] = useState([]);
 
-  const handleUploadClick = (attachmentName) => {
+  // Initialize options with BPS-1 to BPS-20
+  React.useEffect(() => {
+    const newOptions = [];
+    for (let i = 1; i <= 20; i++) {
+      newOptions.push({id: i, name: `BPS-${i}`});
+    }
+    setOptions(newOptions);
+  }, []);
+  const handleUploadClick = attachmentName => {
     setSelectedAttachment(attachmentName);
     setModalVisible(true);
   };
@@ -376,7 +379,9 @@ const FormP = ({route, navigation}) => {
         ) : (
           <View style={styles.imageContainer}>
             <Image
-              source={{ uri: capturedImage || stateFunctions[selectedAttachment]?.URI }}
+              source={{
+                uri: capturedImage || stateFunctions[selectedAttachment]?.URI,
+              }}
               style={styles.image}
             />
           </View>
@@ -389,6 +394,7 @@ const FormP = ({route, navigation}) => {
           placeholderTextColor="grey"
           value={userName}
           onChangeText={text => handleInputChange('name', text)}
+          editable={false}
         />
         <Text style={styles.text}>Permanent Address:</Text>
         <TextInput
@@ -420,7 +426,7 @@ const FormP = ({route, navigation}) => {
         <Text style={styles.text}>Choose District to Apply </Text>
         <View>
           <Dropdown
-            style={[styles.input, isFocus && { borderColor: '#1E577C' }]}
+            style={[styles.input, isFocus && {borderColor: '#1E577C'}]}
             placeholderStyle={styles.placeholderStyle}
             selectedTextStyle={styles.selectedTextStyle}
             inputSearchStyle={styles.inputSearchStyle}
@@ -432,37 +438,37 @@ const FormP = ({route, navigation}) => {
             valueField="id"
             placeholder="Select an option"
             onFocus={() => setIsFocus(true)}
-            value={districtOption}  // State for selected option
-            onChange={item => setDistrictOption(item.id)}  // Update selected state
+            value={districtOption} // State for selected option
+            onChange={item => setDistrictOption(item.id)} // Update selected state
           />
         </View>
         <Text style={styles.text}>Choose Institute </Text>
         <View>
-        <Dropdown
-        style={[styles.input, isFocus && { borderColor: '#1E577C' }]}
-        placeholderStyle={styles.placeholderStyle}
-        selectedTextStyle={styles.selectedTextStyle}
-        inputSearchStyle={styles.inputSearchStyle}
-        itemTextStyle={styles.itemTextStyle}
-        search
-        searchPlaceholder="Search..."
-        data={institutes} // Updated state
-        labelField="iname" // Change according to your API response
-        valueField="id"
-        placeholder="Select an option"
-        onFocus={() => setIsFocus(true)}
-        value={selectedInstitute}  // Updated state
-        onChange={value => setSelectedInstitute(value)}
-      />
-      </View>
-        <Text style={[styles.text, { marginTop: '5%' }]}>Applied Date:</Text>
+          <Dropdown
+            style={[styles.input, isFocus && {borderColor: '#1E577C'}]}
+            placeholderStyle={styles.placeholderStyle}
+            selectedTextStyle={styles.selectedTextStyle}
+            inputSearchStyle={styles.inputSearchStyle}
+            itemTextStyle={styles.itemTextStyle}
+            search
+            searchPlaceholder="Search..."
+            data={institutes} // Updated state
+            labelField="iname" // Change according to your API response
+            valueField="id"
+            placeholder="Select an option"
+            onFocus={() => setIsFocus(true)}
+            value={selectedInstitute} // Updated state
+            onChange={value => setSelectedInstitute(value)}
+          />
+        </View>
+        <Text style={[styles.text, {marginTop: '5%'}]}>Applied Date:</Text>
         <TouchableOpacity style={styles.datePickerWrapper}>
           <DatePickerInput
             locale="en"
             label="" // No value provided for label
             value={formData.applieddate}
             onChange={applieddate => {
-              setFormData(prev => ({ ...prev, applieddate }));
+              setFormData(prev => ({...prev, applieddate}));
             }}
             mode={'flat'}
             style={styles.calenderstyle}
@@ -472,7 +478,7 @@ const FormP = ({route, navigation}) => {
 
       {/* CNIC Information */}
       <View style={styles.section}>
-        <Text  style={styles.sectionHeader}>CNIC Information</Text>
+        <Text style={styles.sectionHeader}>CNIC Information</Text>
         <View style={styles.divider} />
         <Text style={styles.text}>CNIC:</Text>
         <TextInput
@@ -484,47 +490,47 @@ const FormP = ({route, navigation}) => {
           value={formData.cnic}
           onChangeText={text => handleInputChange('cnic', text)}
         />
-        <Text style={[styles.text, { marginTop: '5%' }]}>Date of Expiry:</Text>
+        <Text style={[styles.text, {marginTop: '5%'}]}>Date of Expiry:</Text>
         <TouchableOpacity style={styles.datePickerWrapper}>
           <DatePickerInput
             locale="en"
             label="" // No value provided for label
             value={formData.datee}
             onChange={datee => {
-              setFormData(prev => ({ ...prev, datee }));
+              setFormData(prev => ({...prev, datee}));
             }}
             mode={'flat'}
             style={styles.calenderstyle}
           />
         </TouchableOpacity>
-        <Text style={[styles.text, { marginTop: '5%' }]}>Date of Birth:</Text>
+        <Text style={[styles.text, {marginTop: '5%'}]}>Date of Birth:</Text>
         <TouchableOpacity style={styles.datePickerWrapper}>
           <DatePickerInput
             locale="en"
             label="" // No value provided for label
             value={formData.dateb}
             onChange={dateb => {
-              setFormData(prev => ({ ...prev, dateb }));
+              setFormData(prev => ({...prev, dateb}));
             }}
             mode={'flat'}
             style={styles.calenderstyle}
           />
         </TouchableOpacity>
-        <Text style={[styles.text, { marginTop: '5%' }]}>Date of Issue:</Text>
+        <Text style={[styles.text, {marginTop: '5%'}]}>Date of Issue:</Text>
         <TouchableOpacity style={styles.datePickerWrapper}>
           <DatePickerInput
             locale="en"
             label="" // No value provided for label
             value={formData.datei}
             onChange={datei => {
-              setFormData(prev => ({ ...prev, datei }));
+              setFormData(prev => ({...prev, datei}));
             }}
             mode={'flat'}
             style={styles.calenderstyle}
           />
         </TouchableOpacity>
 
-        <Text style={[styles.text, { marginTop: '10%' }]}>Place of Issue:</Text>
+        <Text style={[styles.text, {marginTop: '10%'}]}>Place of Issue:</Text>
         <TextInput
           style={styles.input}
           placeholder="Enter place where CNIC issue"
@@ -533,7 +539,7 @@ const FormP = ({route, navigation}) => {
           onChangeText={text => handleInputChange('placeofissue', text)}
         />
 
-        <Text style={[styles.text, { marginTop: 20 }]}>
+        <Text style={[styles.text, {marginTop: 20}]}>
           Any Physical Disability:
         </Text>
         <TextInput
@@ -543,7 +549,6 @@ const FormP = ({route, navigation}) => {
           value={formData.disability}
           onChangeText={text => handleInputChange('disability', text)}
         />
-
       </View>
 
       {/* Job Information */}
@@ -565,26 +570,26 @@ const FormP = ({route, navigation}) => {
             label="" // No value provided for label
             value={formData.serving}
             onChange={serving => {
-              setFormData(prev => ({ ...prev, serving }));
+              setFormData(prev => ({...prev, serving}));
             }}
             mode={'flat'}
             style={styles.calenderstyle}
           />
         </TouchableOpacity>
-        <Text style={[styles.text, { marginTop: 20 }]}>Job Start Date:</Text>
+        <Text style={[styles.text, {marginTop: 20}]}>Job Start Date:</Text>
         <TouchableOpacity style={styles.datePickerWrapper}>
           <DatePickerInput
             locale="en"
             label="" // No value provided for label
             value={formData.jobStartDate}
             onChange={jobStartDate => {
-              setFormData(prev => ({ ...prev, jobStartDate }));
+              setFormData(prev => ({...prev, jobStartDate}));
             }}
             mode={'flat'}
             style={styles.calenderstyle}
           />
         </TouchableOpacity>
-        <Text style={[styles.text, { marginTop: 20 }]}>Salary:</Text>
+        <Text style={[styles.text, {marginTop: 20}]}>Salary:</Text>
         <TextInput
           style={styles.input}
           placeholder="Enter Salary"
@@ -596,7 +601,7 @@ const FormP = ({route, navigation}) => {
         <Text style={styles.text}>Job Type</Text>
         <View>
           <Dropdown
-            style={[styles.input, isFocus && { borderColor: '#1E577C' }]}
+            style={[styles.input, isFocus && {borderColor: '#1E577C'}]}
             placeholderStyle={styles.placeholderStyle}
             selectedTextStyle={styles.selectedTextStyle}
             inputSearchStyle={styles.inputSearchStyle}
@@ -615,23 +620,25 @@ const FormP = ({route, navigation}) => {
         <Text style={styles.text}>BPS</Text>
         <View>
           <Dropdown
-            style={[styles.input, isFocus && { borderColor: '#1E577C' }]}
+            style={[styles.input, isFocus && {borderColor: '#1E577C'}]}
             placeholderStyle={styles.placeholderStyle}
             selectedTextStyle={styles.selectedTextStyle}
             inputSearchStyle={styles.inputSearchStyle}
             itemTextStyle={styles.itemTextStyle}
             search
             searchPlaceholder="Search..."
-            data={options}
+            data={options} // Use the generated options
             labelField="name"
             valueField="id"
             placeholder="Select an option"
             onFocus={() => setIsFocus(true)}
-            value={bpsOption}
-            onChange={value => setBpsOption(value)}
+            value={selectedOption} // Updated state
+            onChange={value => setSelectedOption(value)}
           />
         </View>
-        <Text style={[styles.sectionHead, { marginTop: 10 }]}>Duty Hours in Summer</Text>
+        <Text style={[styles.sectionHead, {marginTop: 10}]}>
+          Duty Hours in Summer
+        </Text>
         <View style={styles.divider} />
         <Text style={styles.textt}>Start Time:</Text>
         <TextInput
@@ -651,7 +658,9 @@ const FormP = ({route, navigation}) => {
           value={formData.endtimes}
           onChangeText={text => handleInputChange('endtimes', text)}
         />
-        <Text style={[styles.sectionHead, { marginTop: 10 }]}>Duty Hours in Winter</Text>
+        <Text style={[styles.sectionHead, {marginTop: 10}]}>
+          Duty Hours in Winter
+        </Text>
         <View style={styles.divider} />
         <Text style={styles.textt}>Start Time:</Text>
         <TextInput
@@ -805,7 +814,7 @@ const styles = StyleSheet.create({
   },
   selectedTextStyle: {
     color: 'black',
-    fontSize: 13
+    fontSize: 13,
   },
   inputSearchStyle: {
     color: 'black',
