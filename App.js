@@ -1,11 +1,10 @@
 import React, {useEffect} from 'react';
 import { StyleSheet} from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-
+import FloatingButton from './src/components/FloatingButton'
 import { NavigationContainer } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 import SplashScreen from 'react-native-splash-screen';
-
 import Login from './src/Auth/Login';
 import Register from './src/Auth/Register';
 import Dashboard from './src/Auth/Dashboard';
@@ -49,6 +48,7 @@ const App = () => {
       <Stack.Screen name="FormG" component={FormG} />
       <Stack.Screen name="FormA" component={FormA} />
       <Stack.Screen name="FormD" component={FormD} />
+      <Stack.Screen name="FloatingButton" component={FloatingButton}/>
     </Stack.Navigator>
   </NavigationContainer>
   );

@@ -20,6 +20,8 @@ import emailImage from '../../assets/images/email.png';
 import passwordImage from '../../assets/images/password.png';
 import Loader from '../components/Loader'; // Import the custom Loader component
 import EncryptedStorage from 'react-native-encrypted-storage';
+import syncStorage from 'react-native-sync-storage';
+
 
 const Login = ({ navigation }) => {
   const [username, setUsername] = useState('');
@@ -84,6 +86,8 @@ const Login = ({ navigation }) => {
       console.log('API Response:', result); // Log the entire response for debugging
 
       if (response.ok) {
+        // Store user details in sync storage
+      syncStorage.set('user', JSON.stringify(result.user));
         // Store user details in encrypted storage
         await EncryptedStorage.setItem('user', JSON.stringify(result.user));
 
@@ -159,12 +163,13 @@ const Login = ({ navigation }) => {
               <Text style={styles.forgotPassword}>Forgot Password?</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={handleLogin}>
-              <LinearGradient
-                colors={['#4c1e86', '#d42b4d']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.button}
-              >
+            <LinearGradient
+          colors={['#352E64', '#412E63', '#632D61', '#982B5D', '#C82A59']}
+          locations={[0, 0.14, 0.39, 0.73, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.button}
+        >
                 <Text style={styles.buttonText}>Sign In</Text>
               </LinearGradient>
             </TouchableOpacity>

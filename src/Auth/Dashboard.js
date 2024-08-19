@@ -1,575 +1,249 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- * @flow strict-local
- */
-
-import { useEffect, useState } from 'react';
-import React from 'react';
-import pwdIMage from '../../assets/images/Background.jpg'
-import Attendence from '../../assets/public/Attendence.png';
-import Payment from '../../assets/public/Payment.png';
-import Registration from '../../assets/public/Registraton.png';
-import Request from '../../assets/public/Requests.png';
-import Status from '../../assets/public/Status.png';
+import React, {useState, useEffect} from 'react';
 import {
-  StyleSheet,
-  Image,
-  Text,
-  TouchableOpacity,
   View,
-  ImageBackground,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  Dimensions,
   ScrollView,
 } from 'react-native';
-import EncryptedStorage from 'react-native-encrypted-storage';
+import LinearGradient from 'react-native-linear-gradient';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import FloatingButton from '../components/FloatingButton';
+import syncStorage from 'react-native-sync-storage';
+import * as Animatable from 'react-native-animatable';
 
+// Importing images
+import Attendence from '../../assets/images/attendence.png';
+import Payment from '../../assets/images/payment.png';
+import Registration from '../../assets/images/registration.png';
+import Request from '../../assets/images/requests.png';
+import Status from '../../assets/images/status.png';
+import Bell from '../../assets/images/bell.png';
 
+const {width} = Dimensions.get('window');
 
+const Dashboard = ({route, navigation}) => {
+  const [userName, setUserName] = useState('');
 
-const Dashboard = ({ route, navigation }) => {
+  useEffect(() => {
+    const {user} = route.params || {};
+    if (user) {
+      setUserName(user.name);
+    } else {
+      const getUserDetails = async () => {
+        try {
+          const storedUser = await syncStorage.get('user');
+          if (storedUser) {
+            const parsedUser = JSON.parse(storedUser);
+            if (parsedUser.name) {
+              setUserName(parsedUser.name);
+            }
+          }
+        } catch (error) {
+          console.error('Error retrieving user details:', error);
+        }
+      };
 
-
-  const [loading, setLoading] = useState(false);
-  const [fullname, setFullName] = useState('');
-
-
-
-  // Function to handle logout
-  const handleLogout = async () => {
-    try {
-      // Remove user data from encrypted storage
-      await EncryptedStorage.removeItem('user');
-      await EncryptedStorage.removeItem('formData'); // If you also want to clear form data
-  
-      // Navigate to the login screen
-      navigation.navigate('Login');
-    } catch (error) {
-      console.error('Error during logout:', error);
+      getUserDetails();
     }
-  };
-  
-
-//   useEffect(() => {
-//     const user = syncStorage.get('user_detail');
-//     if (user?.name) {
-//         console.log('User', user);
-//         setFullName(user.name);
-//     }
-// }, []);
-// const handleLogout = async () => {
-//   try {
-//     await EncryptedStorage.clear();
-//     console.log('User data cleared from encrypted storage');
-//     navigation.navigate('Main');
-//   } catch (error) {
-//     console.error('Error clearing user data:', error);
-//   }
-// };
-
-//   const handle = async (navigation) => {
-//     try {
-//       // Clear user details from sync storage
-//       syncStorage.remove('user_detail');
-      
-//       // Reset navigation stack to navigate back to Login screen
-//       navigation.reset({
-//         index: 0,
-//         routes: [{ name: 'Login' }],
-//       });
-//     } catch (e) {
-//       console.error('Error during logout:', e);
-//       // Handle logout error if needed
-//     }
-//   };
+  }, [route.params]);
 
   return (
+    <View style={styles.outerContainer}>
+      <ScrollView contentContainerStyle={styles.scrollViewContent}>
+        <View style={styles.topLine} />
 
-    <View>
-
-<ImageBackground source={pwdIMage} style={{ width: '100%', height: '100%', opacity:0.9 }}>
-
-
-        <View style={{ flexDirection: 'row', marginBottom: 30, }}>
-          <Text style={{ fontFamily: 'sans-serif',fontWeight:600, fontSize: 30, color: 'black',paddingHorizontal:20, paddingTop: 10, padding: 10, }}>Dashboard
-          </Text>
-          <View style={{ justifyContent: 'space-between', flexDirection: 'row', paddingHorizontal: 30, marginLeft: 'auto' }}>
-          <TouchableOpacity onPress={handleLogout} 
-              style={styles.ButtonStyle}
-              activeOpacity={0.5}>
-              <Text style={[styles.text, { textAlign: 'center' }]}>Logout</Text>
+        <View style={styles.container}>
+          <View style={styles.headerContainer}>
+            <Text style={styles.header}>Dashboard</Text>
+            <TouchableOpacity>
+            <Animatable.Image
+              source={Bell}
+              style={styles.bellIcon}
+              animation="swing" // Use the shake animation
+              iterationCount="infinite" // Repeat the animation indefinitely
+              duration={3000} // Increase duration to slow down the animation (3 seconds)
+            />
             </TouchableOpacity>
+          </View>
 
+          <LinearGradient
+            colors={['#352E64', '#412E63', '#632D61', '#982B5D', '#C82A59']}
+            locations={[0, 0.14, 0.39, 0.73, 1]}
+            start={{x: 0, y: 0}}
+            end={{x: 1, y: 0}}
+            style={styles.gradientBar}>
+            <View style={styles.gradientContent}>
+              <Icon
+                name="person"
+                size={24}
+                color="#fff"
+                style={styles.userIcon}
+              />
+              <Text style={styles.userText}>{userName}</Text>
+            </View>
+          </LinearGradient>
+
+          <View style={styles.row1}>
+            <TouchableOpacity
+              style={styles.card}
+              onPress={() => navigation.navigate('FormP')}>
+              <Image
+                source={Registration}
+                style={styles.cardIcon}
+                resizeMode="contain"
+              />
+              <Text style={styles.cardText}>Registration</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.card}>
+              <Image
+                source={Status}
+                style={styles.cardIcon}
+                resizeMode="contain"
+              />
+              <Text style={styles.cardText}>Status</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.row}>
+            <TouchableOpacity style={styles.card}>
+              <Image
+                source={Attendence}
+                style={styles.cardIcon}
+                resizeMode="contain"
+              />
+              <Text style={styles.cardText}>Attendance</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.card}>
+              <Image
+                source={Payment}
+                style={styles.cardIcon}
+                resizeMode="contain"
+              />
+              <Text style={styles.cardText}>Payment</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.row}>
+            <TouchableOpacity style={styles.card}>
+              <Image
+                source={Request}
+                style={styles.cardIcon}
+                resizeMode="contain"
+              />
+              <Text style={styles.cardText}>Requests</Text>
+            </TouchableOpacity>
           </View>
         </View>
+      </ScrollView>
 
-       {/* {imageProfile != '' ?
-          <View style={[styles.info]} >
-
-           
-            <Image source={{ uri: `https://dpmis.punjab.gov.pk/uploads/profileimg/${imageProfile}` }} style={{ width: 50, height: 50, borderRadius: 25, marginLeft: 40 }} />
-            <Text style={[styles.fullNametext]}>
-              {fullname}
-
-            </Text>
-
-          </View> : */}
-          <View style={[styles.info]}>
-        
-            <Text style={[styles.fullNametext]}>
-              {fullname}
-            </Text>
-          </View>
-          {/* }  */}
-        <View style={{ padding: 1, flex: 1, justifyContent: 'center', paddingTop: 100 }}>
-          <View style={{ width: '100%', backgroundColor: '#fff', height: '100%', padding: 20, borderTopLeftRadius: 40, borderTopRightRadius: 40, opacity: 0.9 }}>
-            <ScrollView showsVerticalScrollIndicator={false} showsHorizontalScrollIndicator={false}>
-              <View style={[styles.row]}>
-                <TouchableOpacity style={[styles.card]} onPress={() => navigation.navigate('FormP')}>
-                  <View style={styles.cardImage}>
-                    <Image source={Registration} style={styles.Registration} />
-                  </View>
-                  <View style={styles.cardTextView}>
-                    <Text style={styles.cardText}>Registration</Text>
-                  </View>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.card]}>
-                  <View style={styles.cardImage}>
-                    <Image source={Status} style={styles.Status} />
-                  </View>
-                  <View style={styles.cardTextView}>
-                    <Text style={styles.cardText}>Status</Text>
-                  </View>
-                </TouchableOpacity>
-              
-                {/* modal drtc */}
-                {/* <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}> */}
-              {/*   <Modal
-                  animationType="fade"
-                  transparent
-                  visible={modalVisible}
-                  onRequestClose={() => setModalVisible(false)}
-                >
-                  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)', padding: 20 }}>
-                    <View style={{ backgroundColor: 'white', padding: 20, borderRadius: 20 }}>
-                      <Text style={{ color: 'black', textAlign: "center", fontSize: 15, marginTop: 10 }}>
-                        یہ سروس حاصل کرنے کے لیے پہلے اپنا معزوری سرٹیفیکیٹ دی گئی (TAB (PWD Registration پر کلک کر کے حاصل کریں۔
-                      </Text>
-                      <View style={{ flexDirection: 'row' }}>
-                        <TouchableOpacity
-                          onPress={handleSpeechDrtc}
-                          style={styles.SpeakButton}
-                          activeOpacity={0.5}>
-                          <Text style={[styles.text, { textAlign: 'center', color: '#fff' }]}>Speak 🔊</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          onPress={handleStopSpeechDrtc}
-                          style={styles.SpeakButton}
-                          activeOpacity={0.5}>
-                          <Text style={[styles.text, { textAlign: 'center', color: '#fff' }]}>Stop  🔇</Text>
-                        </TouchableOpacity>
-                      </View>
-                      <View style={{ flexDirection: "row" }}>
-                        <TouchableOpacity
-                          style={styles.SpeakButton}
-                          activeOpacity={0.5}
-                          onPress={() => setModalVisible(false)}
-                        >
-                          <Text style={[styles.text, { textAlign: 'center', color: '#fff', fontSize: 16, fontFamily: 'sans-serif' }]}>Skip</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  </View>
-                </Modal> */}
-                {/* </View> */}
-                {/* end drtc */}
-              </View>
-              <View style={[styles.row]}>
-                <TouchableOpacity style={[styles.card]}>
-                  <View style={styles.cardImage}>
-                    <Image source={Attendence} style={styles.Attendence} />
-                  </View>
-                  <View style={styles.cardTextView}>
-                    <Text style={styles.cardText}>Attendence</Text>
-                  </View>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.card]}>
-                  <View style={styles.cardImage}>
-                    <Image source={Payment} style={styles.Payment} />
-                  </View>
-                  <View style={styles.cardTextView}>
-                    <Text style={styles.ReqText}>Payment</Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
-              <View style={[styles.row]}>
-                <TouchableOpacity style={[styles.card]}>
-                  <View style={styles.cardImage}>
-                    <Image source={Request} style={styles.Request} />
-                  </View>
-                  <View style={styles.cardTextView}>
-                    <Text style={styles.ReqText}>Requests</Text>
-                  </View>
-                </TouchableOpacity>
-                <View style={[styles.card, { opacity: 0 }]}>
-                  <View style={styles.cardImage}>
-                    <Image source={Request} style={styles.bannerImage} />
-                  </View>
-                  <View style={styles.cardTextView}>
-                    <Text style={styles.cardText}>Request</Text>
-                  </View>
-                </View>
-              
-              </View>
-              {/* <View style={styles.row}>
-                <TouchableOpacity style={styles.card}
-                  onPress={() => Alert.alert('Coming Soon!')}
-                // onPress={() => setModalVisible(true)}
-                >
-                  <View style={styles.cardImage}>
-                    <Image source={BaitulMall} style={styles.bannerImage} />
-                  </View>
-                  <View style={styles.cardTextView}>
-                    <Text style={styles.cardText}>Bait-ul-Maal</Text>
-                  </View>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.card} onPress={() => Alert.alert('Coming Soon!')}>
-                  <View style={styles.cardImage}>
-                    <Image source={Zakat} style={styles.zakatimage} />
-                  </View>
-                  <View style={styles.cardTextView}>
-                    <Text style={styles.cardText}>Zakat</Text>
-                  </View>
-                </TouchableOpacity>
-              </View> */}
-             {/*  <View style={[styles.row,]}>
-                <TouchableOpacity style={styles.card}
-                  onPress={() => setModalVisibleFitNo(true)}
-                >
-                  <View style={styles.cardImage}>
-                    <Image source={NashemanImage} style={styles.nashemanimage} />
-                  </View>
-                  <View style={styles.cardTextView}>
-                    <Text style={styles.cardText}>Nasheman</Text>
-                  </View>
-                </TouchableOpacity>
-                <Modal
-                  animationType="fade"
-                  transparent
-                  visible={modalVisibleFitNo}
-                  onRequestClose={() => setModalVisibleFitNo(false)}
-                >
-                  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)', padding: 20 }}>
-                    <View style={{ backgroundColor: 'white', padding: 20, borderRadius: 20 }}>
-                      <Text style={{ color: 'black', textAlign: "center", fontSize: 15, marginTop: 10 }}>
-                      آپ اس سروس سے فائدہ اٹھانے کے اہل نہیں ہیں۔
-                      </Text>
-                      <View style={{ flexDirection: 'row' }}>
-                        <TouchableOpacity
-                          onPress={handleSpeechNasheman}
-                          style={styles.SpeakButton}
-                          activeOpacity={0.5}>
-                          <Text style={[styles.text, { textAlign: 'center', color: '#fff' }]}>Speak 🔊</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          onPress={handleStopSpeechNasheman}
-
-                          style={styles.SpeakButton}
-                          activeOpacity={0.5}>
-                          <Text style={[styles.text, { textAlign: 'center', color: '#fff' }]}>Stop  🔇</Text>
-                        </TouchableOpacity>
-                      </View>
-                      <View style={{ flexDirection: "row" }}>
-                        <TouchableOpacity
-                          style={styles.SpeakButton}
-                          activeOpacity={0.5}
-                          onPress={() => setModalVisibleFitNo(false)}
-                        >
-                          <Text style={[styles.text, { textAlign: 'center', color: '#fff', fontSize: 16, fontFamily: 'sans-serif' }]}>Skip</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  </View>
-                </Modal>
-                <TouchableOpacity style={[styles.card]}   onPress={() => Alert.alert('Coming Soon!')}>
-                  <View style={styles.cardImage}>
-                    <Image source={Enabled} style={styles.enabledimage} />
-                  </View>
-                  <View style={styles.cardTextView}>
-                    <Text style={styles.cardText}># Enabled</Text>
-                  </View>
-                </TouchableOpacity>
-              </View> */}
-            {/*   <View style={styles.row}>
-                <TouchableOpacity style={styles.card}
-                  onPress={() => Alert.alert('Coming Soon!')}>
-                  <View style={styles.cardImage}>
-                    <Image source={PMAImage} style={styles.enabledimage} />
-                  </View>
-                  <View style={styles.cardTextView}>
-                    <Text style={styles.cardText}>PMA</Text>
-                  </View>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.card}
-                  onPress={() =>
-                    navigation.navigate('Complaint')}>
-                  <View style={styles.cardImage}>
-                    <Image source={ComplaintIMG} style={styles.enabledimage} />
-                  </View>
-                  <View style={styles.cardTextView}>
-                    <Text style={styles.cardText}>Complaint</Text>
-                  </View>
-                </TouchableOpacity>
-               
-              </View> */}
-            </ScrollView>
-          </View>
-        </View>
-      </ImageBackground>
+      <FloatingButton />
     </View>
   );
 };
 
-
 const styles = StyleSheet.create({
-  SpeakButton: {
-    justifyContent: 'center',
-    width: '35%',
-    padding: 10,
-    marginTop: 15,
-    // marginLeft: '15%',
+  outerContainer: {
     flex: 1,
-    marginRight: 5,
-    borderRadius: 10,
-    backgroundColor: '#002D62',
-    color: '#fff'
+    backgroundColor: '#F5F5F5',
   },
-  closeIcon: {
-    marginLeft: '90%'
+  scrollViewContent: {
+    flexGrow: 1,
   },
-  searchIcon: {
-    fontSize: 30,
-    padding: 10,
-    margin: 2
-  },
-  Registration: {
-    width: '85%',
-    height: '85%',
-    resizeMode: 'contain',
-    // color:'black'
-    top: 10,
-  },
-  Status: {
-    width: '85%',
-    height: '85%',
-    resizeMode: 'contain',
-    // color:'black'
-    top: 10,
-  },
-  Attendence: {
-    width: '85%',
-    height: '85%',
-    resizeMode: 'contain',
-    // color:'black'
-    top: 10,
-  },
-  Payment: {
-    width: '85%',
-    height: '75%',
-    resizeMode: 'contain',
-    // color:'black'
-    top: 10,
-  },
-  Request: {
-    width: '85%',
-    height: '75%',
-    resizeMode: 'contain',
-    // color:'black'
-    top: 10,
-  },
-  BannerImage: {
-    width: '85%',
-    height: '85%',
-    resizeMode: 'contain',
-    marginTop: 10,
-  },
-  enabledimage: {
-    width: '85%',
-    height: '85%',
-    resizeMode: 'contain',
-    marginTop: 10,
-  },
-  zakatimage: {
-    width: '85%',
-    height: '85%',
-    resizeMode: 'contain',
-    marginTop: 10,
-  },
-  nashemanimage: {
-    width: '85%',
-    height: '85%',
-    resizeMode: 'contain',
-    marginTop: 10,
-  },
-  card: {
-    flexDirection: 'column',
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    borderRadius: 30,
+  container: {
     flex: 1,
-    width: '100%',
-    height: 120,
-    marginStart: 7,
-    marginEnd: 7,
+    padding: 16,
+    marginTop: '10%',
   },
-  row: {
-    width: '100%',
+  headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 135,
-
-
+    justifyContent: 'space-between',
+    marginBottom: 16,
   },
-  invisible: {
-    flexDirection: 'column',
-    flex: 1,
-    width: '100%',
-    height: 120,
-    marginStart: 7,
-    marginEnd: 7,
-  },
-  cardImage: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    width: '100%',
-    alignSelf: 'center',
-    height: '100%',
-    flex: 2,
-    alignItems: 'center',
-  },
-  cardTextView: {
-    flex: 1,
-    top: 20,
-    alignItems: 'center',
-
-  },
-  ButtonStyle: {
-    justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 25,
-    borderRadius: 10,
-    backgroundColor: '#da1703',
-    marginLeft: '3%',
-    marginTop: 10,
-    fontFamily: 'sans-serif',
-  },
-  updatebutton: {
-    justifyContent: 'center',
-    paddingVertical: 13,
-    paddingHorizontal: 8,
-    borderRadius: 10,
-    backgroundColor: '#002D62',
-    marginTop: 10,
-    fontFamily: 'sans-serif'
-
-  },
-  cardText: {
-    fontSize: 14,
-    // fontFamily: 'sans-serif',
-    bottom: 15,
+  header: {
+    fontSize: 26,
+    fontWeight: 'medium',
     color: '#000',
-    fontWeight: '600'
-
+    fontFamily: 'Dubai-Regular',
   },
-  ReqText: {
-    fontSize: 14,
-    // fontFamily: 'sans-serif',
-    bottom: 15,
-    color: '#000',
-    fontWeight: '600',
-    marginTop:5
-
+  bellIcon: {
+    width: 70,
+    height: 70,
   },
-  text: {
-    color: 'white',
-    
-    fontSize: 15,
-    fontFamily: "sans-serif",
-
+  topLine: {
+    position: 'absolute',
+    top: '5%',
+    left: 0,
+    width: '100%',
+    height: 1,
+    backgroundColor: '#000',
   },
-  button: {
-    justifyContent: 'center',
-    paddingVertical: 5,
+  gradientBar: {
+    width: '70%',
     height: 50,
-    width: 100,
-    // paddingHorizontal: 20,
-    borderRadius: 14,
-    backgroundColor: '#002D62',
-    // marginLeft:'2%',
-    marginTop: 10
-  },
-  skipbutton: {
+    marginLeft: -16,
+    marginTop: 10,
+    marginBottom: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 5,
-    height: 50,
-    width: 100,
-    // paddingHorizontal: 20,
-    borderRadius: 14,
-    backgroundColor: '#002D62',
-    marginTop: 15,
-    marginLeft: '30%'
-  },
-  info: {
-    // backgroundColor: '#da1703',
-    backgroundColor: '#da1703',
-    height: 50,
-    width: '80%',
-    // opacity: 0.9,
+    paddingHorizontal: 16,
     borderTopRightRadius: 10,
     borderBottomRightRadius: 10,
+  },
+  gradientContent: {
     flexDirection: 'row',
-    //  justifyContent:'space-between'
+    alignItems: 'center',
   },
-  dropdown: {
-    height: 40,
-    width: '100%',
-    borderColor: 'white',
-    borderWidth: 0.5,
-    borderRadius: 5,
-    paddingHorizontal: 4,
-    backgroundColor: '#D3D3D3',
-    marginTop: 10
+  userIcon: {
+    marginRight: 8,
   },
-  placeholderStyle: {
-    textAlign: 'center',
-    fontSize: 15
-  },
-  selectedTextStyle: {
-    color: 'black',
-  },
-  TEXTstyle: {
-    color: 'black'
-  },
-  fullNametext:
-  {
+  userText: {
     color: '#fff',
-    // marginLeft: 20,
-    // marginTop: 13,
-    fontSize: 18,
-    alignSelf:'center',
-    paddingHorizontal:40
-
-  }
+    fontSize: 16,
+    fontFamily: 'Dubai-Regular',
+  },
+  row1: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: '20%',
+    marginBottom: 24,
+    paddingLeft:'5%',
+    paddingRight:'5%'
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+    paddingLeft:'5%',
+    paddingRight:'5%'
+  },
+  card: {
+    backgroundColor: '#302F65',
+    width: '40%',
+    height: 110,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 5,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 6},
+    shadowOpacity: 0.8,
+    shadowRadius: 10,
+    elevation: 10,
+    borderColor: '#fff',
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  cardIcon: {
+    width: '80%',
+    height: '60%',
+  },
+  cardText: {
+    color: '#fff',
+    fontSize: 12,
+    textAlign: 'center',
+  },
 });
 
 export default Dashboard;
