@@ -51,10 +51,30 @@ const FormP = ({route, navigation}) => {
   const [districts, setDistricts] = useState([]);
   const [selectedOption, setSelectedOption] = useState(null);
   const [districtOption, setDistrictOption] = useState(null);  // For District dropdown
-  const [instituteOption, setInstituteOption] = useState(null);  // For Institute dropdown
+  const [institutes, setInstitutes] = useState([]); // Holds the list of institutes
+  const [selectedInstitute, setSelectedInstitute] = useState(null); // Holds the selected institute
   const [jobTypeOption, setJobTypeOption] = useState(null);  // For Job Type dropdown
   const [bpsOption, setBpsOption] = useState(null);  // For BPS dropdown
+  useEffect(() => {
+    const fetchInstitutes = async () => {
+      try {
+        const response = await fetch('https://wwh.punjab.gov.pk/api/get-institutes');
+        const data = await response.json();
+        
+        if (data && Array.isArray(data.institutes)) {
+          console.log('Institutes Array:', data.institutes); // Log the array to the console
+          setInstitutes(data.institutes);
+        } else {
+          console.error('Expected an array but got:', data);
+        }
+      } catch (error) {
+        console.error('Error fetching institutes:', error);
+      }
+    };
 
+    fetchInstitutes();
+  }, []);
+  
 
   useEffect(() => {
     fetch('https://wwh.punjab.gov.pk/api/districts')
@@ -418,23 +438,23 @@ const FormP = ({route, navigation}) => {
         </View>
         <Text style={styles.text}>Choose Institute </Text>
         <View>
-          <Dropdown
-            style={[styles.input, isFocus && { borderColor: '#1E577C' }]}
-            placeholderStyle={styles.placeholderStyle}
-            selectedTextStyle={styles.selectedTextStyle}
-            inputSearchStyle={styles.inputSearchStyle}
-            itemTextStyle={styles.itemTextStyle}
-            search
-            searchPlaceholder="Search..."
-            data={options}
-            labelField="name"
-            valueField="id"
-            placeholder="Select an option"
-            onFocus={() => setIsFocus(true)}
-            value={instituteOption}  // Updated state
-            onChange={value => setInstituteOption(value)}
-          />
-        </View>
+        <Dropdown
+        style={[styles.input, isFocus && { borderColor: '#1E577C' }]}
+        placeholderStyle={styles.placeholderStyle}
+        selectedTextStyle={styles.selectedTextStyle}
+        inputSearchStyle={styles.inputSearchStyle}
+        itemTextStyle={styles.itemTextStyle}
+        search
+        searchPlaceholder="Search..."
+        data={institutes} // Updated state
+        labelField="iname" // Change according to your API response
+        valueField="id"
+        placeholder="Select an option"
+        onFocus={() => setIsFocus(true)}
+        value={selectedInstitute}  // Updated state
+        onChange={value => setSelectedInstitute(value)}
+      />
+      </View>
         <Text style={[styles.text, { marginTop: '5%' }]}>Applied Date:</Text>
         <TouchableOpacity style={styles.datePickerWrapper}>
           <DatePickerInput
@@ -452,7 +472,7 @@ const FormP = ({route, navigation}) => {
 
       {/* CNIC Information */}
       <View style={styles.section}>
-        <Text style={styles.sectionHeader}>CNIC Information</Text>
+        <Text  style={styles.sectionHeader}>CNIC Information</Text>
         <View style={styles.divider} />
         <Text style={styles.text}>CNIC:</Text>
         <TextInput
