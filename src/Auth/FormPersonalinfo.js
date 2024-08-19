@@ -20,7 +20,6 @@ import {DatePickerInput} from 'react-native-paper-dates';
 import syncStorage from 'react-native-sync-storage';
 import DocumentPicker from 'react-native-document-picker';
 import {launchCamera} from 'react-native-image-picker';
-
 const FormP = ({route, navigation}) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -77,16 +76,44 @@ const FormP = ({route, navigation}) => {
 
     fetchInstitutes();
   }, []);
+
+  // useEffect(() => {
+  //   fetch('https://wwh.punjab.gov.pk/api/districts')
+  //     .then(response => response.json())
+  //     .then(data => {
+  //       setDistricts(data.districts); // Assuming the data structure
+  //     })
+  //     .catch(error => {
+  //       console.error('Error fetching districts:', error);
+  //     });
+  // }, []);
+
   useEffect(() => {
+    // Retrieve the user data from sync storage and parse it back to an object
+    const user = JSON.parse(syncStorage.get('user'));
+    const userDistrictId = user?.district;
+  
+    console.log('User District ID:', userDistrictId); // Check the retrieved district ID
+  
     fetch('https://wwh.punjab.gov.pk/api/districts')
       .then(response => response.json())
       .then(data => {
-        setDistricts(data.districts); // Assuming the data structure
+        // Filter out the district that matches the user's district ID
+        const filteredDistricts = data.districts.filter(
+          district => district.id !== userDistrictId
+        );
+  
+        console.log('Filtered Districts:', filteredDistricts); // Check the filtered districts
+  
+        setDistricts(filteredDistricts);
       })
       .catch(error => {
         console.error('Error fetching districts:', error);
       });
   }, []);
+  
+
+
   useEffect(() => {
     const {user} = route.params || {};
 
@@ -425,23 +452,24 @@ const FormP = ({route, navigation}) => {
         />
         <Text style={styles.text}>Choose District to Apply </Text>
         <View>
-          <Dropdown
-            style={[styles.input, isFocus && {borderColor: '#1E577C'}]}
-            placeholderStyle={styles.placeholderStyle}
-            selectedTextStyle={styles.selectedTextStyle}
-            inputSearchStyle={styles.inputSearchStyle}
-            itemTextStyle={styles.itemTextStyle}
-            search
-            searchPlaceholder="Search..."
-            data={districts}
-            labelField="name"
-            valueField="id"
-            placeholder="Select an option"
-            onFocus={() => setIsFocus(true)}
-            value={districtOption} // State for selected option
-            onChange={item => setDistrictOption(item.id)} // Update selected state
-          />
-        </View>
+   <Dropdown
+        style={[styles.input, isFocus && { borderColor: '#1E577C' }]}
+        placeholderStyle={styles.placeholderStyle}
+        selectedTextStyle={styles.selectedTextStyle}
+        inputSearchStyle={styles.inputSearchStyle}
+        itemTextStyle={styles.itemTextStyle}
+        search
+        searchPlaceholder="Search..."
+        data={districts}
+        labelField="name"
+        valueField="id"
+        placeholder="Select an option"
+        onFocus={() => setIsFocus(true)}
+        onBlur={() => setIsFocus(false)}
+        value={districtOption} // State for selected option
+        onChange={item => setDistrictOption(item.id)} // Update selected state
+      />
+    </View>
         <Text style={styles.text}>Choose Institute </Text>
         <View>
           <Dropdown
