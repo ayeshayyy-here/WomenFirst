@@ -20,6 +20,7 @@ import {DatePickerInput} from 'react-native-paper-dates';
 import syncStorage from 'react-native-sync-storage';
 import DocumentPicker from 'react-native-document-picker';
 import {launchCamera} from 'react-native-image-picker';
+import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 const FormP = ({route, navigation}) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -55,6 +56,9 @@ const FormP = ({route, navigation}) => {
   const [jobTypeOption, setJobTypeOption] = useState(null); // For Job Type dropdown
   const [bpsOption, setBpsOption] = useState(null); // For BPS dropdown
   const [userName, setUserName] = useState('');
+  const [isTimePickerVisible, setTimePickerVisible] = useState(false);
+  const [selectedTimeField, setSelectedTimeField] = useState(null);
+  
   useEffect(() => {
     const fetchInstitutes = async () => {
       try {
@@ -382,7 +386,28 @@ const FormP = ({route, navigation}) => {
     setSelectedAttachment(attachmentName);
     setModalVisible(true);
   };
-
+   const showTimePicker = (field) => {
+    DateTimePickerAndroid.open({
+      mode: 'time',
+      is24Hour: true,
+      value: new Date(),
+      onChange: (event, selectedDate) => {
+        if (event.type === "set") {
+          const time = selectedDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+          setFormData((prevData) => ({ ...prevData, [field]: time }));
+        }
+      },
+    });
+  };
+  // Handle time change
+  const handleTimeChange = (event, selectedTime) => {
+    const currentTime = selectedTime || formData[selectedTimeField];
+    setTimePickerVisible(Platform.OS === 'ios');
+    setFormData({
+      ...formData,
+      [selectedTimeField]: currentTime.toLocaleTimeString(),
+    });
+  };
   return (
     <ScrollView contentContainerStyle={styles.screenContainer}>
       <Text style={styles.header}>Application Form</Text>
@@ -664,51 +689,69 @@ const FormP = ({route, navigation}) => {
             onChange={value => setSelectedOption(value)}
           />
         </View>
-        <Text style={[styles.sectionHead, {marginTop: 10}]}>
-          Duty Hours in Summer
-        </Text>
-        <View style={styles.divider} />
-        <Text style={styles.textt}>Start Time:</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter Time"
-          keyboardType="numeric"
-          placeholderTextColor="grey"
-          value={formData.starttimes}
-          onChangeText={text => handleInputChange('starttimes', text)}
-        />
-        <Text style={styles.textt}>End Time:</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter Time"
-          keyboardType="numeric"
-          placeholderTextColor="grey"
-          value={formData.endtimes}
-          onChangeText={text => handleInputChange('endtimes', text)}
-        />
-        <Text style={[styles.sectionHead, {marginTop: 10}]}>
-          Duty Hours in Winter
-        </Text>
-        <View style={styles.divider} />
-        <Text style={styles.textt}>Start Time:</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter Time"
-          keyboardType="numeric"
-          placeholderTextColor="grey"
-          value={formData.starttimew}
-          onChangeText={text => handleInputChange('starttimew', text)}
-        />
-        <Text style={styles.textt}>End Time:</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter Time"
-          keyboardType="numeric"
-          placeholderTextColor="grey"
-          value={formData.endtimew}
-          onChangeText={text => handleInputChange('endtimew', text)}
-        />
-      </View>
+    
+  <Text style={[styles.sectionHead, { marginTop: 10 }]}>
+    Duty Hours in Summer
+  </Text>
+  <View style={styles.divider} />
+
+  <Text style={styles.textt}>Start Time:</Text>
+  <TouchableOpacity onPress={() => showTimePicker('starttimes')}>
+    <TextInput
+      style={styles.input}
+      placeholder="Enter Time"
+      keyboardType="numeric"
+      placeholderTextColor="grey"
+      value={formData.starttimes}
+      onChangeText={text => handleInputChange('starttimes', text)}
+      editable={false}  // To prevent direct typing, use time picker instead
+    />
+  </TouchableOpacity>
+
+  <Text style={styles.textt}>End Time:</Text>
+  <TouchableOpacity onPress={() => showTimePicker('endtimes')}>
+    <TextInput
+      style={styles.input}
+      placeholder="Enter Time"
+      keyboardType="numeric"
+      placeholderTextColor="grey"
+      value={formData.endtimes}
+      onChangeText={text => handleInputChange('endtimes', text)}
+      editable={false}
+    />
+  </TouchableOpacity>
+
+  <Text style={[styles.sectionHead, { marginTop: 10 }]}>
+    Duty Hours in Winter
+  </Text>
+  <View style={styles.divider} />
+
+  <Text style={styles.textt}>Start Time:</Text>
+  <TouchableOpacity onPress={() => showTimePicker('starttimew')}>
+    <TextInput
+      style={styles.input}
+      placeholder="Enter Time"
+      keyboardType="numeric"
+      placeholderTextColor="grey"
+      value={formData.starttimew}
+      onChangeText={text => handleInputChange('starttimew', text)}
+      editable={false}
+    />
+  </TouchableOpacity>
+
+  <Text style={styles.textt}>End Time:</Text>
+  <TouchableOpacity onPress={() => showTimePicker('endtimew')}>
+    <TextInput
+      style={styles.input}
+      placeholder="Enter Time"
+      keyboardType="numeric"
+      placeholderTextColor="grey"
+      value={formData.endtimew}
+      onChangeText={text => handleInputChange('endtimew', text)}
+      editable={false}
+    />
+  </TouchableOpacity>
+</View>
 
       <Modal
         visible={modalVisible}
