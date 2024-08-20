@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
   },
   fabContainer: {
     position: 'absolute',
-    bottom: 30, // Increased to prevent overlap with other content
+    bottom: 20, // Increased to prevent overlap with other content
     right: 30,  // Increased to position the button more prominently
     zIndex: 1000, // Ensures it appears above other components
     elevation: 8, // Adds shadow for Android

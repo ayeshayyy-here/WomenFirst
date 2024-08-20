@@ -21,6 +21,7 @@ import Registration from '../../assets/images/registration.png';
 import Request from '../../assets/images/requests.png';
 import Status from '../../assets/images/status.png';
 import Bell from '../../assets/images/bell.png';
+import Complaint from '../../assets/images/complaint.png';
 
 const { width, height } = Dimensions.get('window'); // Get screen dimensions
 
@@ -135,6 +136,14 @@ const Dashboard = ({ route, navigation }) => {
                 />
                 <Text style={styles.cardText}>Requests</Text>
               </TouchableOpacity>
+              <TouchableOpacity style={styles.card}>
+                <Image
+                  source={Complaint}
+                  style={styles.cardIcon}
+                  resizeMode="contain"
+                />
+                <Text style={styles.cardText}>Complaint</Text>
+              </TouchableOpacity>
             </View>
       <FloatingButton />
 
@@ -223,6 +232,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     paddingLeft: '7%',
     paddingRight: '7%',
+    marginTop:'10%'
   },
   row: {
     flexDirection: 'row',
@@ -230,11 +240,13 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     paddingLeft: '7%',
     paddingRight: '7%',
+    marginTop:'2%'
+
   },
   card: {
     backgroundColor: '#fff',
-    width: '40%',
-    height: 110,
+    width: '45%',
+    height: 120,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -251,7 +263,7 @@ const styles = StyleSheet.create({
   },
   cardIcon: {
     width: '80%',
-    height: '65%',
+    height: '70%',
   },
   cardText: {
     color: '#000000',
