@@ -22,7 +22,7 @@ import Request from '../../assets/images/requests.png';
 import Status from '../../assets/images/status.png';
 import Bell from '../../assets/images/bell.png';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window'); // Get screen dimensions
 
 const Dashboard = ({ route, navigation }) => {
   const [userName, setUserName] = useState('');
@@ -51,12 +51,12 @@ const Dashboard = ({ route, navigation }) => {
   }, [route.params]);
 
   return (
-        <LinearGradient
-        colors={['#775FA8', '#6C5B7B', '#C06C84']} // Adjust colors
-        start={{ x: 0, y: 0 }} // Start gradient at the top-left
-        end={{ x: 1, y: 1 }} // End gradient at the bottom-right
-        locations={[0.2, 0.6, 1]}  // Add your gradient colors here
-      style={styles.outerContainer} // Apply the gradient to the outer container
+    <LinearGradient
+      colors={['#775FA8', '#6C5B7B', '#C06C84']}
+      start={{ x: 1, y: 1 }}
+      end={{ x: 0, y: 0 }}
+      locations={[0.2, 0.6, 1]}
+      style={styles.outerContainer}
     >
       <ScrollView contentContainerStyle={styles.scrollViewContent}>
         <View style={styles.topLine} />
@@ -68,9 +68,9 @@ const Dashboard = ({ route, navigation }) => {
               <Animatable.Image
                 source={Bell}
                 style={styles.bellIcon}
-                animation="swing" // Use the swing animation
-                iterationCount="infinite" // Repeat the animation indefinitely
-                duration={3000} // Increase duration to slow down the animation (3 seconds)
+                animation="swing"
+                iterationCount="infinite"
+                duration={3000}
               />
             </TouchableOpacity>
           </View>
@@ -136,11 +136,12 @@ const Dashboard = ({ route, navigation }) => {
                 <Text style={styles.cardText}>Requests</Text>
               </TouchableOpacity>
             </View>
+      <FloatingButton />
+
           </View>
         </View>
       </ScrollView>
 
-      <FloatingButton />
     </LinearGradient>
   );
 };
@@ -166,13 +167,13 @@ const styles = StyleSheet.create({
   },
   header: {
     fontSize: 28,
-    padding:10,
+    padding: 10,
     fontWeight: 'medium',
     color: '#fff',
     fontFamily: 'Dubai-Regular',
   },
   bellIcon: {
-    marginRight:'7%',
+    marginRight: '7%',
     width: 30,
     height: 30,
   },
@@ -199,7 +200,7 @@ const styles = StyleSheet.create({
   gradientContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft:10
+    marginLeft: 10,
   },
   userIcon: {
     marginRight: 8,
@@ -213,15 +214,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopLeftRadius: 15,
     borderTopRightRadius: 15,
-    height:700,
-    overflow: 'hidden',
-    flex: 1, // Ensures it takes the remaining space
-    marginTop: '5%', // Pushes it to the bottom
+    flex: 1, // Take up remaining space
+    paddingVertical: 24, // Add some padding to the top and bottom
   },
   row1: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: '15%',
     marginBottom: 24,
     paddingLeft: '7%',
     paddingRight: '7%',
@@ -247,11 +245,10 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 10,
     borderColor: '#d3d3d3',
-    // borderWidth: 1,         // Apply a general border width to all sides
-    borderRightWidth: 1,    // Specifically set the right side border width
-    borderBottomWidth:1,
+    borderRightWidth: 1,
+    borderBottomWidth: 1,
     overflow: 'hidden',
-  },  
+  },
   cardIcon: {
     width: '80%',
     height: '65%',
