@@ -386,19 +386,24 @@ const FormP = ({route, navigation}) => {
     setSelectedAttachment(attachmentName);
     setModalVisible(true);
   };
-   const showTimePicker = (field) => {
+  const showTimePicker = (field) => {
     DateTimePickerAndroid.open({
       mode: 'time',
-      is24Hour: true,
+      is24Hour: false,  // Set this to false to use 12-hour format with AM/PM
       value: new Date(),
       onChange: (event, selectedDate) => {
-        if (event.type === "set") {
-          const time = selectedDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+        if (event.type === "set" && selectedDate) {
+          const time = selectedDate.toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true,  // This enables AM/PM format
+          });
           setFormData((prevData) => ({ ...prevData, [field]: time }));
         }
       },
     });
   };
+  
   // Handle time change
   const handleTimeChange = (event, selectedTime) => {
     const currentTime = selectedTime || formData[selectedTimeField];
