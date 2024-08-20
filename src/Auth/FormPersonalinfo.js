@@ -375,7 +375,7 @@ const FormP = ({route, navigation}) => {
   const [options, setOptions] = useState([]);
 
   // Initialize options with BPS-1 to BPS-20
-  React.useEffect(() => {
+  useEffect(() => {
     const newOptions = [];
     for (let i = 1; i <= 20; i++) {
       newOptions.push({id: i, name: `BPS-${i}`});

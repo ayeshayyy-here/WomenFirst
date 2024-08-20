@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -22,13 +22,13 @@ import Request from '../../assets/images/requests.png';
 import Status from '../../assets/images/status.png';
 import Bell from '../../assets/images/bell.png';
 
-const {width} = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
-const Dashboard = ({route, navigation}) => {
+const Dashboard = ({ route, navigation }) => {
   const [userName, setUserName] = useState('');
 
   useEffect(() => {
-    const {user} = route.params || {};
+    const { user } = route.params || {};
     if (user) {
       setUserName(user.name);
     } else {
@@ -51,7 +51,13 @@ const Dashboard = ({route, navigation}) => {
   }, [route.params]);
 
   return (
-    <View style={styles.outerContainer}>
+        <LinearGradient
+        colors={['#775FA8', '#6C5B7B', '#C06C84']} // Adjust colors
+        start={{ x: 0, y: 0 }} // Start gradient at the top-left
+        end={{ x: 1, y: 1 }} // End gradient at the bottom-right
+        locations={[0.2, 0.6, 1]}  // Add your gradient colors here
+      style={styles.outerContainer} // Apply the gradient to the outer container
+    >
       <ScrollView contentContainerStyle={styles.scrollViewContent}>
         <View style={styles.topLine} />
 
@@ -59,22 +65,17 @@ const Dashboard = ({route, navigation}) => {
           <View style={styles.headerContainer}>
             <Text style={styles.header}>Dashboard</Text>
             <TouchableOpacity>
-            <Animatable.Image
-              source={Bell}
-              style={styles.bellIcon}
-              animation="swing" // Use the shake animation
-              iterationCount="infinite" // Repeat the animation indefinitely
-              duration={3000} // Increase duration to slow down the animation (3 seconds)
-            />
+              <Animatable.Image
+                source={Bell}
+                style={styles.bellIcon}
+                animation="swing" // Use the swing animation
+                iterationCount="infinite" // Repeat the animation indefinitely
+                duration={3000} // Increase duration to slow down the animation (3 seconds)
+              />
             </TouchableOpacity>
           </View>
 
-          <LinearGradient
-            colors={['#352E64', '#412E63', '#632D61', '#982B5D', '#C82A59']}
-            locations={[0, 0.14, 0.39, 0.73, 1]}
-            start={{x: 0, y: 0}}
-            end={{x: 1, y: 0}}
-            style={styles.gradientBar}>
+          <View style={styles.gradientBar}>
             <View style={styles.gradientContent}>
               <Icon
                 name="person"
@@ -84,75 +85,77 @@ const Dashboard = ({route, navigation}) => {
               />
               <Text style={styles.userText}>{userName}</Text>
             </View>
-          </LinearGradient>
+          </View>
 
-          <View style={styles.row1}>
-            <TouchableOpacity
-              style={styles.card}
-              onPress={() => navigation.navigate('FormP')}>
-              <Image
-                source={Registration}
-                style={styles.cardIcon}
-                resizeMode="contain"
-              />
-              <Text style={styles.cardText}>Registration</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.card}>
-              <Image
-                source={Status}
-                style={styles.cardIcon}
-                resizeMode="contain"
-              />
-              <Text style={styles.cardText}>Status</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.row}>
-            <TouchableOpacity style={styles.card}>
-              <Image
-                source={Attendence}
-                style={styles.cardIcon}
-                resizeMode="contain"
-              />
-              <Text style={styles.cardText}>Attendance</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.card}>
-              <Image
-                source={Payment}
-                style={styles.cardIcon}
-                resizeMode="contain"
-              />
-              <Text style={styles.cardText}>Payment</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.row}>
-            <TouchableOpacity style={styles.card}>
-              <Image
-                source={Request}
-                style={styles.cardIcon}
-                resizeMode="contain"
-              />
-              <Text style={styles.cardText}>Requests</Text>
-            </TouchableOpacity>
+          <View style={styles.cardWrapper}>
+            <View style={styles.row1}>
+              <TouchableOpacity
+                style={styles.card}
+                onPress={() => navigation.navigate('FormP')}>
+                <Image
+                  source={Registration}
+                  style={styles.cardIcon}
+                  resizeMode="contain"
+                />
+                <Text style={styles.cardText}>Registration</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.card}>
+                <Image
+                  source={Status}
+                  style={styles.cardIcon}
+                  resizeMode="contain"
+                />
+                <Text style={styles.cardText}>Status</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.row}>
+              <TouchableOpacity style={styles.card}>
+                <Image
+                  source={Attendence}
+                  style={styles.cardIcon}
+                  resizeMode="contain"
+                />
+                <Text style={styles.cardText}>Attendance</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.card}>
+                <Image
+                  source={Payment}
+                  style={styles.cardIcon}
+                  resizeMode="contain"
+                />
+                <Text style={styles.cardText}>Payment</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.row}>
+              <TouchableOpacity style={styles.card}>
+                <Image
+                  source={Request}
+                  style={styles.cardIcon}
+                  resizeMode="contain"
+                />
+                <Text style={styles.cardText}>Requests</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </ScrollView>
 
       <FloatingButton />
-    </View>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   outerContainer: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#775FA8',
   },
   scrollViewContent: {
     flexGrow: 1,
   },
   container: {
     flex: 1,
-    padding: 16,
+    padding: 0,
     marginTop: '10%',
   },
   headerContainer: {
@@ -162,14 +165,16 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   header: {
-    fontSize: 26,
+    fontSize: 28,
+    padding:10,
     fontWeight: 'medium',
-    color: '#000',
+    color: '#fff',
     fontFamily: 'Dubai-Regular',
   },
   bellIcon: {
-    width: 70,
-    height: 70,
+    marginRight:'7%',
+    width: 30,
+    height: 30,
   },
   topLine: {
     position: 'absolute',
@@ -177,7 +182,7 @@ const styles = StyleSheet.create({
     left: 0,
     width: '100%',
     height: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#fff',
   },
   gradientBar: {
     width: '70%',
@@ -194,32 +199,42 @@ const styles = StyleSheet.create({
   gradientContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginLeft:10
   },
   userIcon: {
     marginRight: 8,
   },
   userText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: 'Dubai-Regular',
+  },
+  cardWrapper: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 15,
+    borderTopRightRadius: 15,
+    height:700,
+    overflow: 'hidden',
+    flex: 1, // Ensures it takes the remaining space
+    marginTop: '5%', // Pushes it to the bottom
   },
   row1: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: '20%',
+    marginTop: '15%',
     marginBottom: 24,
-    paddingLeft:'5%',
-    paddingRight:'5%'
+    paddingLeft: '7%',
+    paddingRight: '7%',
   },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 24,
-    paddingLeft:'5%',
-    paddingRight:'5%'
+    paddingLeft: '7%',
+    paddingRight: '7%',
   },
   card: {
-    backgroundColor: '#302F65',
+    backgroundColor: '#fff',
     width: '40%',
     height: 110,
     borderRadius: 12,
@@ -227,20 +242,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 5,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 6},
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.8,
     shadowRadius: 10,
     elevation: 10,
-    borderColor: '#fff',
-    borderWidth: 1,
+    borderColor: '#d3d3d3',
+    // borderWidth: 1,         // Apply a general border width to all sides
+    borderRightWidth: 1,    // Specifically set the right side border width
+    borderBottomWidth:1,
     overflow: 'hidden',
-  },
+  },  
   cardIcon: {
     width: '80%',
-    height: '60%',
+    height: '65%',
   },
   cardText: {
-    color: '#fff',
+    color: '#000000',
     fontSize: 12,
     textAlign: 'center',
   },
