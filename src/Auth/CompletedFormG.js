@@ -4,7 +4,7 @@ import ProgressBar from '../components/ProgressBar';
 import { useNavigation } from '@react-navigation/native';
 import syncStorage from 'react-native-sync-storage';
 import Loader from '../components/Loader'; // Import the custom Loader component
-const FormG = () => {
+const CompletedFormG = () => {
   const [formData, setFormData] = useState({
     name: '',
     address:'',
@@ -108,7 +108,7 @@ const FormG = () => {
   
       if (response.ok) {
         ToastAndroid.show('Form submitted successfully!', ToastAndroid.LONG);
-        navigation.navigate('FormA');
+        navigation.navigate('CompletedFormA');
       } else {
         ToastAndroid.show('Failed to submit the form. Please try again.', ToastAndroid.LONG);
       }
@@ -121,7 +121,7 @@ const FormG = () => {
   };
 
   const handlePrevPress = () => {
-    navigation.navigate('FormP');
+    navigation.navigate('CompletedFormP');
   };
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -342,4 +342,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default FormG;
+export default CompletedFormG;

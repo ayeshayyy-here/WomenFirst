@@ -22,7 +22,7 @@ import syncStorage from 'react-native-sync-storage';
 import DocumentPicker from 'react-native-document-picker';
 import {launchCamera} from 'react-native-image-picker';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-const FormP = ({route, navigation}) => {
+const CompletedFormP = ({route, navigation}) => {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -387,7 +387,7 @@ const FormP = ({route, navigation}) => {
 
       if (response.ok) {
         ToastAndroid.show('Form submitted successfully!', ToastAndroid.LONG);
-        navigation.navigate('FormG');
+        navigation.navigate('CompletedFormG');
       } else {
         ToastAndroid.show('Failed to submit the form. Please try again.', ToastAndroid.LONG);
       }
@@ -454,7 +454,7 @@ const FormP = ({route, navigation}) => {
 
   return (
     <ScrollView contentContainerStyle={styles.screenContainer}>
-      <Text style={styles.header}>Application Form</Text>
+      <Text style={styles.header}>Profile</Text>
       <ProgressBar step={1} />
 
       {/* Personal Information */}
@@ -1037,4 +1037,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default FormP;
+export default CompletedFormP;

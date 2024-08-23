@@ -20,7 +20,7 @@ import DocumentPicker from 'react-native-document-picker';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { launchCamera } from 'react-native-image-picker';
 import syncStorage from 'react-native-sync-storage';
-const FormA = () => {
+const CompletedFormA = () => {
   const initialState = {
     URI: '',
     Type: '',
@@ -168,7 +168,7 @@ const FormA = () => {
   
       if (response.ok) {
         ToastAndroid.show('Form submitted successfully!', ToastAndroid.LONG);
-        navigation.navigate('FormD');
+        navigation.navigate('CompletedFormD');
       } else {
         ToastAndroid.show('Failed to submit the form. Please try again.', ToastAndroid.LONG);
       }
@@ -182,7 +182,7 @@ const FormA = () => {
   
   
   const handlePrevPress = () => {
-    navigation.navigate('FormG');
+    navigation.navigate('CompletedFormG');
   };
 
   const openCamera = async () => {
@@ -456,4 +456,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default FormA;
+export default CompletedFormA;

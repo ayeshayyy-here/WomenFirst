@@ -9,7 +9,7 @@ import { faPlusCircle } from '@fortawesome/free-solid-svg-icons';
 import syncStorage from 'react-native-sync-storage';
 import Loader from '../components/Loader'; // Import the custom Loader component
 
-const FormD = () => {
+const CompletedFormD = () => {
   const [formData, setFormData] = useState({
     name: '',
     designation: '',
@@ -109,7 +109,7 @@ const FormD = () => {
   
       if (response.ok) {
         ToastAndroid.show('Form submitted successfully!', ToastAndroid.LONG);
-        navigation.navigate('Dashboard');
+        navigation.navigate('CompletedFormP');
       } else {
         ToastAndroid.show('Failed to submit the form. Please try again.', ToastAndroid.LONG);
       }
@@ -123,7 +123,7 @@ const FormD = () => {
   };
   
   const handlePrevPress = () => {
-    navigation.navigate('FormA');
+    navigation.navigate('CompletedFormA');
   };
   const openGallery = async () => {
     try {
@@ -308,9 +308,9 @@ const FormD = () => {
       </Modal>
       <Loader loading={loading} />
       <View style={styles.buttonContainer}>
-        {/* <TouchableOpacity style={styles.button} onPress={handlePrevPress}>
+        <TouchableOpacity style={styles.button} onPress={handlePrevPress}>
           <Text style={styles.buttonText}>Back  </Text>
-        </TouchableOpacity> */}
+        </TouchableOpacity>
         <TouchableOpacity style={styles.button} onPress={handleNextPress}>
           <Text style={styles.buttonText}>Submit</Text>
         </TouchableOpacity>
@@ -490,4 +490,4 @@ const styles = StyleSheet.create({
 
 });
 
-export default FormD;
+export default CompletedFormD;

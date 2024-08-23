@@ -12,6 +12,10 @@ import FormP from './src/Auth/FormPersonalinfo';
 import FormG from './src/Auth/FormGuardian';
 import FormA from './src/Auth/FormAttatchments';
 import FormD from './src/Auth/FormDeclaration';
+import CompletedFormA from './src/Auth/CompletedFormA';
+import CompletedFormP from './src/Auth/CompletedFormP';
+import CompletedFormG from './src/Auth/CompletedFormG';
+import CompletedFormD from './src/Auth/CompletedFormD';
 const Stack = createNativeStackNavigator();
 const App = () => {
   useEffect(() => {
@@ -48,6 +52,12 @@ const App = () => {
       <Stack.Screen name="FormG" component={FormG} />
       <Stack.Screen name="FormA" component={FormA} />
       <Stack.Screen name="FormD" component={FormD} />
+
+      
+      <Stack.Screen name="CompletedFormP" component={CompletedFormP} />
+      <Stack.Screen name="CompletedFormG" component={CompletedFormG} />
+      <Stack.Screen name="CompletedFormA" component={CompletedFormA} />
+      <Stack.Screen name="CompletedFormD" component={CompletedFormD} />
       <Stack.Screen name="FloatingButton" component={FloatingButton}/>
     </Stack.Navigator>
   </NavigationContainer>

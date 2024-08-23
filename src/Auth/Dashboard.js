@@ -7,13 +7,14 @@ import {
   Image,
   Dimensions,
   ScrollView,
+  Alert
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import FloatingButton from '../components/FloatingButton';
 import syncStorage from 'react-native-sync-storage';
 import * as Animatable from 'react-native-animatable';
-
+import Loader from '../components/Loader'; // Import the custom Loader component
 // Importing images
 import Attendence from '../../assets/images/attendence.png';
 import Payment from '../../assets/images/payment.png';
@@ -27,7 +28,7 @@ const {width, height} = Dimensions.get('window'); // Get screen dimensions
 
 const Dashboard = ({route, navigation}) => {
   const [userName, setUserName] = useState('');
-
+  const [loading, setLoading] = useState(false);
   useEffect(() => {
     const {user} = route.params || {};
     if (user) {
@@ -50,6 +51,52 @@ const Dashboard = ({route, navigation}) => {
       getUserDetails();
     }
   }, [route.params]);
+
+  const handlePress = async () => {
+    try {
+      const user = JSON.parse(syncStorage.get('user'));
+      const userId = user.id;
+
+      console.log('Fetching registration status for user ID:', userId);
+      setLoading(true); // Show loader
+
+      const response = await fetch(`https://d924-103-26-82-30.ngrok-free.app/api/registration-check/${userId}`);
+      const data = await response.json();
+
+      console.log('API Response:', data);
+
+      const { status, step } = data;
+
+      if (status === 'success') {
+        switch(step) {
+          case 1:
+            navigation.navigate('FormG');
+            break;
+          case 2:
+            navigation.navigate('FormA');
+            break;
+          case 3:
+            navigation.navigate('FormD');
+            break;
+          case 4:
+            navigation.navigate('CompletedFormP');
+            break;
+          default:
+            Alert.alert('Unexpected step received');
+            console.log('Unexpected step:', step);
+        }
+      } else {
+        navigation.navigate('FormP');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to fetch registration status.');
+      console.error('Error fetching registration status:', error);
+    } finally {
+      setLoading(false); // Hide loader
+    }
+  };
+
+  
 
   return (
     <LinearGradient
@@ -94,9 +141,11 @@ const Dashboard = ({route, navigation}) => {
             />
             <View style={styles.overlay}>
               <View style={styles.row1}>
+
+
                 <TouchableOpacity
                   style={styles.card}
-                  onPress={() => navigation.navigate('FormP')}>
+                  onPress={handlePress}>
                   <Image
                     source={Registration}
                     style={styles.cardIcon}
@@ -104,6 +153,8 @@ const Dashboard = ({route, navigation}) => {
                   />
                   <Text style={styles.cardText}>Registration</Text>
                 </TouchableOpacity>
+
+
                 <TouchableOpacity style={styles.card}>
                   <Image
                     source={Status}
@@ -151,7 +202,7 @@ const Dashboard = ({route, navigation}) => {
               </View>
             </View>
             <FloatingButton/>
-
+            <Loader loading={loading} />
           </View>
         </View>
       </ScrollView>
