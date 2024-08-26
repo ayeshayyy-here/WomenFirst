@@ -1,10 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, ScrollView,ToastAndroid, TouchableOpacity } from 'react-native';
 import ProgressBar from '../components/ProgressBar';
 import { useNavigation } from '@react-navigation/native';
 import syncStorage from 'react-native-sync-storage';
 import Loader from '../components/Loader'; // Import the custom Loader component
-const FormG = () => {
+const FormG = ({ route }) => {
+  const [p_id, setP_id] = useState(null);
+
+
+  useEffect(() => {
+    const fetchPersonalId = async () => {
+      try {
+        let personalId = route.params?.p_id;
+
+        if (!personalId) {
+          const user = JSON.parse(syncStorage.get('user'));
+          const userId = user.id;
+          const response = await fetch(`https://wwh.punjab.gov.pk/api/get-personal-id/${userId}`);
+          const data = await response.json();
+
+          if (data.status === 'success') {
+            personalId = data.p_id;
+          } else {
+            console.error('Failed to fetch p_id:', data.message);
+          }
+        }
+
+        setP_id(personalId);
+      } catch (error) {
+        console.error('Error fetching p_id:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPersonalId();
+  }, [route.params]);
+
+  
   const [formData, setFormData] = useState({
     name: '',
     address:'',
@@ -71,16 +104,8 @@ const FormG = () => {
       return;
     }
 
-    const user = JSON.parse(syncStorage.get('user'));
-    const userId = user.id;
-    
-    console.log('Retrieved user:', user); // Logs the entire user object
-    console.log('Retrieved user ID:', userId); // Logs the user ID
-    
-  
-    // Prepare FormData for submission
     const formDataToSend = new FormData();
-    formDataToSend.append('personal_id', userId);
+    formDataToSend.append('personal_id', p_id);
     formDataToSend.append('gname', formData.name);
     formDataToSend.append('gaddress', formData.address);
     formDataToSend.append('gmobile', formData.gmobile);

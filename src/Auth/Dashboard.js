@@ -56,30 +56,30 @@ const Dashboard = ({route, navigation}) => {
     try {
       const user = JSON.parse(syncStorage.get('user'));
       const userId = user.id;
-
+  
       console.log('Fetching registration status for user ID:', userId);
       setLoading(true); // Show loader
-
+  
       const response = await fetch(`https://wwh.punjab.gov.pk/api/registration-check/${userId}`);
       const data = await response.json();
-
+  
       console.log('API Response:', data);
-
-      const { status, step } = data;
-
+  
+      const { status, step, p_id } = data;
+  
       if (status === 'success') {
-        switch(step) {
+        switch (step) {
           case 1:
             navigation.navigate('FormG');
             break;
           case 2:
-            navigation.navigate('FormA');
+            navigation.navigate('FormA', { p_id });
             break;
           case 3:
-            navigation.navigate('FormD');
+            navigation.navigate('FormD', { p_id });
             break;
           case 4:
-            navigation.navigate('CompletedFormP');
+            navigation.navigate('CompletedFormP', { p_id });
             break;
           default:
             Alert.alert('Unexpected step received');
@@ -95,6 +95,7 @@ const Dashboard = ({route, navigation}) => {
       setLoading(false); // Hide loader
     }
   };
+  
 
   
 

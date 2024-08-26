@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -20,7 +20,40 @@ import DocumentPicker from 'react-native-document-picker';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { launchCamera } from 'react-native-image-picker';
 import syncStorage from 'react-native-sync-storage';
-const FormA = () => {
+const FormA = ({ route }) => {
+  const [p_id, setP_id] = useState(null);
+
+
+  useEffect(() => {
+    const fetchPersonalId = async () => {
+      try {
+        let personalId = route.params?.p_id;
+
+        if (!personalId) {
+          const user = JSON.parse(syncStorage.get('user'));
+          const userId = user.id;
+          const response = await fetch(`https://wwh.punjab.gov.pk/api/get-personal-id/${userId}`);
+          const data = await response.json();
+
+          if (data.status === 'success') {
+            personalId = data.p_id;
+          } else {
+            console.error('Failed to fetch p_id:', data.message);
+          }
+        }
+
+        setP_id(personalId);
+      } catch (error) {
+        console.error('Error fetching p_id:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPersonalId();
+  }, [route.params]);
+
+  
   const initialState = {
     URI: '',
     Type: '',
@@ -91,17 +124,8 @@ const FormA = () => {
 
   const handleNextPress = async () => {
 
-    const user = JSON.parse(syncStorage.get('user'));
-    const userId = user.id;
-    
-    console.log('Retrieved user:', user); // Logs the entire user object
-    console.log('Retrieved user ID:', userId); // Logs the user ID
-    
-  
-    // Prepare FormData
     const formDataToSend = new FormData();
-  
-    formDataToSend.append('personal_id', userId);
+    formDataToSend.append('personal_id', p_id);
   
     // Check if all required attachments are uploaded
     const requiredAttachments = [
