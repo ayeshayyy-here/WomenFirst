@@ -60,7 +60,7 @@ const Dashboard = ({route, navigation}) => {
       console.log('Fetching registration status for user ID:', userId);
       setLoading(true); // Show loader
 
-      const response = await fetch(`https://d924-103-26-82-30.ngrok-free.app/api/registration-check/${userId}`);
+      const response = await fetch(`https://wwh.punjab.gov.pk/api/registration-check/${userId}`);
       const data = await response.json();
 
       console.log('API Response:', data);

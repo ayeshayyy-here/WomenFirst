@@ -12,16 +12,16 @@ import {
   PermissionsAndroid,
   Image,
 } from 'react-native';
-import Loader from '../components/Loader'; // Import the custom Loader component
+import Loader from '../components/Loader';
 import {Dropdown} from 'react-native-element-dropdown';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import ProgressBar from '../components/ProgressBar';
-import {useNavigation} from '@react-navigation/native';
 import {DatePickerInput} from 'react-native-paper-dates';
 import syncStorage from 'react-native-sync-storage';
 import DocumentPicker from 'react-native-document-picker';
 import {launchCamera} from 'react-native-image-picker';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+
 const CompletedFormP = ({route, navigation}) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -44,6 +44,7 @@ const CompletedFormP = ({route, navigation}) => {
     starttimew: '',
     endtimew: '',
   });
+
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedAttachment, setSelectedAttachment] = useState('');
   const [capturedImage, setCapturedImage] = useState(null);
@@ -51,16 +52,17 @@ const CompletedFormP = ({route, navigation}) => {
   const [isFocus, setIsFocus] = useState(false);
   const [districts, setDistricts] = useState([]);
   const [selectedOption, setSelectedOption] = useState(null);
-  const [districtOption, setDistrictOption] = useState(null); // For District dropdown
-  const [institutes, setInstitutes] = useState([]); // Holds the list of institutes
-  const [selectedInstitute, setSelectedInstitute] = useState(null); // Holds the selected institute
-  const [jobTypeOption, setJobTypeOption] = useState(null); // For Job Type dropdown
-  const [bpsOption, setBpsOption] = useState(null); // For BPS dropdown
+  const [districtOption, setDistrictOption] = useState(null);
+  const [institutes, setInstitutes] = useState([]);
+  const [selectedInstitute, setSelectedInstitute] = useState(null);
+  const [jobTypeOption, setJobTypeOption] = useState(null);
+  const [bpsOption, setBpsOption] = useState(null);
   const [userName, setUserName] = useState('');
   const [isTimePickerVisible, setTimePickerVisible] = useState(false);
   const [selectedTimeField, setSelectedTimeField] = useState(null);
   const [loading, setLoading] = useState(false);
-  
+  const [isEditing, setIsEditing] = useState(false);
+
   useEffect(() => {
     const fetchInstitutes = async () => {
       try {
@@ -68,13 +70,7 @@ const CompletedFormP = ({route, navigation}) => {
           'https://wwh.punjab.gov.pk/api/get-institutes',
         );
         const data = await response.json();
-
-        if (data && Array.isArray(data.institutes)) {
-          console.log('Institutes Array:', data.institutes); // Log the array to the console
-          setInstitutes(data.institutes);
-        } else {
-          console.error('Expected an array but got:', data);
-        }
+        setInstitutes(data.institutes || []);
       } catch (error) {
         console.error('Error fetching institutes:', error);
       }
@@ -83,47 +79,25 @@ const CompletedFormP = ({route, navigation}) => {
     fetchInstitutes();
   }, []);
 
-  // useEffect(() => {
-  //   fetch('https://wwh.punjab.gov.pk/api/districts')
-  //     .then(response => response.json())
-  //     .then(data => {
-  //       setDistricts(data.districts); // Assuming the data structure
-  //     })
-  //     .catch(error => {
-  //       console.error('Error fetching districts:', error);
-  //     });
-  // }, []);
-
   useEffect(() => {
-    // Retrieve the user data from sync storage and parse it back to an object
     const user = JSON.parse(syncStorage.get('user'));
     const userDistrictId = user?.district;
-  
-    console.log('User District ID:', userDistrictId); // Check the retrieved district ID
-  
+
     fetch('https://wwh.punjab.gov.pk/api/districts')
       .then(response => response.json())
       .then(data => {
-        // Filter out the district that matches the user's district ID
         const filteredDistricts = data.districts.filter(
           district => district.id !== userDistrictId
         );
-  
-        console.log('Filtered Districts:', filteredDistricts); // Check the filtered districts
-  
         setDistricts(filteredDistricts);
       })
       .catch(error => {
         console.error('Error fetching districts:', error);
       });
   }, []);
-  
-
 
   useEffect(() => {
     const {user} = route.params || {};
-
-    // console.log('User from route.params:', user); // Logs user from route.params
 
     if (user) {
       setUserName(user.name);
@@ -131,8 +105,6 @@ const CompletedFormP = ({route, navigation}) => {
       const getUserDetails = async () => {
         try {
           const storedUser = await syncStorage.get('user');
-          console.log('User from syncStorage:', storedUser); // Logs user from syncStorage
-
           if (storedUser) {
             const parsedUser = JSON.parse(storedUser);
             if (parsedUser.name) {
@@ -192,7 +164,7 @@ const CompletedFormP = ({route, navigation}) => {
     try {
       const response = await DocumentPicker.pick({
         allowMultiSelection: false,
-        type: [DocumentPicker.types.images], // This filters to only allow images (PNG, JPG, JPEG)
+        type: [DocumentPicker.types.images],
       });
 
       const fileType = response[0].type;
@@ -220,113 +192,118 @@ const CompletedFormP = ({route, navigation}) => {
       }
     }
   };
-  const handleNextPress = async () => {
-    // Validate form data
+
+  const handleEditPress = () => {
+    setIsEditing(true);
+  };
+
+
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        console.log('Fetching data...');
+  
+        const user = JSON.parse(syncStorage.get('user'));
+        const userId = user?.id;
+        console.log('User ID:', userId);
+  
+        if (userId) {
+          console.log('Fetching user details from API...');
+          const response = await fetch(`https://wwh.punjab.gov.pk/api/getPdetail-check/${userId}`);
+          
+          if (response.ok) {
+            console.log('API response OK');
+            const result = await response.json();
+            console.log('API result:', result);
+  
+            const data = result.data[0];
+            console.log('Fetched data:', data);
+  
+            // Function to clean up the time strings
+            const cleanTimeString = (timeString) => {
+              const cleaned = timeString.replace(/\u202f/g, '').trim();
+              console.log('Cleaned time string:', cleaned);
+              return cleaned;
+            };
+  
+            setFormData({
+              name: data.name || '',
+              phone: data.phone_no || '',
+              cnic: data.cnic || '',
+              datee: data.cnic || '',
+              dateb: data.dob || '',
+              datei: data.cnic || '',
+              jobheld: data.post_held || '',
+              serving: data.cnic || '',
+              jobStartDate: data.cnic || '',
+              salary: data.sallary || '',
+              address: data.paddress || '',
+              mobile: data.mobile || '',
+              disability: data.disability || '',
+              applieddate: data.cnic || '',
+              placeofissue: data.Place_issue || '',
+              starttimes: cleanTimeString(data.ss_time) || '',
+              endtimes: cleanTimeString(data.se_time) || '',
+              starttimew: cleanTimeString(data.ws_time) || '',
+              endtimew: cleanTimeString(data.we_time) || '',
+            });
+  
+            setSelectedInstitute(data.institute);
+            setDistrictOption(data.applied_district);
+            setJobTypeOption(data.job_type);
+            setBpsOption(data.bps);
+  
+            console.log('Form data set:', {
+              name: data.name || '',
+              phone: data.phone_no || '',
+              cnic: data.cnic || '',
+              datee: data.cnic || '',
+              dateb: data.dob || '',
+              datei: data.cnic || '',
+              jobheld: data.post_held || '',
+              serving: data.cnic || '',
+              jobStartDate: data.cnic || '',
+              salary: data.sallary || '',
+              address: data.paddress || '',
+              mobile: data.mobile || '',
+              disability: data.disability || '',
+              applieddate: data.cnic || '',
+              placeofissue: data.Place_issue || '',
+              starttimes: cleanTimeString(data.ss_time) || '',
+              endtimes: cleanTimeString(data.se_time) || '',
+              starttimew: cleanTimeString(data.ws_time) || '',
+              endtimew: cleanTimeString(data.we_time) || '',
+            });
+          } else {
+            console.error('API response not OK:', response.statusText);
+          }
+        } else {
+          console.warn('User ID not found');
+        }
+      } catch (error) {
+        console.error('Error fetching form data:', error);
+      }
+    };
+  
+    fetchData();
+  }, []);
+  
+  
+  const handleSavePress = async () => {
     if (!capturedImage && !stateFunctions[selectedAttachment]?.URI) {
       ToastAndroid.show('Please capture or upload your profile image.', ToastAndroid.LONG);
       return;
     }
-    if (!formData.name) {
-      ToastAndroid.show('Please enter your name.', ToastAndroid.LONG);
-      return;
-    }
-    if (!formData.address) {
-      ToastAndroid.show('Please enter your address.', ToastAndroid.LONG);
-      return;
-    }
-    if (!formData.phone || formData.phone.length !== 11) {
-      ToastAndroid.show('Please enter a valid 11-digit phone number.', ToastAndroid.LONG);
-      return;
-    }
-    if (!formData.mobile || formData.mobile.length !== 11) {
-      ToastAndroid.show('Please enter a valid 11-digit mobile number.', ToastAndroid.LONG);
-      return;
-    }
-    if (!districtOption) {
-      ToastAndroid.show('Please select a district.', ToastAndroid.LONG);
-      return;
-    }
-    if (!selectedInstitute) {
-      ToastAndroid.show('Please select an institute.', ToastAndroid.LONG);
-      return;
-    }
-    if (!formData.applieddate) {
-      ToastAndroid.show('Please select the date of application.', ToastAndroid.LONG);
-      return;
-    }
-    if (!formData.cnic.trim() || formData.cnic.length !== 13) {
-      ToastAndroid.show('Please enter a valid 13-digit CNIC number.', ToastAndroid.LONG);
-      return;
-    }
-    if (!formData.datee) {
-      ToastAndroid.show('Please select the date of expiry.', ToastAndroid.LONG);
-      return;
-    }
-    if (!formData.dateb) {
-      ToastAndroid.show('Please select your date of birth.', ToastAndroid.LONG);
-      return;
-    }
-    if (!formData.datei) {
-      ToastAndroid.show('Please select the date of issue.', ToastAndroid.LONG);
-      return;
-    }
-    if (!formData.placeofissue) {
-      ToastAndroid.show('Please enter the CNIC issue place.', ToastAndroid.LONG);
-      return;
-    }
-    if (!formData.disability) {
-      ToastAndroid.show('Please enter any disability (if you have).', ToastAndroid.LONG);
-      return;
-    }
-    if (!formData.jobheld) {
-      ToastAndroid.show('Please enter the post you currently hold.', ToastAndroid.LONG);
-      return;
-    }
-    if (!formData.serving) {
-      ToastAndroid.show('Please enter the duration you have been serving in your current job.', ToastAndroid.LONG);
-      return;
-    }
-    if (!formData.jobStartDate) {
-      ToastAndroid.show('Please select the job start date.', ToastAndroid.LONG);
-      return;
-    }
-    if (!formData.salary || isNaN(formData.salary)) {
-      ToastAndroid.show('Please enter a valid salary.', ToastAndroid.LONG);
-      return;
-    }
-    if (!jobTypeOption) {
-      ToastAndroid.show('Please select a job type.', ToastAndroid.LONG);
-      return;
-    }
-    // if (!bpsOption) {
-    //   ToastAndroid.show('Please select your BPS.', ToastAndroid.LONG);
-    //   return;
-    // }
-    if (!formData.starttimes) {
-      ToastAndroid.show('Please enter the start time for summer duty.', ToastAndroid.LONG);
-      return;
-    }
-    if (!formData.endtimes) {
-      ToastAndroid.show('Please enter the end time for summer duty.', ToastAndroid.LONG);
-      return;
-    }
-    if (!formData.starttimew) {
-      ToastAndroid.show('Please enter the start time for winter duty.', ToastAndroid.LONG);
-      return;
-    }
-    if (!formData.endtimew) {
-      ToastAndroid.show('Please enter the end time for winter duty.', ToastAndroid.LONG);
-      return;
-    }
     const formatDate = (date) => {
-      if (!date) return null;
-      const d = new Date(date);
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0'); // Months are zero-based
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    };
-  
+        if (!date) return null;
+        const d = new Date(date);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0'); // Months are zero-based
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+    const formDataToSend = new FormData();
     const formattedDate = formatDate(formData.applieddate);
     const formattedDatee = formatDate(formData.datee);
     const formattedDatei = formatDate(formData.datei);
@@ -334,9 +311,7 @@ const CompletedFormP = ({route, navigation}) => {
     const formattedserving = formatDate(formData.serving);
     const user = JSON.parse(syncStorage.get('user'));
     const userId = user?.id;
-  
-    // Prepare FormData for submission
-    const formDataToSend = new FormData();
+
     formDataToSend.append('user_id', userId);
     formDataToSend.append('name', formData.name);
     formDataToSend.append('paddress', formData.address);
@@ -360,34 +335,27 @@ const CompletedFormP = ({route, navigation}) => {
     formDataToSend.append('applied_district', districtOption);
     formDataToSend.append('job_type', jobTypeOption);
     formDataToSend.append('bps', selectedOption);
-  
-    // Append profile image if exists
+
     if (stateFunctions[selectedAttachment]?.URI) {
       formDataToSend.append('profile', {
         uri: stateFunctions[selectedAttachment]?.URI,
-        type: 'image/jpeg', // adjust type based on your file
-        name: 'profile.jpg', // name of the file
+        type: 'image/jpeg',
+        name: 'profile.jpg',
       });
     }
-  
-    // Log the data being sent
-    console.log('Data to be sent:', formDataToSend);
-  
+
     try {
-      setLoading(true); // Show loader
-      const response = await fetch('https://d924-103-26-82-30.ngrok-free.app/api/personalinformation', {
+      setLoading(true);
+      const response = await fetch('https://0053-103-26-82-30.ngrok-free.app/api/personalinformation', {
         method: 'POST',
         body: formDataToSend,
       });
 
       const result = await response.json();
-      
-      // Log the server response
-      console.log('Server response:', result);
 
       if (response.ok) {
-        ToastAndroid.show('Form submitted successfully!', ToastAndroid.LONG);
-        navigation.navigate('CompletedFormG');
+        ToastAndroid.show('Form updated successfully!', ToastAndroid.LONG);
+        setIsEditing(false);
       } else {
         ToastAndroid.show('Failed to submit the form. Please try again.', ToastAndroid.LONG);
       }
@@ -395,10 +363,13 @@ const CompletedFormP = ({route, navigation}) => {
       console.error('Error submitting form:', error);
       ToastAndroid.show('An error occurred. Please try again.', ToastAndroid.LONG);
     } finally {
-      setLoading(false); // Hide loader
+      setLoading(false);
     }
   };
 
+  const handleNextPress = async () => {
+    navigation.navigate('CompletedFormG');
+  };
 
   const jobtype = [
     {id: 1, name: 'Punjab Government Employee'},
@@ -407,9 +378,9 @@ const CompletedFormP = ({route, navigation}) => {
     {id: 4, name: 'Adhoc'},
     {id: 5, name: 'Government Contract'},
   ];
+
   const [options, setOptions] = useState([]);
 
-  // Initialize options with BPS-1 to BPS-20
   useEffect(() => {
     const newOptions = [];
     for (let i = 1; i <= 20; i++) {
@@ -417,55 +388,52 @@ const CompletedFormP = ({route, navigation}) => {
     }
     setOptions(newOptions);
   }, []);
+
   const handleUploadClick = attachmentName => {
     setSelectedAttachment(attachmentName);
     setModalVisible(true);
   };
+
   const showTimePicker = (field) => {
     DateTimePickerAndroid.open({
       mode: 'time',
-      is24Hour: false,  // Set this to false to use 12-hour format with AM/PM
+      is24Hour: false,
       value: new Date(),
       onChange: (event, selectedDate) => {
         if (event.type === "set" && selectedDate) {
           const time = selectedDate.toLocaleTimeString([], {
             hour: '2-digit',
             minute: '2-digit',
-            hour12: true,  // This enables AM/PM format
+            hour12: true,
           });
           setFormData((prevData) => ({ ...prevData, [field]: time }));
         }
       },
     });
   };
-  
-  // Handle time change
-  const handleTimeChange = (event, selectedTime) => {
-    const currentTime = selectedTime || formData[selectedTimeField];
-    setTimePickerVisible(Platform.OS === 'ios');
-    setFormData({
-      ...formData,
-      [selectedTimeField]: currentTime.toLocaleTimeString(),
-    });
-  };
-
-
-   
 
   return (
     <ScrollView contentContainerStyle={styles.screenContainer}>
       <Text style={styles.header}>Profile</Text>
       <ProgressBar step={1} />
 
-      {/* Personal Information */}
       <View style={styles.section}>
         <Text style={styles.sectionHeader}>Personal Information</Text>
+        {!isEditing ? (
+          <TouchableOpacity style={styles.button} onPress={handleEditPress}>
+            <Text style={styles.buttonText}>Edit</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={styles.button} onPress={handleSavePress}>
+            <Text style={styles.buttonText}>Save</Text>
+          </TouchableOpacity>
+        )}
+
         <View style={styles.divider} />
 
-        {/* Display image or upload icon based on capturedImage */}
         {!capturedImage && !stateFunctions[selectedAttachment]?.URI ? (
           <View style={styles.iconWrapper}>
-            <Text style={styles.iconText}>Choose or Upload Profile Image</Text>
+          
             <TouchableOpacity
               onPress={() => handleUploadClick('profileImage')}
               style={styles.iconWrapper}>
@@ -485,21 +453,21 @@ const CompletedFormP = ({route, navigation}) => {
 
         <Text style={styles.text}>Applicant's Name:</Text>
         <TextInput
-          style={styles.input}
-          placeholder="Enter Applicant Name"
-          placeholderTextColor="grey"
           value={formData.name}
-          onChangeText={text => handleInputChange('name', text)}
-       
+          onChangeText={(value) => handleInputChange('name', value)}
+          editable={isEditing}
+          style={styles.input}
         />
+
         <Text style={styles.text}>Permanent Address:</Text>
         <TextInput
           style={styles.input}
-          placeholder="Enter Address"
+          editable={isEditing}
           placeholderTextColor="grey"
           value={formData.address}
           onChangeText={text => handleInputChange('address', text)}
         />
+
         <Text style={styles.text}>Phone Number:</Text>
         <TextInput
           style={styles.input}
@@ -509,7 +477,9 @@ const CompletedFormP = ({route, navigation}) => {
           placeholderTextColor="grey"
           value={formData.phone}
           onChangeText={text => handleInputChange('phone', text)}
+          editable={isEditing}
         />
+
         <Text style={styles.text}>Mobile Number:</Text>
         <TextInput
           style={styles.input}
@@ -519,27 +489,31 @@ const CompletedFormP = ({route, navigation}) => {
           placeholderTextColor="grey"
           value={formData.mobile}
           onChangeText={text => handleInputChange('mobile', text)}
+          editable={isEditing}
         />
+
         <Text style={styles.text}>Choose District to Apply </Text>
         <View>
-   <Dropdown
-        style={[styles.input, isFocus && { borderColor: '#1E577C' }]}
-        placeholderStyle={styles.placeholderStyle}
-        selectedTextStyle={styles.selectedTextStyle}
-        inputSearchStyle={styles.inputSearchStyle}
-        itemTextStyle={styles.itemTextStyle}
-        search
-        searchPlaceholder="Search..."
-        data={districts}
-        labelField="name"
-        valueField="id"
-        placeholder="Select an option"
-        onFocus={() => setIsFocus(true)}
-        onBlur={() => setIsFocus(false)}
-        value={districtOption} // State for selected option
-        onChange={item => setDistrictOption(item.id)} // Update selected state
-      />
-    </View>
+          <Dropdown
+            style={[styles.input, isFocus && { borderColor: '#1E577C' }]}
+            placeholderStyle={styles.placeholderStyle}
+            selectedTextStyle={styles.selectedTextStyle}
+            inputSearchStyle={styles.inputSearchStyle}
+            itemTextStyle={styles.itemTextStyle}
+            search
+            searchPlaceholder="Search..."
+            data={districts}
+            labelField="name"
+            valueField="id"
+            placeholder="Select an option"
+            onFocus={() => setIsFocus(true)}
+            onBlur={() => setIsFocus(false)}
+            value={districtOption}
+            onChange={item => setDistrictOption(item.id)}
+            editable={isEditing}
+          />
+        </View>
+
         <Text style={styles.text}>Choose Institute </Text>
         <View>
           <Dropdown
@@ -550,31 +524,27 @@ const CompletedFormP = ({route, navigation}) => {
             itemTextStyle={styles.itemTextStyle}
             search
             searchPlaceholder="Search..."
-            data={institutes} // Updated state
-            labelField="iname" // Change according to your API response
+            data={institutes}
+            labelField="iname"
             valueField="id"
             placeholder="Select an option"
             onFocus={() => setIsFocus(true)}
-            value={selectedInstitute} 
-            onChange={item => setSelectedInstitute(item.id)} 
+            value={selectedInstitute}
+            onChange={item => setSelectedInstitute(item.id)}
+            editable={isEditing}
           />
         </View>
-        <Text style={[styles.text, {marginTop: '5%'}]}>Applied Date:</Text>
-        <TouchableOpacity style={styles.datePickerWrapper}>
-          <DatePickerInput
-            locale="en"
-            label="" // No value provided for label
-            value={formData.applieddate}
-            onChange={applieddate => {
-              setFormData(prev => ({...prev, applieddate}));
-            }}
-            mode={'flat'}
-            style={styles.calenderstyle}
-          />
-        </TouchableOpacity>
-      </View>
 
-      {/* CNIC Information */}
+        <Text style={[styles.text, { marginTop: '5%' }]}>Applied Date:</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Enter applied date"
+        placeholderTextColor="grey"
+        value={formData.applieddate}
+        onChangeText={(text) => handleInputChange('applieddate', text)}
+        editable={isEditing}
+      />
+</View>
       <View style={styles.section}>
         <Text style={styles.sectionHeader}>CNIC Information</Text>
         <View style={styles.divider} />
@@ -587,46 +557,39 @@ const CompletedFormP = ({route, navigation}) => {
           maxLength={13}
           value={formData.cnic}
           onChangeText={text => handleInputChange('cnic', text)}
+          editable={isEditing}
         />
+
         <Text style={[styles.text, {marginTop: '5%'}]}>Date of Expiry:</Text>
-        <TouchableOpacity style={styles.datePickerWrapper}>
-          <DatePickerInput
-            locale="en"
-            label="" // No value provided for label
-            value={formData.datee}
-            onChange={datee => {
-              setFormData(prev => ({...prev, datee}));
-            }}
-            mode={'flat'}
-            style={styles.calenderstyle}
-          />
-        </TouchableOpacity>
+        <TextInput
+        style={styles.input}
+        placeholder="Enter applied date"
+        placeholderTextColor="grey"
+        value={formData.datee}
+        onChangeText={(text) => handleInputChange('datee', text)}
+        editable={isEditing}
+      />
+       
+
         <Text style={[styles.text, {marginTop: '5%'}]}>Date of Birth:</Text>
-        <TouchableOpacity style={styles.datePickerWrapper}>
-          <DatePickerInput
-            locale="en"
-            label="" // No value provided for label
-            value={formData.dateb}
-            onChange={dateb => {
-              setFormData(prev => ({...prev, dateb}));
-            }}
-            mode={'flat'}
-            style={styles.calenderstyle}
-          />
-        </TouchableOpacity>
+        <TextInput
+        style={styles.input}
+        placeholder="Enter applied date"
+        placeholderTextColor="grey"
+        value={formData.dateb}
+        onChangeText={(text) => handleInputChange('dateb', text)}
+        editable={isEditing}
+      />
+
         <Text style={[styles.text, {marginTop: '5%'}]}>Date of Issue:</Text>
-        <TouchableOpacity style={styles.datePickerWrapper}>
-          <DatePickerInput
-            locale="en"
-            label="" // No value provided for label
-            value={formData.datei}
-            onChange={datei => {
-              setFormData(prev => ({...prev, datei}));
-            }}
-            mode={'flat'}
-            style={styles.calenderstyle}
-          />
-        </TouchableOpacity>
+        <TextInput
+        style={styles.input}
+        placeholder="Enter applied date"
+        placeholderTextColor="grey"
+        value={formData.datei}
+        onChangeText={(text) => handleInputChange('datei', text)}
+        editable={isEditing}
+      />
 
         <Text style={[styles.text, {marginTop: '10%'}]}>Place of Issue:</Text>
         <TextInput
@@ -635,6 +598,7 @@ const CompletedFormP = ({route, navigation}) => {
           placeholderTextColor="grey"
           value={formData.placeofissue}
           onChangeText={text => handleInputChange('placeofissue', text)}
+          editable={isEditing}
         />
 
         <Text style={[styles.text, {marginTop: 20}]}>
@@ -646,10 +610,10 @@ const CompletedFormP = ({route, navigation}) => {
           placeholderTextColor="grey"
           value={formData.disability}
           onChangeText={text => handleInputChange('disability', text)}
+          editable={isEditing}
         />
       </View>
 
-      {/* Job Information */}
       <View style={styles.section}>
         <Text style={styles.sectionHeader}>Job Information</Text>
         <View style={styles.divider} />
@@ -660,33 +624,29 @@ const CompletedFormP = ({route, navigation}) => {
           placeholderTextColor="grey"
           value={formData.jobheld}
           onChangeText={text => handleInputChange('jobheld', text)}
+          editable={isEditing}
         />
+
         <Text style={styles.text}>Since When Serving on Current Job:</Text>
-        <TouchableOpacity style={styles.datePickerWrapper}>
-          <DatePickerInput
-            locale="en"
-            label="" // No value provided for label
-            value={formData.serving}
-            onChange={serving => {
-              setFormData(prev => ({...prev, serving}));
-            }}
-            mode={'flat'}
-            style={styles.calenderstyle}
-          />
-        </TouchableOpacity>
+        <TextInput
+        style={styles.input}
+        placeholder="Enter applied date"
+        placeholderTextColor="grey"
+        value={formData.serving}
+        onChangeText={(text) => handleInputChange('serving', text)}
+        editable={isEditing}
+      />
+
         <Text style={[styles.text, {marginTop: 20}]}>Job Start Date:</Text>
-        <TouchableOpacity style={styles.datePickerWrapper}>
-          <DatePickerInput
-            locale="en"
-            label="" // No value provided for label
-            value={formData.jobStartDate}
-            onChange={jobStartDate => {
-              setFormData(prev => ({...prev, jobStartDate}));
-            }}
-            mode={'flat'}
-            style={styles.calenderstyle}
-          />
-        </TouchableOpacity>
+        <TextInput
+        style={styles.input}
+        placeholder="Enter applied date"
+        placeholderTextColor="grey"
+        value={formData.jobStartDate}
+        onChangeText={(text) => handleInputChange('jobstartDate', text)}
+        editable={isEditing}
+      />
+
         <Text style={[styles.text, {marginTop: 20}]}>Salary:</Text>
         <TextInput
           style={styles.input}
@@ -695,13 +655,13 @@ const CompletedFormP = ({route, navigation}) => {
           placeholderTextColor="grey"
           value={formData.salary}
           onChangeText={text => handleInputChange('salary', text)}
+          editable={isEditing}
         />
+
         <Text style={styles.text}>Job Type</Text>
         <View>
           <Dropdown
             style={[styles.input, isFocus && {borderColor: '#1E577C'}]}
-
-
             placeholderStyle={styles.placeholderStyle}
             selectedTextStyle={styles.selectedTextStyle}
             inputSearchStyle={styles.inputSearchStyle}
@@ -715,8 +675,10 @@ const CompletedFormP = ({route, navigation}) => {
             onFocus={() => setIsFocus(true)}
             value={jobTypeOption}
             onChange={item => setJobTypeOption(item.id)}
+            editable={isEditing}
           />
         </View>
+
         <Text style={styles.text}>BPS</Text>
         <View>
           <Dropdown
@@ -727,17 +689,18 @@ const CompletedFormP = ({route, navigation}) => {
             itemTextStyle={styles.itemTextStyle}
             search
             searchPlaceholder="Search..."
-            data={options} // Use the generated options
+            data={options}
             labelField="name"
             valueField="id"
             placeholder="Select an option"
             onFocus={() => setIsFocus(true)}
-            value={selectedOption} // Updated state
-            onChange={item => setSelectedOption(item.id)} 
+            value={selectedOption}
+            onChange={item => setSelectedOption(item.id)}
+            editable={isEditing}
           />
         </View>
     
-  <Text style={[styles.sectionHead, { marginTop: 10 }]}>
+        <Text style={[styles.sectionHead, { marginTop: 10 }]}>
     Duty Hours in Summer
   </Text>
   <View style={styles.divider} />
@@ -751,7 +714,7 @@ const CompletedFormP = ({route, navigation}) => {
       placeholderTextColor="grey"
       value={formData.starttimes}
       onChangeText={text => handleInputChange('starttimes', text)}
-      editable={false}  // To prevent direct typing, use time picker instead
+      editable={isEditing} // To prevent direct typing, use time picker instead
     />
   </TouchableOpacity>
 
@@ -764,7 +727,7 @@ const CompletedFormP = ({route, navigation}) => {
       placeholderTextColor="grey"
       value={formData.endtimes}
       onChangeText={text => handleInputChange('endtimes', text)}
-      editable={false}
+      editable={isEditing}
     />
   </TouchableOpacity>
 
@@ -782,7 +745,7 @@ const CompletedFormP = ({route, navigation}) => {
       placeholderTextColor="grey"
       value={formData.starttimew}
       onChangeText={text => handleInputChange('starttimew', text)}
-      editable={false}
+      editable={isEditing}
     />
   </TouchableOpacity>
 
@@ -795,7 +758,7 @@ const CompletedFormP = ({route, navigation}) => {
       placeholderTextColor="grey"
       value={formData.endtimew}
       onChangeText={text => handleInputChange('endtimew', text)}
-      editable={false}
+      editable={isEditing}
     />
   </TouchableOpacity>
 </View>
@@ -829,13 +792,28 @@ const CompletedFormP = ({route, navigation}) => {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
+
       <Loader loading={loading} />
+      <View style={styles.footer}>
+        <TouchableOpacity 
+          style={styles.button} 
+          onPress={isEditing ? handleSavePress : handleEditPress}
+        >
+          <Icon 
+            name={isEditing ? 'save' : 'pencil'} 
+            size={20} 
+            color="#fff" 
+          />
+          <Text style={styles.buttonText}>
+            {isEditing ? 'Save' : 'Edit'}
+          </Text>
+        </TouchableOpacity>
+      </View>
       <View style={styles.buttonContainer}>
         <TouchableOpacity style={styles.button} onPress={handleNextPress}>
           <Text style={styles.buttonText}>Next</Text>
         </TouchableOpacity>
       </View>
-   
     </ScrollView>
   );
 };
@@ -953,23 +931,7 @@ const styles = StyleSheet.create({
     paddingLeft: 10,
     fontSize: 12,
   },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 20,
-  },
-  button: {
-    backgroundColor: '#010048',
-    paddingVertical: 10,
-    paddingHorizontal: 22,
-    borderRadius: 5,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
+
   datePickerWrapper: {
     marginTop: 5,
     backgroundColor: '#fff',
@@ -1027,13 +989,37 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
-    borderRadius: 50, // Ensure the image is circular
+    borderRadius: 50,
   },
   fileNameText: {
     fontSize: 14,
     marginTop: 10,
     color: 'black',
     textAlign: 'center',
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    backgroundColor: '#000', // Change this to your preferred background color
+    padding: 10,
+    borderRadius: 25,
+    flexDirection: 'row',
+    alignItems: 'center',
+    elevation: 5, // Adds a shadow on Android
+    shadowColor: '#000', // Adds a shadow on iOS
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.8,
+    shadowRadius: 2,
+  },
+  button: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: '#fff',
+    marginLeft: 5,
+    fontSize: 16,
   },
 });
 

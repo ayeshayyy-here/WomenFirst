@@ -96,7 +96,7 @@ const FormG = () => {
   
     try {
       setLoading(true); // Show loader
-      const response = await fetch('https://d924-103-26-82-30.ngrok-free.app/api/guardian', {
+      const response = await fetch('https://wwh.punjab.gov.pk/api/guardian', {
         method: 'POST',
         body: formDataToSend,
       });
@@ -235,9 +235,9 @@ const FormG = () => {
     
 
       <View style={styles.buttonContainer}>
-      <TouchableOpacity style={styles.button} onPress={handlePrevPress}>
+      {/* <TouchableOpacity style={styles.button} onPress={handlePrevPress}>
           <Text style={styles.buttonText}>Back</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
         <TouchableOpacity style={styles.button} onPress={handleNextPress}>
           <Text style={styles.buttonText}>Next</Text>
         </TouchableOpacity>
