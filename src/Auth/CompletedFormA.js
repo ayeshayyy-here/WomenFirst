@@ -152,7 +152,7 @@ const CompletedFormA = () => {
   
     try {
       setLoading(true); 
-      const response = await fetch('https://d924-103-26-82-30.ngrok-free.app/api/attachemnet', {
+      const response = await fetch('https://wwh.punjab.gov.pk/api/attachemnet', {
         method: 'POST',
         body: formDataToSend,
         headers: {

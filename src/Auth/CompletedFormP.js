@@ -346,7 +346,7 @@ const CompletedFormP = ({route, navigation}) => {
 
     try {
       setLoading(true);
-      const response = await fetch('https://0053-103-26-82-30.ngrok-free.app/api/personalinformation', {
+      const response = await fetch('https://wwh.punjab.gov.pk/api/personalinformation', {
         method: 'POST',
         body: formDataToSend,
       });

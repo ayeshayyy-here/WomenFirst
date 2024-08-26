@@ -97,7 +97,7 @@ const CompletedFormD = () => {
   
     try {
         setLoading(true); 
-      const response = await fetch('https://d924-103-26-82-30.ngrok-free.app/api/declaration', {
+      const response = await fetch('https://wwh.punjab.gov.pk/api/declaration', {
         method: 'POST',
         body: formDataToSend,
       });
