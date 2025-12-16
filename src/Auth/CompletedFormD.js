@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, ScrollView, Modal, TouchableOpacity, TouchableWithoutFeedback, ToastAndroid } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, Button, StyleSheet, ScrollView, Modal, TouchableOpacity, TouchableWithoutFeedback, ToastAndroid, Alert, Image } from 'react-native';
 import ProgressBar from '../components/ProgressBar';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import DocumentPicker from 'react-native-document-picker';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faPlusCircle } from '@fortawesome/free-solid-svg-icons';
 import syncStorage from 'react-native-sync-storage';
-import Loader from '../components/Loader'; // Import the custom Loader component
+import Loader from '../components/Loader';
 
-const CompletedFormD = () => {
+const CompletedFormD = ({route, navigation}) => {
+  const [p_id, setP_id] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     designation: '',
@@ -18,113 +19,207 @@ const CompletedFormD = () => {
     phone: '',
     email: '',
   });
-
-  const navigation = useNavigation();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedAttachment, setSelectedAttachment] = useState('');
   const [isFileSelected, setIsFileSelected] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [profileImage, setProfileImage] = useState(null);
+  const [capturedImage, setCapturedImage] = useState(null);
   const initialState = {
     URI: '',
     Type: '',
     Name: '',
   };
-
   const [stateFunctions, setStateFunctions] = useState({
     attachdeclaration: initialState,
-  })
+  });
+
   const handleInputChange = (name, value) => {
     setFormData({ ...formData, [name]: value });
   };
- 
-  const handleNextPress = async () => {
+
+  // Fetch p_id first
+  useEffect(() => {
+    const fetchPersonalId = async () => {
+      setLoading(true);
+      try {
+        let personalId = route.params?.p_id;
+
+        if (!personalId) {
+          const user = JSON.parse(syncStorage.get('user'));
+          const userId = user.id;
+          const response = await fetch(`https://wwh.punjab.gov.pk/api/get-personal-id/${userId}`);
+          const data = await response.json();
+
+          if (data.status === 'success') {
+            personalId = data.p_id;
+          } else {
+            console.error('Failed to fetch p_id:', data.message);
+          }
+        }
+
+        setP_id(personalId);
+        console.log('Fetched p_id:', personalId);
+      } catch (error) {
+        console.error('Error fetching p_id:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPersonalId();
+  }, [route.params]);
+
+  // Fetch form data once p_id is available
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!p_id) return;
+
+      setLoading(true);
+      try {
+        const response = await fetch(`https://wwh.punjab.gov.pk/api/getDdetail-check/${p_id}`);
+        if (response.ok) {
+          const result = await response.json();
+          const data = result.data[0];
+
+          // Set profile image
+          const profileImageUrl = data.declaration
+            ? `https://wwh.punjab.gov.pk/uploads/declaration/${data.declaration}`
+            : null;
+          setProfileImage(profileImageUrl);
+
+          // Set form data
+          setFormData({
+            name: data.em_name || '',
+            designation: data.designation || '',
+            department: data.department || '',
+            address: data.em_address || '',
+            phone: data.em_mobile || '',
+            email: data.em_email || '',
+          });
+        } else {
+          console.error('Failed to fetch form data');
+          navigation.navigate('FormD'); 
+        }
+      } catch (error) {
+        console.error('Error fetching form data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [p_id]); // Depend on p_id to fetch form data
+
+  const handleSavePress = async () => {
+    console.log('handleSavePress triggered');
+
     // Validate form data
     if (!formData.name) {
+      console.log('Validation failed: Name is missing');
       ToastAndroid.show('Please enter your name.', ToastAndroid.LONG);
       return;
     }
     if (!formData.designation) {
+      console.log('Validation failed: Designation is missing');
       ToastAndroid.show('Please enter your designation.', ToastAndroid.LONG);
       return;
     }
     if (!formData.department) {
+      console.log('Validation failed: Department is missing');
       ToastAndroid.show('Please enter your department.', ToastAndroid.LONG);
       return;
     }
     if (!formData.address) {
+      console.log('Validation failed: Address is missing');
       ToastAndroid.show('Please enter your address.', ToastAndroid.LONG);
       return;
     }
     if (!formData.phone || formData.phone.length !== 11) {
+      console.log('Validation failed: Phone number is invalid');
       ToastAndroid.show('Please enter a valid 11-digit phone number.', ToastAndroid.LONG);
       return;
     }
     if (!formData.email) {
+      console.log('Validation failed: Email is missing');
       ToastAndroid.show('Please enter your email address.', ToastAndroid.LONG);
       return;
     }
-  
+
+    const newProfileImageUri = stateFunctions[selectedAttachment]?.URI;
+    const existingProfileImageUri = profileImage;
+
+    console.log('Profile image URIs:', { newProfileImageUri, existingProfileImageUri });
+
+    if (!newProfileImageUri && !existingProfileImageUri) {
+      console.log('Validation failed: No profile image provided');
+      ToastAndroid.show('Please capture or upload your profile image.', ToastAndroid.LONG);
+      return;
+    }
+
     const user = JSON.parse(syncStorage.get('user'));
     const userId = user.id;
-    
-    console.log('Retrieved user:', user); // Logs the entire user object
-    console.log('Retrieved user ID:', userId); // Logs the user ID
-    
-  
+
+    console.log('User ID:', userId);
+    console.log('Personal ID:', p_id);
+
     // Prepare FormData
     const formDataToSend = new FormData();
-  
-    formDataToSend.append('personal_id', userId);
+    formDataToSend.append('personal_id', p_id);
     formDataToSend.append('em_name', formData.name);
     formDataToSend.append('designation', formData.designation);
     formDataToSend.append('department', formData.department);
     formDataToSend.append('em_address', formData.address);
     formDataToSend.append('em_mobile', formData.phone);
     formDataToSend.append('em_email', formData.email);
-  
-    // Append file if it exists
-    const attachment = stateFunctions.attachdeclaration;
-    if (attachment?.URI) {
+
+    if (capturedImage) {
+      console.log('Captured image being uploaded:', capturedImage);
       formDataToSend.append('declaration', {
-        uri: attachment.URI,
-        type: attachment.Type,
-        name: attachment.Name,
+        uri: capturedImage,
+        type: 'image/jpeg',
+        name: 'profile.jpg',
       });
+    } else if (profileImage) {
+      console.log('Keeping existing profile image');
+      formDataToSend.append('keep_existing_image', 'true');
     }
-  
-    // Log the data being sent for debugging
-    console.log('Data to be sent:', formDataToSend);
-  
+
     try {
-        setLoading(true); 
+      setLoading(true);
+      console.log('Sending POST request to server...');
       const response = await fetch('https://wwh.punjab.gov.pk/api/declaration', {
         method: 'POST',
         body: formDataToSend,
       });
-  
+
       const result = await response.json();
-  
-      // Log the server response for debugging
       console.log('Server response:', result);
-  
+
       if (response.ok) {
-        ToastAndroid.show('Form submitted successfully!', ToastAndroid.LONG);
-        navigation.navigate('CompletedFormP');
+        setIsEditing(false);
+        ToastAndroid.show('Form updated successfully!', ToastAndroid.LONG);
       } else {
+        console.error('Failed to submit the form:', result.message);
         ToastAndroid.show('Failed to submit the form. Please try again.', ToastAndroid.LONG);
       }
     } catch (error) {
       console.error('Error submitting form:', error);
       ToastAndroid.show('An error occurred. Please try again.', ToastAndroid.LONG);
-    }
-    finally {
-      setLoading(false); // Hide loader
+    } finally {
+      setLoading(false);
+      console.log('handleSavePress finished');
     }
   };
-  
+
+  const handleNextPress = () => {
+    navigation.navigate('Dashboard');
+  };
+
   const handlePrevPress = () => {
     navigation.navigate('CompletedFormA');
   };
+
   const openGallery = async () => {
     try {
       const response = await DocumentPicker.pick({
@@ -151,17 +246,16 @@ const CompletedFormD = () => {
 
   const renderAttachment = (label, attachmentName) => (
     <View style={styles.attachmentWrapper}>
-      {/* <Text style={styles.text}>{label}</Text> */}
       <View style={styles.mainWrapper}>
         <TouchableOpacity onPress={() => handleUploadClick(attachmentName)} style={styles.iconWrapper}>
           <FontAwesomeIcon
             icon={faPlusCircle}
             size={30}
-            color={stateFunctions[attachmentName].Name ? 'green' : 'black'}
+            color={stateFunctions[attachmentName]?.Name ? 'green' : 'black'}
             marginLeft={10}
           />
         </TouchableOpacity>
-        {stateFunctions[attachmentName].Name ? (
+        {stateFunctions[attachmentName]?.Name ? (
           <View style={styles.fileNameWrapper}>
             {stateFunctions[attachmentName].Type === 'image' ? (
               <Image
@@ -178,146 +272,205 @@ const CompletedFormD = () => {
     </View>
   );
 
+  const handleEditPress = () => {
+    setIsEditing(true);
+    Alert.alert(
+      'Form Editable',
+      'Your form is now editable. You can make changes as needed.',
+      [{ text: 'OK' }]
+    );
+  };
 
+  const [isEditing, setIsEditing] = useState(false);
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.header}>Application Form</Text>
-      <ProgressBar step={4} />
+    <View>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.header}>Application Form</Text>
+        <ProgressBar step={4} />
 
-      {/* Personal Information */}
-      <View style={styles.section}>
-        <Text style={styles.sectionHeader}>Employer Information</Text>
-        <Text style={styles.text}>Name:</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter applicant name"
-          placeholderTextColor="grey"
-          value={formData.name}
-          onChangeText={(text) => handleInputChange('name', text)}
-        />
-        <Text style={styles.text}>Designation:</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter Designation"
-          placeholderTextColor="grey"
-          value={formData.designation}
-          onChangeText={(text) => handleInputChange('designation', text)}
-        />
-        <Text style={styles.text}>Department/Organization:</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter Department/Organization"
-          placeholderTextColor="grey"
-          value={formData.department}
-          onChangeText={(text) => handleInputChange('department', text)}
-        />
-        <Text style={styles.text}>Address:</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter Address"
-          placeholderTextColor="grey"
-          value={formData.address}
-          onChangeText={(text) => handleInputChange('address', text)}
-        />
-        <Text style={styles.text}>Mobile No:</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter mobile no"
-          keyboardType="numeric"
-          maxLength={11}
-          placeholderTextColor="grey"
-          value={formData.phone}
-          onChangeText={(text) => handleInputChange('phone', text)}
-        />
-        <Text style={styles.text}>Email:</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter Email"
-          placeholderTextColor="grey"
-          value={formData.email}
-          onChangeText={(text) => handleInputChange('email', text)}
-        />
-      </View>
-      <Text style={styles.declare}>Personal Declaration :</Text>
-      <View style={styles.divider2} />
-      <Text style={styles.subtext}>I Name hereby apply for admission in the Working Women Hostel and undertake to
-        abide by the Rules & Regulations notified from time to time of the Hostel, which i have throughly read and also undertaken to pay all charges regularly
-      </Text>
-      <Text style={styles.Nametext}>Name:
-        <Text style={styles.subtext}> The Applicant Name</Text>
-      </Text>
-      <Text style={styles.Nametext}>Designation:
-        <Text style={styles.subtext}> The Applicant Job Designation</Text>
-      </Text>
-      <Text style={styles.Nametext}>Date:
-        <Text style={styles.subtext}>  12-08-2024</Text>
-      </Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionHeader}>Employer Information</Text>
+          <Text style={styles.text}>Name/Organization Name:</Text>
+          {isEditing ? (
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('EditAppointment', { em_name: formData.name })}
+                >
+                  <TextInput
+                    style={styles.input}
+                    value={formData.name}
+                    editable={false}
+                    placeholderTextColor="grey"
+                  />
+                </TouchableOpacity>
+              ) : (
+                <TextInput
+                  style={styles.input}
+                  editable={false}
+                  placeholderTextColor="grey"
+                  value={formData.name}
+                />
+              )}
+         
+          <Text style={styles.text}>Designation/Place of Posting:</Text>
+          {isEditing ? (
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('EditAppointment', { designation: formData.designation })}
+                >
+                  <TextInput
+                    style={styles.input}
+                    value={formData.designation}
+                    editable={false}
+                    placeholderTextColor="grey"
+                  />
+                </TouchableOpacity>
+              ) : (
+                <TextInput
+                  style={styles.input}
+                  editable={false}
+                  placeholderTextColor="grey"
+                  value={formData.designation}
+                />
+              )}
+        
+          <Text style={styles.text}>Department/Organization:</Text>
+          {isEditing ? (
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('EditAppointment', { department: formData.department })}
+                >
+                  <TextInput
+                    style={styles.input}
+                    value={formData.department}
+                    editable={false}
+                    placeholderTextColor="grey"
+                  />
+                </TouchableOpacity>
+              ) : (
+                <TextInput
+                  style={styles.input}
+                  editable={false}
+                  placeholderTextColor="grey"
+                  value={formData.department}
+                />
+              )}
+        
+          <Text style={styles.text}>Address:</Text>
+          {isEditing ? (
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('EditAppointment', { em_address: formData.address })}
+                >
+                  <TextInput
+                    style={styles.input}
+                    value={formData.address}
+                    editable={false}
+                    placeholderTextColor="grey"
+                  />
+                </TouchableOpacity>
+              ) : (
+                <TextInput
+                  style={styles.input}
+                  editable={false}
+                  placeholderTextColor="grey"
+                  value={formData.address}
+                />
+              )}
+  
+          <Text style={styles.text}>Mobile No/Office No:</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter applicant phone number"
+            placeholderTextColor="grey"
+            value={formData.phone}
+            onChangeText={(text) => handleInputChange('phone', text)}
+            keyboardType="numeric"
+            maxLength={11}
+            editable={isEditing}
+          />
+          <Text style={styles.text}>Email/Official Email:</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter applicant email"
+            placeholderTextColor="grey"
+            value={formData.email}
+            onChangeText={(text) => handleInputChange('email', text)}
+            keyboardType="email-address"
+            editable={isEditing}
+          />
+        </View>
 
-
-      <Text style={styles.declare}>Guardian/Father/Husband Declaration :</Text>
-      <View style={styles.divider2} />
-      <Text style={styles.subtext}>I mister, Guardian of Miss/Mrs Name(the Applicant) request that she may be allow to get admission in the hostel under prescribed terms and conditions as well the reles & regulations.She may be allowed to see the following persons at the hostel premises on prescribed days of visit. </Text>
-      <Text style={styles.Nametext}>Name:
-        <Text style={styles.subtext}> Mister</Text>
-      </Text>
-      <Text style={styles.Nametext}>RelationShip:
-        <Text style={styles.subtext}> Guardian</Text>
-      </Text>
-      <Text style={styles.Nametext}>Address:
-        <Text style={styles.subtext}>  Lahore</Text>
-      </Text>
-      <Text style={styles.Nametext}>Mobile:
-        <Text style={styles.subtext}> The Guardian Mobile No.</Text>
-      </Text>
-      <Text style={styles.Nametext}>Signature:
-        <Text style={styles.subtext}> The Guardian Signature </Text>
-      </Text>
-      <Text style={styles.Nametext}>Date:
-        <Text style={styles.subtext}>  12-08-2024</Text>
-      </Text>
-
-
-      <Text style={styles.declare}>Attach Declaration :</Text>
-      <View style={styles.divider2} />
-      <Text style={styles.Nametext}>Note:
-        <Text style={styles.subtext}>Please take a snapshot of Declaration and it will be Attached here.</Text>
-      </Text>
-      <View style={styles.divider} />
-      {renderAttachment("Attach Declaration", "attachdeclaration")}
-      <Modal
-        visible={modalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setModalVisible(false)}>
-        <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
-          <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback>
-              <View style={styles.modalContent}>
-                <Text style={styles.modalTitle}>Choose an option</Text>
-                <View style={styles.modalOptionsRow}>
-                  <TouchableOpacity style={styles.modalButton} onPress={openGallery}>
-                    <Icon name="file" size={30} color="black" />
-                    <Text style={styles.modalButtonText}>Upload File</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </TouchableWithoutFeedback>
+        {!capturedImage && !stateFunctions[selectedAttachment]?.URI && profileImage ? (
+          <TouchableOpacity onPress={isEditing ? handleUploadClick : null} style={styles.imageContainer}>
+            <Image
+              source={{
+                uri: profileImage,
+              }}
+              style={styles.image}
+            />
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.imageContainer}>
+            <Image
+              source={{
+                uri: capturedImage || stateFunctions[selectedAttachment]?.URI,
+              }}
+              style={styles.image}
+            />
           </View>
-        </TouchableWithoutFeedback>
-      </Modal>
-      <Loader loading={loading} />
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.button} onPress={handlePrevPress}>
-          <Text style={styles.buttonText}>Back  </Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.button} onPress={handleNextPress}>
-          <Text style={styles.buttonText}>Submit</Text>
-        </TouchableOpacity>
+        )}
 
+        <View style={styles.buttonContainerN}>
+          <TouchableOpacity style={styles.buttonN} onPress={handlePrevPress}>
+            <Text style={styles.buttonTextN}>Back</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.buttonN} onPress={handleNextPress}>
+            <Text style={styles.buttonTextN}>Done</Text>
+          </TouchableOpacity>
+        </View>
+
+        <Loader loading={loading} />
+
+        <Modal
+          visible={modalVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setModalVisible(false)}>
+          <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
+            <View style={styles.modalOverlay}>
+              <TouchableWithoutFeedback>
+                <View style={styles.modalContent}>
+                  <Text style={styles.modalTitle}>Choose an option</Text>
+                  <View style={styles.modalOptionsRow}>
+                    <TouchableOpacity
+                      style={styles.modalButton}
+                      onPress={openGallery}>
+                      <Icon name="file" size={30} color="black" />
+                      <Text style={styles.modalButtonText}>Upload File</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </TouchableWithoutFeedback>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
+      </ScrollView>
+      <View style={styles.footer}>
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={isEditing ? handleSavePress : handleEditPress}
+          >
+            <Icon
+              name={isEditing ? 'save' : 'pencil'}
+              size={20}
+              color="#fff"
+            />
+          </TouchableOpacity>
+          <Text style={styles.buttonText}>
+            {isEditing ? 'Save' : 'Edit'}
+          </Text>
+        </View>
       </View>
-    
-    </ScrollView>
+    </View>
   );
 };
 
@@ -487,7 +640,82 @@ const styles = StyleSheet.create({
     height: 2,
     alignItems: 'center',
   },
-
+  imageContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+    borderRadius: 10,
+    width: '80%',
+    height: 100,
+    borderWidth: 2,
+    borderColor: '#fff',
+    overflow: 'hidden',
+    alignSelf: 'center',
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+    borderRadius: 10, // Ensure the image is circular
+  },
+  fileNameText: {
+    fontSize: 14,
+    marginTop: 10,
+    color: 'black',
+    textAlign: 'center',
+  },
+  footer: {
+    position: 'absolute',
+    bottom: '10%', // Adjust as needed to fit the design
+    right: '5%',  // Adjust as needed to fit the design
+    zIndex: 1000, // Ensures it appears above other components
+  },
+  buttonContainer: {
+    alignItems: 'center', // Centers the button and text horizontally
+  },
+  button: {
+    width: 50,
+    height: 50,
+    borderRadius: 10,
+    backgroundColor: '#010048',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  buttonText: {
+    fontWeight: 'bold',
+    color: '#010048',
+    marginTop: 3, // Spacing between button and text
+    fontSize: 12, // Font size for better readability
+    textAlign: 'center', // Center text below the button
+    fontStyle: 'italic', // Italicize the text
+  },
+  buttonContainerN: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 20,
+    paddingHorizontal: 22,
+  },
+  buttonN: {
+    backgroundColor: '#010048',
+    paddingVertical: 10,
+    paddingHorizontal: 22,
+    borderRadius: 5,
+    marginHorizontal: 10,
+  },
+  buttonTextN: {
+    color: '#fff',
+    fontSize: 14, 
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
 });
 
 export default CompletedFormD;

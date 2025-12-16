@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, ScrollView, Modal, TouchableOpacity, TouchableWithoutFeedback, ToastAndroid } from 'react-native';
 import ProgressBar from '../components/ProgressBar';
 import { useNavigation } from '@react-navigation/native';
@@ -7,42 +7,100 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faPlusCircle } from '@fortawesome/free-solid-svg-icons';
 import syncStorage from 'react-native-sync-storage';
-import Loader from '../components/Loader'; // Import the custom Loader component
+import Loader from '../components/Loader';
+import ViewShot from 'react-native-view-shot'; // Import ViewShot
+import RNFS from 'react-native-fs'; // Import FS to handle the file system
 
 const FormD = ({ route }) => {
   const [p_id, setP_id] = useState(null);
+  const [personalData, setPersonalData] = useState(null);
+  const [guardianData, setGuardianData] = useState(null);
+  const [loading, setLoading] = useState(false);
 
+  const viewShotRef = useRef(null); // Ref to capture screenshot
 
   useEffect(() => {
-    const fetchPersonalId = async () => {
+    const fetchPersonalData = async () => {
       try {
-        let personalId = route.params?.p_id;
-
-        if (!personalId) {
-          const user = JSON.parse(syncStorage.get('user'));
-          const userId = user.id;
-          const response = await fetch(`https://wwh.punjab.gov.pk/api/get-personal-id/${userId}`);
+        const user = JSON.parse(syncStorage.get('user'));
+        const userId = user?.id;
+        
+        if (userId) {
+          const response = await fetch(`https://wwh.punjab.gov.pk/api/getPdetail-check/${userId}`);
           const data = await response.json();
-
-          if (data.status === 'success') {
-            personalId = data.p_id;
-          } else {
-            console.error('Failed to fetch p_id:', data.message);
-          }
+          setPersonalData(data);
         }
-
-        setP_id(personalId);
       } catch (error) {
-        console.error('Error fetching p_id:', error);
+        console.error("Error fetching personal data:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchPersonalId();
-  }, [route.params]);
+    fetchPersonalData();
+  }, []);
 
+  useEffect(() => {
+    const fetchPersonalAndGuardianData = async () => {
+      try {
+        console.log("Starting data fetch...");
+        setLoading(true);
   
+        let personalId = route.params?.p_id;
+        console.log("Initial p_id from route params:", personalId);
+  
+        if (!personalId) {
+          console.log("p_id not found in route params, fetching from syncStorage...");
+          const user = JSON.parse(syncStorage.get('user'));
+          console.log("User data from syncStorage:", user);
+  
+          const userId = user.id;
+          const response = await fetch(`https://wwh.punjab.gov.pk/api/get-personal-id/${userId}`);
+          
+          if (!response.ok) {
+            throw new Error(`Failed to fetch p_id: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          console.log("Response from get-personal-id API:", data);
+  
+          if (data.status === 'success') {
+            personalId = data.p_id;
+            console.log("Fetched personalId:", personalId);
+          } else {
+            console.error('Failed to fetch p_id:', data.message);
+          }
+        }
+  
+        setP_id(personalId);
+  
+        // Fetch guardian details
+        console.log(`Fetching guardian details for p_id: ${personalId}`);
+        const guardianResponse = await fetch(`https://wwh.punjab.gov.pk/api/getGdetail-check/${personalId}`);
+  
+        if (!guardianResponse.ok) {
+          const errorText = await guardianResponse.text();
+          throw new Error(`Failed to fetch guardian details: ${guardianResponse.status} - ${errorText}`);
+        }
+  
+        const guardianData = await guardianResponse.json();
+        console.log("Fetched guardian data:", guardianData);
+        setGuardianData(guardianData);
+  
+      } catch (error) {
+        console.error('Error fetching personal/guardian data:', error);
+        console.error('Error details:', error.message, error.stack);
+        ToastAndroid.show(`Error: ${error.message}`, ToastAndroid.LONG);
+      } finally {
+        console.log("Data fetch completed. Loading state will be set to false.");
+        setLoading(false);
+      }
+    };
+  
+    fetchPersonalAndGuardianData();
+  }, [route.params]);
+  
+
   const [formData, setFormData] = useState({
     name: '',
     designation: '',
@@ -56,7 +114,6 @@ const FormD = ({ route }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedAttachment, setSelectedAttachment] = useState('');
   const [isFileSelected, setIsFileSelected] = useState(false);
-  const [loading, setLoading] = useState(false);
   const initialState = {
     URI: '',
     Type: '',
@@ -65,13 +122,36 @@ const FormD = ({ route }) => {
 
   const [stateFunctions, setStateFunctions] = useState({
     attachdeclaration: initialState,
-  })
+  });
+  
   const handleInputChange = (name, value) => {
     setFormData({ ...formData, [name]: value });
   };
- 
+
+  const takeScreenshot = async () => {
+    try {
+      const uri = await viewShotRef.current.capture(); // Capture screenshot
+      const fileName = `declaration_${new Date().getTime()}.jpg`;
+      const path = `${RNFS.DocumentDirectoryPath}/${fileName}`;
+
+      await RNFS.moveFile(uri, path); // Move screenshot to the app's document directory
+
+      setStateFunctions(prev => ({
+        ...prev,
+        attachdeclaration: {
+          URI: `file://${path}`,
+          Type: 'image/jpeg',
+          Name: fileName,
+        },
+      }));
+      ToastAndroid.show('Screenshot taken and attached!', ToastAndroid.LONG);
+    } catch (error) {
+      console.error('Error taking screenshot:', error);
+      ToastAndroid.show('Failed to take screenshot.', ToastAndroid.LONG);
+    }
+  };
+
   const handleNextPress = async () => {
-    // Validate form data
     if (!formData.name) {
       ToastAndroid.show('Please enter your name.', ToastAndroid.LONG);
       return;
@@ -106,7 +186,6 @@ const FormD = ({ route }) => {
     formDataToSend.append('em_mobile', formData.phone);
     formDataToSend.append('em_email', formData.email);
   
-    // Append file if it exists
     const attachment = stateFunctions.attachdeclaration;
     if (attachment?.URI) {
       formDataToSend.append('declaration', {
@@ -116,23 +195,20 @@ const FormD = ({ route }) => {
       });
     }
   
-    // Log the data being sent for debugging
     console.log('Data to be sent:', formDataToSend);
   
     try {
-        setLoading(true); 
+      setLoading(true); 
       const response = await fetch('https://wwh.punjab.gov.pk/api/declaration', {
         method: 'POST',
         body: formDataToSend,
       });
   
       const result = await response.json();
-  
-      // Log the server response for debugging
       console.log('Server response:', result);
   
       if (response.ok) {
-        ToastAndroid.show('Form submitted successfully!', ToastAndroid.LONG);
+        ToastAndroid.show('Provided Data saved successfully!', ToastAndroid.LONG);
         navigation.navigate('Dashboard');
       } else {
         ToastAndroid.show('Failed to submit the form. Please try again.', ToastAndroid.LONG);
@@ -140,15 +216,11 @@ const FormD = ({ route }) => {
     } catch (error) {
       console.error('Error submitting form:', error);
       ToastAndroid.show('An error occurred. Please try again.', ToastAndroid.LONG);
-    }
-    finally {
-      setLoading(false); // Hide loader
+    } finally {
+      setLoading(false); 
     }
   };
   
-  const handlePrevPress = () => {
-    navigation.navigate('FormA');
-  };
   const openGallery = async () => {
     try {
       const response = await DocumentPicker.pick({
@@ -173,11 +245,16 @@ const FormD = ({ route }) => {
     setModalVisible(true);
   };
 
+  const handlePrevPress = () => {
+    // Assuming `formGData` contains your FormG data
+    navigation.navigate('FormA');
+  };
+
+
   const renderAttachment = (label, attachmentName) => (
     <View style={styles.attachmentWrapper}>
-      {/* <Text style={styles.text}>{label}</Text> */}
       <View style={styles.mainWrapper}>
-        <TouchableOpacity onPress={() => handleUploadClick(attachmentName)} style={styles.iconWrapper}>
+        <TouchableOpacity onPress={() => takeScreenshot()} style={styles.iconWrapper}>
           <FontAwesomeIcon
             icon={faPlusCircle}
             size={30}
@@ -202,148 +279,157 @@ const FormD = ({ route }) => {
     </View>
   );
 
-
-
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.header}>Application Form</Text>
-      <ProgressBar step={4} />
 
-      {/* Personal Information */}
-      <View style={styles.section}>
-        <Text style={styles.sectionHeader}>Employer Information</Text>
-        <Text style={styles.text}>Name:</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter applicant name"
-          placeholderTextColor="grey"
-          value={formData.name}
-          onChangeText={(text) => handleInputChange('name', text)}
-        />
-        <Text style={styles.text}>Designation:</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter Designation"
-          placeholderTextColor="grey"
-          value={formData.designation}
-          onChangeText={(text) => handleInputChange('designation', text)}
-        />
-        <Text style={styles.text}>Department/Organization:</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter Department/Organization"
-          placeholderTextColor="grey"
-          value={formData.department}
-          onChangeText={(text) => handleInputChange('department', text)}
-        />
-        <Text style={styles.text}>Address:</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter Address"
-          placeholderTextColor="grey"
-          value={formData.address}
-          onChangeText={(text) => handleInputChange('address', text)}
-        />
-        <Text style={styles.text}>Mobile No:</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter mobile no"
-          keyboardType="numeric"
-          maxLength={11}
-          placeholderTextColor="grey"
-          value={formData.phone}
-          onChangeText={(text) => handleInputChange('phone', text)}
-        />
-        <Text style={styles.text}>Email:</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter Email"
-          placeholderTextColor="grey"
-          value={formData.email}
-          onChangeText={(text) => handleInputChange('email', text)}
-        />
-      </View>
-      <Text style={styles.declare}>Personal Declaration :</Text>
-      <View style={styles.divider2} />
-      <Text style={styles.subtext}>I Name hereby apply for admission in the Working Women Hostel and undertake to
-        abide by the Rules & Regulations notified from time to time of the Hostel, which i have throughly read and also undertaken to pay all charges regularly
-      </Text>
-      <Text style={styles.Nametext}>Name:
-        <Text style={styles.subtext}> The Applicant Name</Text>
-      </Text>
-      <Text style={styles.Nametext}>Designation:
-        <Text style={styles.subtext}> The Applicant Job Designation</Text>
-      </Text>
-      <Text style={styles.Nametext}>Date:
-        <Text style={styles.subtext}>  12-08-2024</Text>
-      </Text>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.header}>Application Form</Text>
+        <ProgressBar step={5} />
 
+        {/* Personal Information */}
+        <View style={styles.section}>
+          <Text style={styles.sectionHeader}>Employer Information</Text>
+          <Text style={styles.text}>Name/Organization Name</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter applicant name"
+            placeholderTextColor="grey"
+            value={formData.name}
+            onChangeText={(text) => handleInputChange('name', text)}
+          />
+          <Text style={styles.text}>Designation/Place of Posting</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter Designation"
+            placeholderTextColor="grey"
+            value={formData.designation}
+            onChangeText={(text) => handleInputChange('designation', text)}
+          />
+          <Text style={styles.text}>Department/Organization</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter Department/Organization"
+            placeholderTextColor="grey"
+            value={formData.department}
+            onChangeText={(text) => handleInputChange('department', text)}
+          />
+          <Text style={styles.text}>Address</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter Address"
+            placeholderTextColor="grey"
+            value={formData.address}
+            onChangeText={(text) => handleInputChange('address', text)}
+          />
+          <Text style={styles.text}>Mobile No/Office No</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter mobile no"
+            keyboardType="numeric"
+            maxLength={11}
+            placeholderTextColor="grey"
+            value={formData.phone}
+            onChangeText={(text) => handleInputChange('phone', text)}
+          />
+          <Text style={styles.text}>Email/Official Email</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter Email"
+            placeholderTextColor="grey"
+            value={formData.email}
+            onChangeText={(text) => handleInputChange('email', text)}
+          />
+        </View>
+        <ViewShot ref={viewShotRef} options={{ format: 'jpg', quality: 0.9 }}>
+        {/* Personal Declaration */}
+        <Text style={styles.declare}>Personal Declaration :</Text>
+        <View style={styles.divider2} />
+          {personalData && personalData.data && personalData.data.length > 0 ? (
+          <>
+            <Text style={styles.subtext}>
+              I, {personalData.data[0].name} hereby apply for admission in the Working Women Hostel and undertake to abide by the Rules & Regulations notified from time to time of the Hostel, which I have thoroughly read and also undertaken to pay all charges regularly.
+            </Text>
+            <Text style={styles.Nametext}>Name:
+              <Text style={styles.subtext}> {personalData.data[0].name}</Text>
+            </Text>
+            <Text style={styles.Nametext}>Date:
+              <Text style={styles.subtext}> {new Date().toLocaleDateString()}</Text>
+            </Text>
+          </>
+        ) : (
+          <Text>...</Text>
+        )}
 
-      <Text style={styles.declare}>Guardian/Father/Husband Declaration :</Text>
-      <View style={styles.divider2} />
-      <Text style={styles.subtext}>I mister, Guardian of Miss/Mrs Name(the Applicant) request that she may be allow to get admission in the hostel under prescribed terms and conditions as well the reles & regulations.She may be allowed to see the following persons at the hostel premises on prescribed days of visit. </Text>
-      <Text style={styles.Nametext}>Name:
-        <Text style={styles.subtext}> Mister</Text>
-      </Text>
-      <Text style={styles.Nametext}>RelationShip:
-        <Text style={styles.subtext}> Guardian</Text>
-      </Text>
-      <Text style={styles.Nametext}>Address:
-        <Text style={styles.subtext}>  Lahore</Text>
-      </Text>
-      <Text style={styles.Nametext}>Mobile:
-        <Text style={styles.subtext}> The Guardian Mobile No.</Text>
-      </Text>
-      <Text style={styles.Nametext}>Signature:
-        <Text style={styles.subtext}> The Guardian Signature </Text>
-      </Text>
-      <Text style={styles.Nametext}>Date:
-        <Text style={styles.subtext}>  12-08-2024</Text>
-      </Text>
+        {/* Guardian Declaration */}
+        <Text style={styles.declare}>Guardian Declaration :</Text>
+        <View style={styles.divider2} />
+        {guardianData && guardianData.data && guardianData.data.length > 0 ? (
+        <>
+          <Text style={styles.subtext}>
+            I {guardianData.data[0].gname}, Guardian of Miss/Mrs {guardianData.data[0].ename} (the Applicant) request that she may be allowed to get admission in the hostel under prescribed terms and conditions as well the rules & regulations.
+          </Text>
+          <Text style={styles.Nametext}>Name:
+            <Text style={styles.subtext}> {guardianData.data[0].ename}</Text>
+          </Text>
+          <Text style={styles.Nametext}>Relationship:
+            <Text style={styles.subtext}> {guardianData.data[0].erelationship}</Text>
+          </Text>
+          <Text style={styles.Nametext}>Address:
+            <Text style={styles.subtext}> {guardianData.data[0].eaddress}</Text>
+          </Text>
+          <Text style={styles.Nametext}>Mobile:
+            <Text style={styles.subtext}> {guardianData.data[0].emobile}</Text>
+          </Text>
+          <Text style={styles.Nametext}>Date:
+            <Text style={styles.subtext}> {new Date().toLocaleDateString()}</Text>
+          </Text>
+        </>
+        ) : (
+        <Text>Loading guardian data...</Text>
+        )}
 
-
-      <Text style={styles.declare}>Attach Declaration :</Text>
-      <View style={styles.divider2} />
-      <Text style={styles.Nametext}>Note:
-        <Text style={styles.subtext}>Please take a snapshot of Declaration and it will be Attached here.</Text>
-      </Text>
-      <View style={styles.divider} />
-      {renderAttachment("Attach Declaration", "attachdeclaration")}
-      <Modal
-        visible={modalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setModalVisible(false)}>
-        <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
-          <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback>
-              <View style={styles.modalContent}>
-                <Text style={styles.modalTitle}>Choose an option</Text>
-                <View style={styles.modalOptionsRow}>
-                  <TouchableOpacity style={styles.modalButton} onPress={openGallery}>
-                    <Icon name="file" size={30} color="black" />
-                    <Text style={styles.modalButtonText}>Upload File</Text>
-                  </TouchableOpacity>
+        <Text style={styles.declare}>Attach Declaration :</Text>
+        <View style={styles.divider2} />
+        <Text style={styles.Nametext}>Note:
+          <Text style={styles.subtext}>Please take a snapshot of Declaration and it will be Attached here.</Text>
+        </Text>
+        </ViewShot>
+        <View style={styles.divider} />
+        {renderAttachment("Attach Declaration", "attachdeclaration")}
+        <Modal
+          visible={modalVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setModalVisible(false)}>
+          <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
+            <View style={styles.modalOverlay}>
+              <TouchableWithoutFeedback>
+                <View style={styles.modalContent}>
+                  <Text style={styles.modalTitle}>Choose an option</Text>
+                  <View style={styles.modalOptionsRow}>
+                    <TouchableOpacity style={styles.modalButton} onPress={openGallery}>
+                      <Icon name="file" size={30} color="black" />
+                      <Text style={styles.modalButtonText}>Upload File</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
-      <Loader loading={loading} />
-      <View style={styles.buttonContainer}>
-        {/* <TouchableOpacity style={styles.button} onPress={handlePrevPress}>
-          <Text style={styles.buttonText}>Back  </Text>
-        </TouchableOpacity> */}
-        <TouchableOpacity style={styles.button} onPress={handleNextPress}>
-          <Text style={styles.buttonText}>Submit</Text>
-        </TouchableOpacity>
-
-      </View>
-    
-    </ScrollView>
+              </TouchableWithoutFeedback>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
+        <Loader loading={loading} />
+        <View style={styles.buttonContainer}>
+        <TouchableOpacity style={styles.button} onPress={handlePrevPress}>
+            <Text style={styles.buttonText}>Back</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.button} onPress={handleNextPress}>
+            <Text style={styles.buttonText}>Submit</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+  
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {
@@ -415,7 +501,7 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     marginTop: 20,
     width: '100%', // Ensures the container takes full width

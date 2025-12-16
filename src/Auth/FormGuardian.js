@@ -3,6 +3,7 @@ import { View, Text, TextInput, Button, StyleSheet, ScrollView,ToastAndroid, Tou
 import ProgressBar from '../components/ProgressBar';
 import { useNavigation } from '@react-navigation/native';
 import syncStorage from 'react-native-sync-storage';
+import {Dropdown} from 'react-native-element-dropdown';
 import Loader from '../components/Loader'; // Import the custom Loader component
 const FormG = ({ route }) => {
   const [p_id, setP_id] = useState(null);
@@ -44,6 +45,7 @@ const FormG = ({ route }) => {
     email:'',
     occupation:'',
     gmobile: '',
+    glandline: '',
     relationship: '',
     ename:'',
     eaddress:'',
@@ -68,10 +70,6 @@ const FormG = ({ route }) => {
       ToastAndroid.show('Please enter your address.', ToastAndroid.LONG);
       return;
     }
-    if (!formData.email) {
-      ToastAndroid.show('Please enter email.', ToastAndroid.LONG);
-      return;
-    }
     if (!formData.occupation) {
       ToastAndroid.show('Please enter occupation.', ToastAndroid.LONG);
       return;
@@ -84,10 +82,7 @@ const FormG = ({ route }) => {
       ToastAndroid.show('Please enter a valid 11-digit mobile number.', ToastAndroid.LONG);
       return;
     }
-    if (!formData.relationship) {
-      ToastAndroid.show('Please enter relationship.', ToastAndroid.LONG);
-      return;
-    }
+ 
     if (!formData.ename) {
       ToastAndroid.show('Please enter your name.', ToastAndroid.LONG);
       return;
@@ -111,11 +106,12 @@ const FormG = ({ route }) => {
     formDataToSend.append('gmobile', formData.gmobile);
     formDataToSend.append('gemail', formData.email);
     formDataToSend.append('goccupation', formData.occupation);
-    formDataToSend.append('relationship', formData.relationship);
+    formDataToSend.append('relationship', options);
     formDataToSend.append('ename', formData.ename);
     formDataToSend.append('erelationship', formData.erelationship);
     formDataToSend.append('eaddress', formData.eaddress);
     formDataToSend.append('emobile', formData.emobile);
+    formDataToSend.append('glandline', formData.glandline);
     // Log the data being sent
     console.log('Data to be sent:', formDataToSend);
   
@@ -132,7 +128,7 @@ const FormG = ({ route }) => {
       console.log('Server response:', result);
   
       if (response.ok) {
-        ToastAndroid.show('Form submitted successfully!', ToastAndroid.LONG);
+        ToastAndroid.show('Guardian Details saved successfully!', ToastAndroid.LONG);
         navigation.navigate('FormA');
       } else {
         ToastAndroid.show('Failed to submit the form. Please try again.', ToastAndroid.LONG);
@@ -146,8 +142,18 @@ const FormG = ({ route }) => {
   };
 
   const handlePrevPress = () => {
-    navigation.navigate('FormP');
+    // Assuming `formGData` contains your FormG data
+    navigation.navigate('CompletedFormP', {
+      formG: 'FormG',
+    });
   };
+  const relationtype = [
+    {id: 1, name: 'Guardian'},
+    {id: 2, name: 'Father'},
+    {id: 3, name: 'Husband'},
+  ];
+  const [options, setOptions] = useState([]);
+  const [isFocus, setIsFocus] = useState(false);
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.header}>Application Form</Text>
@@ -166,6 +172,30 @@ const FormG = ({ route }) => {
           value={formData.name}
           onChangeText={(text) => handleInputChange('name', text)}
         />
+          <Text style={styles.text}>Relationship:</Text>
+        <View>
+        <Dropdown
+          style={[styles.input, isFocus && {borderColor: '#1E577C'}]}
+          placeholderStyle={styles.placeholderStyle}
+          selectedTextStyle={styles.selectedTextStyle}
+          inputSearchStyle={styles.inputSearchStyle}
+          itemTextStyle={styles.itemTextStyle}
+          search
+          searchPlaceholder="Search..."
+          data={relationtype}
+          labelField="name"
+          valueField="name"
+          placeholder="Select an option"
+          onFocus={() => setIsFocus(true)}
+          value={options}
+          onChange={(item) => {
+            setOptions(item.name);
+      
+          }}
+        />
+      </View>
+      
+         
         <Text style={styles.text}>Address:</Text>
         <TextInput
           style={styles.input}
@@ -174,23 +204,7 @@ const FormG = ({ route }) => {
           value={formData.address}
           onChangeText={(text) => handleInputChange('address', text)}
         />
-        <Text style={styles.text}>Email Address:</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter Email Address"
-          placeholderTextColor="grey"
-          value={formData.email}
-          onChangeText={(text) => handleInputChange('email', text)}
-        />
-            <Text style={styles.text}>Occupation:</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter Occupation"
-          placeholderTextColor="grey"
-          value={formData.occupation}
-          onChangeText={(text) => handleInputChange('occupation', text)}
-        />
-        <Text style={styles.text}>Mobile No:</Text>
+          <Text style={styles.text}>Mobile No:</Text>
         <TextInput
           style={styles.input}
           placeholder="Enter Mobile No"
@@ -200,27 +214,56 @@ const FormG = ({ route }) => {
           value={formData.gmobile}
           onChangeText={(text) => handleInputChange('gmobile', text)}
         />
-          <Text style={styles.text}>Relationship:</Text>
+          <Text style={styles.text}>Occupation:</Text>
         <TextInput
           style={styles.input}
-          placeholder="Select Relationship"
+          placeholder="Enter Occupation"
           placeholderTextColor="grey"
-          value={formData.relationship}
-          onChangeText={(text) => handleInputChange('relationship', text)}
+          value={formData.occupation}
+          onChangeText={(text) => handleInputChange('occupation', text)}
         />
+        <Text style={styles.text}>Email Address:</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter Email Address"
+          placeholderTextColor="grey"
+          value={formData.email}
+          onChangeText={(text) => handleInputChange('email', text)}
+        />
+              <Text style={styles.text}>Landline No:</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter second landline No"
+          keyboardType="numeric"
+          maxLength={11}
+          placeholderTextColor="grey"
+          value={formData.glandline}
+          onChangeText={(text) => handleInputChange('glandline', text)}
+        />
+      
+        
       </View>
 
       {/* CNIC Information */}
       <View style={styles.section}>
         <Text style={styles.sectionHeader}>Person to be informed in case of emergency</Text>
         <View style={styles.divider} />
-        <Text style={styles.text}>Father/Husband/Guardian Name:</Text>
+        <Text style={styles.text}>Name:</Text>
         <TextInput
           style={styles.input}
           placeholder="Enter Name"
           placeholderTextColor="grey"
           value={formData.ename}
           onChangeText={(text) => handleInputChange('ename', text)}
+        />
+      
+         <Text style={styles.text}>Relationship:</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Select Relationship"
+          placeholderTextColor="grey"
+          value={formData.erelationship}
+          onChangeText={(text) => handleInputChange('erelationship', text)}
         />
         <Text style={styles.text}>Address:</Text>
         <TextInput
@@ -248,21 +291,14 @@ const FormG = ({ route }) => {
           value={formData.emobile}
           onChangeText={(text) => handleInputChange('emobile', text)}
         />
-        <Text style={styles.text}>Relationship:</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Select Relationship"
-          placeholderTextColor="grey"
-          value={formData.erelationship}
-          onChangeText={(text) => handleInputChange('erelationship', text)}
-        />
+       
       </View>
     
 
       <View style={styles.buttonContainer}>
-      {/* <TouchableOpacity style={styles.button} onPress={handlePrevPress}>
+      <TouchableOpacity style={styles.button} onPress={handlePrevPress}>
           <Text style={styles.buttonText}>Back</Text>
-        </TouchableOpacity> */}
+        </TouchableOpacity>
         <TouchableOpacity style={styles.button} onPress={handleNextPress}>
           <Text style={styles.buttonText}>Next</Text>
         </TouchableOpacity>
@@ -345,7 +381,7 @@ const styles = StyleSheet.create({
  
   buttonContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     marginTop: 20,
     width: '100%', // Ensures the container takes full width
@@ -364,6 +400,45 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     textAlign: 'center',
+  },
+  input: {
+    flex: 1,
+    color: 'black',
+    backgroundColor: 'white',
+    borderRadius: 4,
+    height: 40,
+    borderWidth: 0.2,
+    borderColor: 'grey',
+    marginBottom: 8,
+    paddingLeft: 10,
+    fontSize: 12,
+  },
+  placeholderStyle: {
+    color: 'grey',
+    paddingHorizontal: 5,
+    fontSize: 12,
+  },
+  selectedTextStyle: {
+    color: 'black',
+    fontSize: 13,
+  },
+  inputSearchStyle: {
+    color: 'black',
+    backgroundColor: 'white',
+    borderRadius: 4,
+    height: 35,
+    borderWidth: 0.2,
+    marginBottom: 8,
+    marginTop: 8,
+    paddingLeft: 10,
+    fontSize: 12,
+  },
+  itemTextStyle: {
+    color: 'black',
+    borderColor: 'grey',
+    marginBottom: 2,
+    paddingLeft: 10,
+    fontSize: 12,
   },
 });
 

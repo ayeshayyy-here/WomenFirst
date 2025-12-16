@@ -10,61 +10,38 @@ import {
   Modal,
   TouchableWithoutFeedback,
   ToastAndroid,
+  ActivityIndicator,
+  ProgressBarAndroid,
 } from 'react-native';
-import Loader from '../components/Loader'; // Import the custom Loader component
-import ProgressBar from '../components/ProgressBar';
 import { useNavigation } from '@react-navigation/native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { faPlusCircle } from '@fortawesome/free-solid-svg-icons';
+import { faPlusCircle, faCheck } from '@fortawesome/free-solid-svg-icons';
 import DocumentPicker from 'react-native-document-picker';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { launchCamera } from 'react-native-image-picker';
 import syncStorage from 'react-native-sync-storage';
+import ProgressBar from '../components/ProgressBar';
+import Rendercomponent from '../components/Rendercomponet';
 const FormA = ({ route }) => {
-  const [p_id, setP_id] = useState(null);
+  const [p_id, setP_id] = useState(null);  // personal_id state
+  const [progress, setProgress] = useState({});  // Track progress for each attachment
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedAttachment, setSelectedAttachment] = useState('');
+  const navigation = useNavigation();
 
-
-  useEffect(() => {
-    const fetchPersonalId = async () => {
-      try {
-        let personalId = route.params?.p_id;
-
-        if (!personalId) {
-          const user = JSON.parse(syncStorage.get('user'));
-          const userId = user.id;
-          const response = await fetch(`https://wwh.punjab.gov.pk/api/get-personal-id/${userId}`);
-          const data = await response.json();
-
-          if (data.status === 'success') {
-            personalId = data.p_id;
-          } else {
-            console.error('Failed to fetch p_id:', data.message);
-          }
-        }
-
-        setP_id(personalId);
-      } catch (error) {
-        console.error('Error fetching p_id:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPersonalId();
-  }, [route.params]);
-
-  
+  // Initial state for each attachment
   const initialState = {
     URI: '',
     Type: '',
     Name: '',
+    isUploaded: false,  // Track if the file has been successfully uploaded
   };
 
+  // State to handle all file attachments
   const [stateFunctions, setStateFunctions] = useState({
     originalApplication: initialState,
     permission: initialState,
     idcard: initialState,
-    applicantPhotoAttested: initialState,
     app_letter: initialState,
     char_certificate: initialState,
     app_certificate: initialState,
@@ -78,166 +55,121 @@ const FormA = ({ route }) => {
     domicile: initialState,
   });
 
-  const [isFileSelected, setIsFileSelected] = useState(false);
-  const navigation = useNavigation();
-  const [modalVisible, setModalVisible] = useState(false);
-  const [capturedImage, setCapturedImage] = useState('');
-  const [selectedAttachment, setSelectedAttachment] = useState('');
-  const [loading, setLoading] = useState(false);
-  // const handleNextPress = () => {
-  //   // Define the required attachments
-  //   // const requiredAttachments = [
-  //   //   'originalApplication',
-  //   //   'permissionFromParents',
-  //   //   'idCardAttested',
-  //   //   'applicantPhotoAttested',
-  //   //   'appointmentLetterAttested',
-  //   //   'characterCertificate',
-  //   //   'certificateOfAppointment',
-  //   //   'affidavit',
-  //   //   'medicalCertificate',
-  //   //   'guardianIdCard',
-  //   //   'idCardPhoto1',
-  //   //   'idCardPhoto2',
-  //   //   'guaranteeLetter1',
-  //   //   'guaranteeLetter2',
-  //   //   'domicile',
-  //   // ];
+  // Fetch personal_id once the component is mounted
+  useEffect(() => {
+    const fetchPersonalId = async () => {
+      try {
+        let personalId = route.params?.p_id;
+        if (!personalId) {
+          const user = JSON.parse(syncStorage.get('user'));
+          const userId = user.id;
+          const response = await fetch(`https://cef0d8f99798.ngrok-free.app/api/get-personal-id/${userId}`);
+          const data = await response.json();
+          if (data.status === 'success') {
+            personalId = data.p_id;
+          } else {
+            console.error('Failed to fetch p_id:', data.message);
+          }
+        }
+        setP_id(personalId);
+      } catch (error) {
+        console.error('Error fetching p_id:', error);
+      }
+    };
+    fetchPersonalId();
+  }, [route.params]);
 
-  //   // // Check if all required attachments have been uploaded
-  //   // const missingAttachments = requiredAttachments.filter(
-  //   //   attachment => !stateFunctions[attachment].URI
-  //   // );
-
-  //   // if (missingAttachments.length > 0) {
-  //   //   // Show a toast with the name of the first missing attachment
-  //   //   ToastAndroid.show(
-  //   //     `Please upload the ${missingAttachments[0].replace(/([A-Z])/g, ' $1').trim()}`,
-  //   //     ToastAndroid.LONG
-  //   //   );
-  //   //   return;
-  //   // }
-
-  //   navigation.navigate('FormD');
-  // };
-
-
-  const handleNextPress = async () => {
+  // Function to handle file uploads
+  const uploadImage = async (attachmentName, fileData) => {
+    console.log(`Starting upload for ${attachmentName}`, fileData);  // Debugging log
 
     const formDataToSend = new FormData();
-    formDataToSend.append('personal_id', p_id);
-  
-    // Check if all required attachments are uploaded
-    const requiredAttachments = [
-      'originalApplication',
-      'permission',
-      'idcard',
-      'app_letter',
-      'char_certificate',
-      'app_certificate',
-      'affidavit',
-      'medical',
-      'guardian_id',
-      'first_id',
-      'second_id',
-      'first_guarantee',
-      'second_guarantee',
-      'domicile',
-    ];
-  
-    const missingAttachments = requiredAttachments.filter(
-      attachment => !stateFunctions[attachment]?.URI
-    );
-  
-    if (missingAttachments.length > 0) {
-      // Show a toast with the name of the first missing attachment
-      ToastAndroid.show(
-        `Please upload the ${missingAttachments[0].replace(/([A-Z])/g, ' $1').trim()}`,
-        ToastAndroid.LONG
-      );
-      return;
-    }
-  
-    // Append files to FormData
-    Object.keys(stateFunctions).forEach(attachment => {
-      const { URI, Name, Type } = stateFunctions[attachment];
-      
-      if (URI) {
-        formDataToSend.append(attachment, {
-          uri: URI,
-          type: Type,
-          name: Name,
-        });
-      }
+    formDataToSend.append('personal_id', p_id);  // Always send personal_id
+    formDataToSend.append(attachmentName, {
+      uri: fileData.URI,
+      type: fileData.Type,
+      name: fileData.Name,
     });
-  
-    // Log the data being sent
-    console.log('Data to be sent:', formDataToSend);
-  
-    try {
-      setLoading(true); 
-      const response = await fetch('https://wwh.punjab.gov.pk/api/attachemnet', {
-        method: 'POST',
-        body: formDataToSend,
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-  
-      const result = await response.json();
-      
-      // Log the server response
-      console.log('Server response:', result);
-  
-      if (response.ok) {
-        ToastAndroid.show('Form submitted successfully!', ToastAndroid.LONG);
-        navigation.navigate('FormD');
-      } else {
-        ToastAndroid.show('Failed to submit the form. Please try again.', ToastAndroid.LONG);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', 'https://cef0d8f99798.ngrok-free.app/api/attachemnettt', true);
+
+    // Handle progress of the upload
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const percentage = Math.round((event.loaded * 100) / event.total);
+        setProgress(prevProgress => ({
+          ...prevProgress,
+          [attachmentName]: percentage,
+        }));
+        console.log(`${attachmentName} is ${percentage}% uploaded`);  // Debugging log
       }
-    } catch (error) {
-      console.error('Error submitting form:', error);
+    };
+
+    // On upload complete
+    xhr.onload = () => {
+      if (xhr.status === 200) {
+        const response = JSON.parse(xhr.responseText);
+        if (response.success) {
+          console.log(`${attachmentName} upload successful:`, response);  // Debugging log
+          setStateFunctions(prev => ({
+            ...prev,
+            [attachmentName]: { 
+              ...prev[attachmentName], 
+              isUploaded: true,
+            }
+          }));
+          ToastAndroid.show(`${attachmentName} uploaded successfully!`, ToastAndroid.LONG);
+        } else {
+          console.log(`${attachmentName} upload failed:`, response);  // Debugging log
+          ToastAndroid.show(`Failed to upload ${attachmentName}. Please try again.`, ToastAndroid.LONG);
+        }
+      } else {
+        console.log(`${attachmentName} upload failed with status: ${xhr.status}`);  // Debugging log
+        ToastAndroid.show('An error occurred. Please try again.', ToastAndroid.LONG);
+      }
+    };
+
+    // On upload error
+    xhr.onerror = () => {
+      console.error(`Error uploading ${attachmentName}`);  // Debugging log
       ToastAndroid.show('An error occurred. Please try again.', ToastAndroid.LONG);
-    } finally {
-      setLoading(false); // Hide loader
-    }
-  };
-  
-  
-  const handlePrevPress = () => {
-    navigation.navigate('FormG');
+    };
+
+    xhr.setRequestHeader('Accept', 'application/json');
+    xhr.setRequestHeader('Content-Type', 'multipart/form-data');
+    xhr.send(formDataToSend);  // Send the FormData
   };
 
   const openCamera = async () => {
     setModalVisible(false);
-    const granted = await PermissionsAndroid.request(
-      PermissionsAndroid.PERMISSIONS.CAMERA,
-    );
+    const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.CAMERA);
     if (granted === PermissionsAndroid.RESULTS.GRANTED) {
       const options = {
         mediaType: 'photo',
-        includeBase64: true,
+        includeBase64: false,
         maxHeight: 2000,
         maxWidth: 2000,
       };
 
       launchCamera(options, response => {
-        if (response.didCancel) {
-          console.log('User cancelled camera');
-        } else if (response.error) {
-          console.log('Camera Error: ', response.error);
-        } else {
-          const fileName = response.assets[0].fileName;
-          const fileBase64 = response.assets[0].base64;
-          let imageUri = response.uri || response.assets?.[0]?.uri;
+        if (response.assets && response.assets.length > 0) {
+          const { uri, fileName, type } = response.assets[0];
+          const imageType = type || 'image/jpeg';
+          const imageName = fileName || uri.split('/').pop();
 
-          setCapturedImage(imageUri);
           setStateFunctions(prev => ({
             ...prev,
-            [selectedAttachment]: { ...prev[selectedAttachment], Name: fileName, URI: imageUri, Type: 'image' },
+            [selectedAttachment]: { 
+              ...prev[selectedAttachment], 
+              URI: uri, 
+              Name: imageName, 
+              Type: imageType,
+              isUploaded: false
+            },
           }));
-          setIsFileSelected(true);
+
+          uploadImage(selectedAttachment, { URI: uri, Name: imageName, Type: imageType });
         }
       });
     }
@@ -247,18 +179,25 @@ const FormA = ({ route }) => {
     try {
       const response = await DocumentPicker.pick({
         allowMultiSelection: false,
-        type: [DocumentPicker.types.allFiles],
+        type: [DocumentPicker.types.images],
       });
+
+      const fileData = {
+        URI: response[0].uri,
+        Name: response[0].name,
+        Type: response[0].type,
+        isUploaded: false
+      };
 
       setStateFunctions(prev => ({
         ...prev,
-        [selectedAttachment]: { ...prev[selectedAttachment], Name: response[0].name, URI: response[0].uri, Type: response[0].type },
+        [selectedAttachment]: fileData,
       }));
-      setIsFileSelected(true);
+
       setModalVisible(false);
+      uploadImage(selectedAttachment, fileData);
     } catch (error) {
       console.error('Document picking error:', error);
-      setIsFileSelected(false);
     }
   };
 
@@ -266,7 +205,16 @@ const FormA = ({ route }) => {
     setSelectedAttachment(attachmentName);
     setModalVisible(true);
   };
+  const handleNextPress = async () => {
+    navigation.navigate('FormD');
+  };
 
+  const handlePrevPress = () => {
+    // Assuming `formGData` contains your FormG data
+    navigation.navigate('CompletedFormG', {
+      formA: 'FormA',
+    });
+  };
   const renderAttachment = (label, attachmentName) => (
     <View style={styles.attachmentWrapper}>
       <Text style={styles.text}>{label}</Text>
@@ -275,89 +223,114 @@ const FormA = ({ route }) => {
           <FontAwesomeIcon
             icon={faPlusCircle}
             size={30}
-            color={stateFunctions[attachmentName].Name ? 'green' : 'black'}
+            color={stateFunctions[attachmentName]?.isUploaded ? 'green' : 'black'}
           />
         </TouchableOpacity>
-        {stateFunctions[attachmentName].Name ? (
+        {stateFunctions[attachmentName]?.URI ? (
           <View style={styles.fileNameWrapper}>
-            {stateFunctions[attachmentName].Type === 'image' ? (
+            {stateFunctions[attachmentName]?.Type.includes('image') ? (
               <Image
-                source={{ uri: stateFunctions[attachmentName].URI }}
+                source={{ uri: stateFunctions[attachmentName]?.URI }}
                 style={styles.previewImage}
               />
             ) : (
-              <Text style={styles.fileNameText}>{stateFunctions[attachmentName].Name}</Text>
+              <Text style={styles.fileNameText}>{stateFunctions[attachmentName]?.Name}</Text>
             )}
           </View>
         ) : null}
       </View>
+  
+      {/* Cute progress bar or tick icons */}
+      <View style={styles.progressWrapper}>
+        {stateFunctions[attachmentName]?.isUploaded ? (
+          <View style={styles.tickContainer}>
+            <FontAwesomeIcon icon={faCheck} size={14} color="#4CAF50" style={styles.firstTick} />
+            <FontAwesomeIcon icon={faCheck} size={14} color="#4CAF50" style={styles.secondTick} />
+          </View>
+        ) : (
+          progress[attachmentName] ? (
+            <ProgressBarAndroid
+              styleAttr="Horizontal"
+              progress={progress[attachmentName] / 100}
+              color="#4CAF50"
+              style={styles.progressBar}
+            />
+          ) : null
+        )}
+      </View>
+  
       <View style={styles.divider} />
     </View>
   );
-
+  
+  
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.header}>Attachments</Text>
-      <ProgressBar step={3} />
+    <View>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.header}>Attachments</Text>
+        <ProgressBar step={4} />
+        <View style={styles.section}>
+          <Text style={styles.sectionHeader}>Upload Attachments</Text>
+          <View style={styles.divider} />
+          {renderAttachment("Permission From Parents", "permission")}
+          {renderAttachment("ID Card (attested)", "idcard")}
+          {renderAttachment("Appointment Letter (attested)", "app_letter")}
+          {renderAttachment("Character Certificate From Employers", "char_certificate")}
+          {renderAttachment("Police Character Certificate", "app_certificate")}
+          {renderAttachment("Affidavit (attested 1st class gazette Officer)", "affidavit")}
+          {renderAttachment("Medical Certificate Counter Signed by M.S (Government Hospital)", "medical")}
+          {renderAttachment("Attested Copy of ID card of Guardian/Father/Husband", "guardian_id")}
+          {renderAttachment("Id Card photo (1st person)", "first_id")}
+          {renderAttachment("Id Card photo (2nd person)", "second_id")}
+          {renderAttachment("Guarantee Letter (1st person)", "first_guarantee")}
+          {renderAttachment("Guarantee Letter (2nd person)", "second_guarantee")}
+          {renderAttachment("Domicile", "domicile")}
+        
 
-      <View style={styles.section}>
-        <Text style={styles.sectionHeader}>Upload Attachments</Text>
-        <View style={styles.divider} />
-        {renderAttachment("Original Application on Stamp Paper", "originalApplication")}
-        {renderAttachment("Permission From Parents", "permission")}
-        {renderAttachment("ID Card (attested)", "idcard")}
-        {renderAttachment("Appointment Letter (attested)", "app_letter")}
-        {renderAttachment("Character Certificate From Employers", "char_certificate")}
-        {renderAttachment("Certificate of Appointment", "app_certificate")}
-        {renderAttachment("Affidavit (attested 1st class gazette Officer)", "affidavit")}
-        {renderAttachment("Medical Certificate Counter Signed by M.S (Government Hospital)", "medical")}
-        {renderAttachment("Attested Copy of ID card of Guardian/Father/Husband", "guardian_id")}
-        {renderAttachment("Id Card photo (1st person)", "first_id")}
-        {renderAttachment("Id Card photo (2nd person)", "second_id")}
-        {renderAttachment("Guarantee Letter (1st person)", "first_guarantee")}
-        {renderAttachment("Guarantee Letter (2nd person)", "second_guarantee")}
-        {renderAttachment("Domicile", "domicile")}
-      </View>
+          {renderAttachment("Marital Certificate", "marital")}
+        </View>
 
-      <Modal
-        visible={modalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
-          <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback>
-              <View style={styles.modalContent}>
-                <Text style={styles.modalTitle}>Choose an option</Text>
-                <View style={styles.modalOptionsRow}>
-                  <TouchableOpacity style={styles.modalButton} onPress={openCamera}>
-                    <Icon name="camera" size={30} color="black" />
-                    <Text style={styles.modalButtonText}>Capture Image</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.modalButton} onPress={openGallery}>
-                    <Icon name="file" size={30} color="black" />
-                    <Text style={styles.modalButtonText}>Upload File</Text>
-                  </TouchableOpacity>
+        <Modal
+          visible={modalVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
+            <View style={styles.modalOverlay}>
+              <TouchableWithoutFeedback>
+                <View style={styles.modalContent}>
+                  <Text style={styles.modalTitle}>Choose an option</Text>
+                  <View style={styles.modalOptionsRow}>
+                    <TouchableOpacity style={styles.modalButton} onPress={openCamera}>
+                      <Icon name="camera" size={30} color="black" />
+                      <Text style={styles.modalButtonText}>Capture Image</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.modalButton} onPress={openGallery}>
+                      <Icon name="file" size={30} color="black" />
+                      <Text style={styles.modalButtonText}>Upload File</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
+              </TouchableWithoutFeedback>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
 
-      <View style={styles.buttonContainer}>
-        {/* <TouchableOpacity style={styles.button} onPress={handlePrevPress}>
-          <Text style={styles.buttonText}>Back</Text>
-        </TouchableOpacity> */}
-        <TouchableOpacity style={styles.button} onPress={handleNextPress}>
-          <Text style={styles.buttonText}>Next</Text>
-        </TouchableOpacity>
-      </View>
-      <Loader loading={loading} />
-    </ScrollView>
+        <View style={styles.buttonContainer}>
+        <TouchableOpacity style={styles.button} onPress={handlePrevPress}>
+            <Text style={styles.buttonText}>Back</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.button} onPress={handleNextPress}>
+            <Text style={styles.buttonText}>Next</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </View>
   );
 };
+
+
 
 const styles = StyleSheet.create({
   container: {
@@ -423,7 +396,7 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     marginTop: 20,
     width: '100%', // Ensures the container takes full width
@@ -478,6 +451,68 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     marginTop:10
   },
+
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent black overlay
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000, // Ensures it is above other components
+},
+centeredContainer: {
+    height: 120, // Increased height for better visibility
+    width: 250, // Increased width for a more balanced appearance
+    borderRadius: 15, // Slightly more rounded corners
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)', // Lighter background for better contrast
+    shadowColor: '#000', // Adding shadow for depth
+    shadowOffset: {
+        width: 0,
+        height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5, // Elevation for Android
+    padding: 20, // Added padding for inner spacing
+},
+loader: {
+    marginBottom: 10,
+},
+progressWrapper: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center', // Center the progress bar
+  marginVertical: 8,
+},
+progressBar: {
+  width: '70%',          // Width set for centered display
+  height: 8,
+  borderRadius: 10,      // Rounded corners for a cute effect
+  backgroundColor: '#d3d3d3', // Light background color for unfilled section
+  overflow: 'hidden',
+  shadowColor: '#000',   // Soft shadow for depth
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.2,
+  shadowRadius: 4,
+  elevation: 3,
+},
+tickContainer: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  marginTop: 5,
+},
+firstTick: {
+  marginRight: -9, // Slight overlap for a cute double-tick effect
+},
+secondTick: {
+  zIndex: 1, // Ensures second tick is above the first
+},
 });
 
 export default FormA;

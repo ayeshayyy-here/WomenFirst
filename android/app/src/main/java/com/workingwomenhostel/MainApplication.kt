@@ -1,4 +1,4 @@
-package com.workingwomenhostel
+package com.womenfirst
 
 import android.app.Application
 import com.facebook.react.PackageList

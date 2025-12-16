@@ -23,6 +23,7 @@ import DocumentPicker from 'react-native-document-picker';
 import {launchCamera} from 'react-native-image-picker';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 const FormP = ({route, navigation}) => {
+  const [showBPSDropdown, setShowBPSDropdown] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -37,6 +38,7 @@ const FormP = ({route, navigation}) => {
     address: '',
     mobile: '',
     disability: '',
+    disabilityDetails: '',
     applieddate: '',
     placeofissue: '',
     starttimes: '',
@@ -50,7 +52,7 @@ const FormP = ({route, navigation}) => {
   const [stateFunctions, setStateFunctions] = useState({});
   const [isFocus, setIsFocus] = useState(false);
   const [districts, setDistricts] = useState([]);
-  const [selectedOption, setSelectedOption] = useState(null);
+  const [selectedOption, setSelectedOption] = useState(0); // Default to 0
   const [districtOption, setDistrictOption] = useState(null); // For District dropdown
   const [institutes, setInstitutes] = useState([]); // Holds the list of institutes
   const [selectedInstitute, setSelectedInstitute] = useState(null); // Holds the selected institute
@@ -60,34 +62,40 @@ const FormP = ({route, navigation}) => {
   const [isTimePickerVisible, setTimePickerVisible] = useState(false);
   const [selectedTimeField, setSelectedTimeField] = useState(null);
   const [loading, setLoading] = useState(false);
-  
+  const [placesOfIssue, setPlacesOfIssue] = useState([]); // Updated state name
+  const [selectedplaceoi, setselectedplaceoi] = useState([]);
+    // Fetch places of issue when the component mounts
+    useEffect(() => {
+      fetch('https://wwh.punjab.gov.pk/api/districts')
+        .then(response => response.json())
+        .then(data => {
+          setPlacesOfIssue(data.districts); // Assuming 'districts' is the correct key in the response
+        })
+        .catch(error => {
+          console.error('Error fetching places of issue:', error);
+        });
+    }, []);
+
+
   useEffect(() => {
-    const fetchInstitutes = async () => {
-      try {
-        const response = await fetch(
-          'https://wwh.punjab.gov.pk/api/get-institutes',
-        );
-        const data = await response.json();
+    // Fetch user data from syncStorage
+    const user = JSON.parse(syncStorage.get('user'));
+    console.log('User from syncStorage:', user);
 
-        if (data && Array.isArray(data.institutes)) {
-          console.log('Institutes Array:', data.institutes); // Log the array to the console
-          setInstitutes(data.institutes);
-        } else {
-          console.error('Expected an array but got:', data);
-        }
-      } catch (error) {
-        console.error('Error fetching institutes:', error);
-      }
-    };
-
-    fetchInstitutes();
+    // Set the form data using the user data from syncStorage
+    setFormData({
+      name: user.name || '',
+      cnic: user.cnic || '',
+      email: user.email || '',
+      phone: user.phone_no || '',
+    });
   }, []);
 
   // useEffect(() => {
-  //   fetch('https://wwh.punjab.gov.pk/api/districts')
+  //   fetch('https://5ea8-202-142-167-226.ngrok-free.app/api/districts')
   //     .then(response => response.json())
   //     .then(data => {
-  //       setDistricts(data.districts); // Assuming the data structure
+  //       setPlaceoi(data.placeoi); // Assuming 'placeoi' is the correct key in the response
   //     })
   //     .catch(error => {
   //       console.error('Error fetching districts:', error);
@@ -95,28 +103,58 @@ const FormP = ({route, navigation}) => {
   // }, []);
 
   useEffect(() => {
-    // Retrieve the user data from sync storage and parse it back to an object
-    const user = JSON.parse(syncStorage.get('user'));
-    const userDistrictId = user?.district;
+    const fetchDistricts = async () => {
+      try {
+        // Retrieve user's district ID from syncStorage
+        const user = JSON.parse(syncStorage.get('user'));
+        const userDistrictId = user?.district; // User's home district ID
   
-    console.log('User District ID:', userDistrictId); // Check the retrieved district ID
+        // Fetch all districts to map the user's district ID to its name
+        const allDistrictsResponse = await fetch('https://wwh.punjab.gov.pk/api/districts');
+        const allDistrictsData = await allDistrictsResponse.json();
   
-    fetch('https://wwh.punjab.gov.pk/api/districts')
-      .then(response => response.json())
-      .then(data => {
-        // Filter out the district that matches the user's district ID
-        const filteredDistricts = data.districts.filter(
-          district => district.id !== userDistrictId
+        // Find the user's home district name
+        const userDistrict = allDistrictsData.districts.find(
+          district => district.id === userDistrictId
+        )?.name;
+  
+        if (!userDistrict) {
+          console.error('User district not found in all districts.');
+          return;
+        }
+  
+        // Fetch application districts
+        const applicationDistrictsResponse = await fetch('https://wwh.punjab.gov.pk/api/hdistricts');
+        const applicationDistrictsData = await applicationDistrictsResponse.json();
+  
+        // Filter out the user's home district from application districts
+        const filteredDistricts = applicationDistrictsData.districts.filter(
+          district => district.name !== userDistrict
         );
   
-        console.log('Filtered Districts:', filteredDistricts); // Check the filtered districts
-  
+        // Set the filtered districts for the dropdown
         setDistricts(filteredDistricts);
+      } catch (error) {
+        console.error('Error fetching or filtering districts:', error);
+      }
+    };
+  
+    fetchDistricts();
+  }, []);
+  
+// Fetch institutes whenever a district is selected
+useEffect(() => {
+  if (districtOption) {
+    fetch(`https://wwh.punjab.gov.pk/api/institutes/by-district/${districtOption}`)
+      .then(response => response.json())
+      .then(data => {
+        setInstitutes(data.districts); // Adjust according to your API response structure
       })
       .catch(error => {
-        console.error('Error fetching districts:', error);
+        console.error('Error fetching institutes:', error);
       });
-  }, []);
+  }
+}, [districtOption]);
   
 
 
@@ -270,10 +308,6 @@ const FormP = ({route, navigation}) => {
       ToastAndroid.show('Please select the date of issue.', ToastAndroid.LONG);
       return;
     }
-    if (!formData.placeofissue) {
-      ToastAndroid.show('Please enter the CNIC issue place.', ToastAndroid.LONG);
-      return;
-    }
     if (!formData.disability) {
       ToastAndroid.show('Please enter any disability (if you have).', ToastAndroid.LONG);
       return;
@@ -286,12 +320,13 @@ const FormP = ({route, navigation}) => {
       ToastAndroid.show('Please enter the duration you have been serving in your current job.', ToastAndroid.LONG);
       return;
     }
-    if (!formData.jobStartDate) {
-      ToastAndroid.show('Please select the job start date.', ToastAndroid.LONG);
-      return;
-    }
+
     if (!formData.salary || isNaN(formData.salary)) {
       ToastAndroid.show('Please enter a valid salary.', ToastAndroid.LONG);
+      return;
+    }
+    if (!selectedplaceoi) {
+      ToastAndroid.show('Please select the CNIC issue place..', ToastAndroid.LONG);
       return;
     }
     if (!jobTypeOption) {
@@ -345,9 +380,11 @@ const FormP = ({route, navigation}) => {
     formDataToSend.append('cnic', formData.cnic);
     formDataToSend.append('expiry_date', formattedDatee);
     formDataToSend.append('issue_date', formattedDatei);
-    formDataToSend.append('Place_issue', formData.placeofissue);
+  
     formDataToSend.append('dob', formattedDateb);
     formDataToSend.append('disability', formData.disability);
+    formDataToSend.append('disability_details', formData.disabilityDetails);
+    formDataToSend.append('addjob_details', otherDetails); // Use otherDetails directly
     formDataToSend.append('post_held', formData.jobheld);
     formDataToSend.append('job_joining', formattedserving);
     formDataToSend.append('sallary', formData.salary);
@@ -359,8 +396,11 @@ const FormP = ({route, navigation}) => {
     formDataToSend.append('institute', selectedInstitute);
     formDataToSend.append('applied_district', districtOption);
     formDataToSend.append('job_type', jobTypeOption);
+    formDataToSend.append('job_details', privateJobTypeOption); 
     formDataToSend.append('bps', selectedOption);
-  
+    formDataToSend.append('Place_issue', selectedplaceoi);
+    formDataToSend.append('job_routine', jobRoutine);
+    formDataToSend.append('chk', 1);
     // Append profile image if exists
     if (stateFunctions[selectedAttachment]?.URI) {
       formDataToSend.append('profile', {
@@ -386,7 +426,7 @@ const FormP = ({route, navigation}) => {
       console.log('Server response:', result);
 
       if (response.ok) {
-        ToastAndroid.show('Form submitted successfully!', ToastAndroid.LONG);
+        ToastAndroid.show('Personal Details saved successfully!', ToastAndroid.LONG);
         navigation.navigate('FormG');
       } else {
         ToastAndroid.show('Failed to submit the form. Please try again.', ToastAndroid.LONG);
@@ -401,11 +441,9 @@ const FormP = ({route, navigation}) => {
 
 
   const jobtype = [
-    {id: 1, name: 'Punjab Government Employee'},
-    {id: 2, name: 'Federal Government Employee'},
+    {id: 1, name: 'Punjab Government'},
+    {id: 2, name: 'Federal Government'},
     {id: 3, name: 'Private Employee'},
-    {id: 4, name: 'Adhoc'},
-    {id: 5, name: 'Government Contract'},
   ];
   const [options, setOptions] = useState([]);
 
@@ -449,9 +487,40 @@ const FormP = ({route, navigation}) => {
     });
   };
 
+  const [showDisabilityDetailsInput, setShowDisabilityDetailsInput] = useState(false);
 
+  const yesNoOptions = [
+    { label: 'Yes', value: 'Yes' },
+    { label: 'No', value: 'No' },
+  ];
+
+  const handledisabilityInputChange = (field, value) => {
+    setFormData({ ...formData, [field]: value });
+    if (field === 'disability' && value === 'Yes') {
+      setShowDisabilityDetailsInput(true); // Show text input for "Yes"
+    } else if (field === 'disability' && value === 'No') {
+      setShowDisabilityDetailsInput(false); // Hide text input for "No"
+      setFormData((prevData) => ({ ...prevData, disabilityDetails: '' })); // Clear the details field
+    }
+  };
    
+  const privateJobTypeOptions = [
+    { label: 'Adhoc', value: 'Adhoc' },
+    { label: 'Government Contract', value: 'Government Contract' },
+    { label: 'Private Contract', value: 'Private Contract' },
+    { label: 'Daily Wages', value: 'Daily Wages' },
+    { label: 'Other', value: 'Other' },
+  ];
 
+  const [showPrivateJobTypeDropdown, setShowPrivateJobTypeDropdown] = useState(false);
+  const [privateJobTypeOption, setPrivateJobTypeOption] = useState(null);
+  const [showOtherTextInput, setShowOtherTextInput] = useState(false);
+  const [otherDetails, setOtherDetails] = useState('');
+  const [jobRoutine, setJobRoutine] = useState('normal'); // Default value
+
+  const handleJobRoutineChange = (value) => {
+    setJobRoutine(value);
+  };
   return (
     <ScrollView contentContainerStyle={styles.screenContainer}>
       <Text style={styles.header}>Application Form</Text>
@@ -520,45 +589,49 @@ const FormP = ({route, navigation}) => {
           value={formData.mobile}
           onChangeText={text => handleInputChange('mobile', text)}
         />
-        <Text style={styles.text}>Choose District to Apply </Text>
-        <View>
-   <Dropdown
-        style={[styles.input, isFocus && { borderColor: '#1E577C' }]}
-        placeholderStyle={styles.placeholderStyle}
-        selectedTextStyle={styles.selectedTextStyle}
-        inputSearchStyle={styles.inputSearchStyle}
-        itemTextStyle={styles.itemTextStyle}
-        search
-        searchPlaceholder="Search..."
-        data={districts}
-        labelField="name"
-        valueField="id"
-        placeholder="Select an option"
-        onFocus={() => setIsFocus(true)}
-        onBlur={() => setIsFocus(false)}
-        value={districtOption} // State for selected option
-        onChange={item => setDistrictOption(item.id)} // Update selected state
-      />
-    </View>
-        <Text style={styles.text}>Choose Institute </Text>
-        <View>
-          <Dropdown
-            style={[styles.input, isFocus && {borderColor: '#1E577C'}]}
-            placeholderStyle={styles.placeholderStyle}
-            selectedTextStyle={styles.selectedTextStyle}
-            inputSearchStyle={styles.inputSearchStyle}
-            itemTextStyle={styles.itemTextStyle}
-            search
-            searchPlaceholder="Search..."
-            data={institutes} // Updated state
-            labelField="iname" // Change according to your API response
-            valueField="id"
-            placeholder="Select an option"
-            onFocus={() => setIsFocus(true)}
-            value={selectedInstitute} 
-            onChange={item => setSelectedInstitute(item.id)} 
-          />
-        </View>
+<Text style={styles.text}>Choose District to Apply</Text>
+<View>
+  <Dropdown
+    style={[styles.input, isFocus && { borderColor: '#1E577C' }]}
+    placeholderStyle={styles.placeholderStyle}
+    selectedTextStyle={styles.selectedTextStyle}
+    inputSearchStyle={styles.inputSearchStyle}
+    itemTextStyle={styles.itemTextStyle}
+    search
+    searchPlaceholder="Search..."
+    data={districts} // Filtered districts
+    labelField="name"
+    valueField="id"
+    placeholder="Select an option"
+    onFocus={() => setIsFocus(true)}
+    onBlur={() => setIsFocus(false)}
+    value={districtOption}
+    onChange={item => setDistrictOption(item.id)} // Update selected district
+  />
+</View>
+
+
+
+      <Text style={styles.text}>Choose Hostel</Text>
+      <View>
+        <Dropdown
+          style={[styles.input, isFocus && { borderColor: '#1E577C' }]}
+          placeholderStyle={styles.placeholderStyle}
+          selectedTextStyle={styles.selectedTextStyle}
+          inputSearchStyle={styles.inputSearchStyle}
+          itemTextStyle={styles.itemTextStyle}
+          search
+          searchPlaceholder="Search..."
+          data={institutes} // Fetched institutes
+          labelField="iname" // Adjust according to your API response
+          valueField="id"
+          placeholder="Select an option"
+          onFocus={() => setIsFocus(true)}
+          onBlur={() => setIsFocus(false)}
+          value={selectedInstitute}
+          onChange={item => setSelectedInstitute(item.id)} // Update selected institute
+        />
+      </View>
         <Text style={[styles.text, {marginTop: '5%'}]}>Applied Date:</Text>
         <TouchableOpacity style={styles.datePickerWrapper}>
           <DatePickerInput
@@ -588,6 +661,21 @@ const FormP = ({route, navigation}) => {
           value={formData.cnic}
           onChangeText={text => handleInputChange('cnic', text)}
         />
+     
+     
+        <Text style={[styles.text, {marginTop: '5%'}]}>Date of Issue:</Text>
+        <TouchableOpacity style={styles.datePickerWrapper}>
+          <DatePickerInput
+            locale="en"
+            label="" // No value provided for label
+            value={formData.datei}
+            onChange={datei => {
+              setFormData(prev => ({...prev, datei}));
+            }}
+            mode={'flat'}
+            style={styles.calenderstyle}
+          />
+        </TouchableOpacity>   
         <Text style={[styles.text, {marginTop: '5%'}]}>Date of Expiry:</Text>
         <TouchableOpacity style={styles.datePickerWrapper}>
           <DatePickerInput
@@ -601,7 +689,7 @@ const FormP = ({route, navigation}) => {
             style={styles.calenderstyle}
           />
         </TouchableOpacity>
-        <Text style={[styles.text, {marginTop: '5%'}]}>Date of Birth:</Text>
+        <Text style={[styles.text, {marginTop: '5%'}]}>Date of Birth (As per CNIC):</Text>
         <TouchableOpacity style={styles.datePickerWrapper}>
           <DatePickerInput
             locale="en"
@@ -614,39 +702,63 @@ const FormP = ({route, navigation}) => {
             style={styles.calenderstyle}
           />
         </TouchableOpacity>
-        <Text style={[styles.text, {marginTop: '5%'}]}>Date of Issue:</Text>
-        <TouchableOpacity style={styles.datePickerWrapper}>
-          <DatePickerInput
-            locale="en"
-            label="" // No value provided for label
-            value={formData.datei}
-            onChange={datei => {
-              setFormData(prev => ({...prev, datei}));
-            }}
-            mode={'flat'}
-            style={styles.calenderstyle}
-          />
-        </TouchableOpacity>
-
         <Text style={[styles.text, {marginTop: '10%'}]}>Place of Issue:</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter place where CNIC issue"
-          placeholderTextColor="grey"
-          value={formData.placeofissue}
-          onChangeText={text => handleInputChange('placeofissue', text)}
+        <View>
+        <Dropdown
+          style={[styles.input, isFocus && { borderColor: '#1E577C' }]}
+          placeholderStyle={styles.placeholderStyle}
+          selectedTextStyle={styles.selectedTextStyle}
+          inputSearchStyle={styles.inputSearchStyle}
+          itemTextStyle={styles.itemTextStyle}
+          search
+          searchPlaceholder="Search..."
+          data={placesOfIssue}
+          labelField="name"
+          valueField="name"
+          placeholder="Select an option"
+          onFocus={() => setIsFocus(true)}
+          onBlur={() => setIsFocus(false)}
+          value={selectedplaceoi}
+          onChange={item => setselectedplaceoi(item.name)} // Update selected district
         />
+      </View> 
 
         <Text style={[styles.text, {marginTop: 20}]}>
           Any Physical Disability:
         </Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Specify disability (if any)"
-          placeholderTextColor="grey"
-          value={formData.disability}
-          onChangeText={text => handleInputChange('disability', text)}
-        />
+        <Dropdown
+        style={[styles.input, isFocus && { borderColor: '#1E577C' }]}
+        placeholderStyle={styles.placeholderStyle}
+        selectedTextStyle={styles.selectedTextStyle}
+        inputSearchStyle={styles.inputSearchStyle}
+        itemTextStyle={styles.itemTextStyle}
+        data={yesNoOptions}
+        labelField="label"
+        valueField="value"
+        placeholder="Select Yes or No"
+        onFocus={() => setIsFocus(true)}
+        onBlur={() => setIsFocus(false)}
+        value={formData.disability}
+        onChange={(item) => handledisabilityInputChange('disability', item.value)}
+      />
+
+      {/* Conditional text input for details */}
+      {showDisabilityDetailsInput && (
+        <>
+          <Text style={[styles.text, { marginTop: 20 }]}>
+            Please provide details:
+          </Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter details about the disability"
+            value={formData.disabilityDetails}
+            onChangeText={(text) => handleInputChange('disabilityDetails', text)}
+          />
+        </>
+      )}
+
+
+
       </View>
 
       {/* Job Information */}
@@ -674,19 +786,7 @@ const FormP = ({route, navigation}) => {
             style={styles.calenderstyle}
           />
         </TouchableOpacity>
-        <Text style={[styles.text, {marginTop: 20}]}>Job Start Date:</Text>
-        <TouchableOpacity style={styles.datePickerWrapper}>
-          <DatePickerInput
-            locale="en"
-            label="" // No value provided for label
-            value={formData.jobStartDate}
-            onChange={jobStartDate => {
-              setFormData(prev => ({...prev, jobStartDate}));
-            }}
-            mode={'flat'}
-            style={styles.calenderstyle}
-          />
-        </TouchableOpacity>
+        
         <Text style={[styles.text, {marginTop: 20}]}>Salary:</Text>
         <TextInput
           style={styles.input}
@@ -696,49 +796,143 @@ const FormP = ({route, navigation}) => {
           value={formData.salary}
           onChangeText={text => handleInputChange('salary', text)}
         />
-        <Text style={styles.text}>Job Type</Text>
-        <View>
-          <Dropdown
-            style={[styles.input, isFocus && {borderColor: '#1E577C'}]}
-
-
-            placeholderStyle={styles.placeholderStyle}
-            selectedTextStyle={styles.selectedTextStyle}
-            inputSearchStyle={styles.inputSearchStyle}
-            itemTextStyle={styles.itemTextStyle}
-            search
-            searchPlaceholder="Search..."
-            data={jobtype}
-            labelField="name"
-            valueField="id"
-            placeholder="Select an option"
-            onFocus={() => setIsFocus(true)}
-            value={jobTypeOption}
-            onChange={item => setJobTypeOption(item.id)}
-          />
-        </View>
-        <Text style={styles.text}>BPS</Text>
-        <View>
-          <Dropdown
-            style={[styles.input, isFocus && {borderColor: '#1E577C'}]}
-            placeholderStyle={styles.placeholderStyle}
-            selectedTextStyle={styles.selectedTextStyle}
-            inputSearchStyle={styles.inputSearchStyle}
-            itemTextStyle={styles.itemTextStyle}
-            search
-            searchPlaceholder="Search..."
-            data={options} // Use the generated options
-            labelField="name"
-            valueField="id"
-            placeholder="Select an option"
-            onFocus={() => setIsFocus(true)}
-            value={selectedOption} // Updated state
-            onChange={item => setSelectedOption(item.id)} 
-          />
-        </View>
+       
     
+
+<Text style={styles.text}>Job Type</Text>
+<View>
+<Dropdown
+        style={[styles.input, isFocus && { borderColor: '#1E577C' }]}
+        placeholderStyle={styles.placeholderStyle}
+        selectedTextStyle={styles.selectedTextStyle}
+        inputSearchStyle={styles.inputSearchStyle}
+        itemTextStyle={styles.itemTextStyle}
+        search
+        searchPlaceholder="Search..."
+        data={jobtype}
+        labelField="name"
+        valueField="name"
+        placeholder="Select an option"
+        onFocus={() => setIsFocus(true)}
+        value={jobTypeOption}
+        onChange={(item) => {
+          setJobTypeOption(item.name);
+
+          if (item.name === 'Punjab Government' || item.name === 'Federal Government') {
+            setShowBPSDropdown(true);
+            setShowPrivateJobTypeDropdown(false);
+          } else if (item.name === 'Private Employee') {
+            setShowPrivateJobTypeDropdown(true);
+            setShowBPSDropdown(false);
+          } else {
+            setShowBPSDropdown(false);
+            setShowPrivateJobTypeDropdown(false);
+            setSelectedOption(0);
+          }
+        }}
+      />
+
+      {/* BPS Dropdown */}
+      {showBPSDropdown && (
+        <>
+          <Text style={styles.text}>BPS</Text>
+          <Dropdown
+            style={[styles.input, isFocus && { borderColor: '#1E577C' }]}
+            placeholderStyle={styles.placeholderStyle}
+            selectedTextStyle={styles.selectedTextStyle}
+            inputSearchStyle={styles.inputSearchStyle}
+            itemTextStyle={styles.itemTextStyle}
+            search
+            searchPlaceholder="Search..."
+            data={options}
+            labelField="name"
+            valueField="id"
+            placeholder="Select an option"
+            onFocus={() => setIsFocus(true)}
+            value={selectedOption}
+            onChange={(item) => setSelectedOption(item.id)}
+          />
+        </>
+      )}
+
+      {/* Private Job Type Dropdown */}
+      {showPrivateJobTypeDropdown && (
+        <>
+          <Text style={styles.text}>Select additional Private options</Text>
+          <Dropdown
+            style={[styles.input, isFocus && { borderColor: '#1E577C' }]}
+            placeholderStyle={styles.placeholderStyle}
+            selectedTextStyle={styles.selectedTextStyle}
+            inputSearchStyle={styles.inputSearchStyle}
+            itemTextStyle={styles.itemTextStyle}
+            search
+            searchPlaceholder="Search..."
+            data={privateJobTypeOptions}
+            labelField="label"
+            valueField="value"
+            placeholder="Select an option"
+            onFocus={() => setIsFocus(true)}
+            value={privateJobTypeOption}
+            onChange={(item) => {
+              setPrivateJobTypeOption(item.value);
+              setShowOtherTextInput(item.value === 'Other');
+            }}
+          />
+        </>
+      )}
+
+      {/* Text Input for "Other" */}
+      {showOtherTextInput && (
+        <>
+          <Text style={styles.text}>Please provide details:</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Please provide details"
+            value={otherDetails}
+            onChangeText={(text) => setOtherDetails(text)}
+         
+          />
+        </>
+      )}
+    </View>
+    
+<Text style={[styles.text, { marginBottom: 10 }]}>Job Routine:</Text>
+
+{/* Normal Option */}
+<TouchableOpacity
+  style={[
+    styles.radioContainer,
+    jobRoutine === 'normal' && styles.radioContainerSelected,
+  ]}
+  onPress={() => handleJobRoutineChange('normal')}
+>
+  <View
+    style={[
+      styles.radioCircle,
+      jobRoutine === 'normal' && styles.radioCircleSelected,
+    ]}
+  />
+  <Text style={styles.radioText}>Normal</Text>
+</TouchableOpacity>
+
+{/* In Shift Option */}
+<TouchableOpacity
+  style={[
+    styles.radioContainer,
+    jobRoutine === 'in_shift' && styles.radioContainerSelected,
+  ]}
+  onPress={() => handleJobRoutineChange('in_shift')}
+>
+  <View
+    style={[
+      styles.radioCircle,
+      jobRoutine === 'in_shift' && styles.radioCircleSelected,
+    ]}
+  />
+  <Text style={styles.radioText}>In Shift</Text>
+</TouchableOpacity>
   <Text style={[styles.sectionHead, { marginTop: 10 }]}>
-    Duty Hours in Summer
+  {jobRoutine === 'normal' ? 'Duty Hours in Summer' : 'Day Time Hours'}
   </Text>
   <View style={styles.divider} />
 
@@ -768,8 +962,10 @@ const FormP = ({route, navigation}) => {
     />
   </TouchableOpacity>
 
+ 
+
   <Text style={[styles.sectionHead, { marginTop: 10 }]}>
-    Duty Hours in Winter
+    {jobRoutine === 'normal' ? 'Duty Hours in Winter' : 'Night Time Hours'}
   </Text>
   <View style={styles.divider} />
 
@@ -1034,6 +1230,38 @@ const styles = StyleSheet.create({
     marginTop: 10,
     color: 'black',
     textAlign: 'center',
+  },
+  radioContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderWidth: 0.5,
+    borderColor: 'gray',
+    borderRadius: 5,
+    marginBottom: 10,
+    paddingHorizontal: 10,
+  },
+  radioContainerSelected: {
+    borderColor: 'gray',
+    backgroundColor: '#D3D3D3',
+  },
+  radioCircle: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#010048',
+    marginRight: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  radioCircleSelected: {
+    borderColor: '#010048',
+    backgroundColor: '#010048',
+  },
+  radioText: {
+    fontSize: 12,
+    color: 'gray',
   },
 });
 
