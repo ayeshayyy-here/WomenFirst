@@ -451,7 +451,11 @@ const styles = StyleSheet.create({
         padding: height * 0.02,
         borderRadius: height * 0.03,
     },
-   
+    bottomButtonText: {
+        color: '#6C5B00',
+        fontSize: 14,
+        fontWeight: 'bold',
+    },
 });
 
 console.log('📦 Attendance Component - MODULE EXPORTED');
