@@ -12,7 +12,24 @@ const LoginC = ({ navigation }) => {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
 
+const {ZKTecoModule} = NativeModules;
+const initializeDevice = () => {
+    // Alert.alert(
+    //       'External Device Unavailable',
+    //       'The external fingerprint scanner is currently not supported. Verifiers with mobile devices equipped with fingerprint scanners should use their mobile device for biometric verification and capture the fingerprint using the camera. \n\nIf biometric verification is not possible, select the "Not Scanned" option to proceed without verification.'
+    //     );
 
+    //   return;
+    ZKTecoModule.onBnStart()
+      .then(fingerprint => {
+        console.log('fingerprint', fingerprint);
+        ToastAndroid.show(fingerprint, ToastAndroid.LONG);
+        return;
+      })
+      .catch(error => {
+        console.error(error);
+      });
+  };
   // 🔔 Simple helper: show notification in tray
  const showNotification = async (title, body) => {
   try {
@@ -394,6 +411,18 @@ const storeUserData = async (userData) => {
               <Icon name="arrow-forward" size={20} color="white" style={styles.buttonIcon} />
             </LinearGradient>
           </TouchableOpacity>
+          {/* <TouchableOpacity
+                                onPress={initializeDevice}
+                                style={{
+                                  borderWidth: 0.8,
+                                  borderRadius: 8,
+                                  borderColor: '#003060',
+                                  padding: 8,
+                                  flex: 1,
+                                  height: 70,
+                                }}>
+                                
+                              </TouchableOpacity> */}
 
           {/* Registration Prompt */}
           <View style={styles.registerContainer}>
