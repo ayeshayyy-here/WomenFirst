@@ -64,9 +64,7 @@ public class MainActivity extends ReactActivity {
   private final int REQUEST_PERMISSION_CODE = 9;
   private ZKUSBManager zkusbManager = null;
   private FingerprintSensor fingerprintSensor = null;
-  private TextView textView = null;
-  private EditText editText = null;
-  private ImageView imageView = null;
+
   private int usb_vid = ZKTECO_VID;
   private int usb_pid = 0;
   private boolean bStarted = false;
@@ -86,9 +84,27 @@ public class MainActivity extends ReactActivity {
    * Returns the name of the main component registered from JavaScript. This is used to schedule
    * rendering of the component.
    */
+  private void sendResultToReact(String message) {
+    ReactContext reactContext =
+        getReactNativeHost()
+            .getReactInstanceManager()
+            .getCurrentReactContext();
+
+    if (reactContext != null) {
+        WritableMap params = Arguments.createMap();
+        params.putString("message", message);
+
+        reactContext
+            .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+            .emit("ZKTecoResult", params);
+    }
+
+    Log.d("ZKTecoResult", message);
+}
+
   @Override
   protected String getMainComponentName() {
-    return "PersonWithDisabilityExecutive";
+    return "WomenFirst";
   }
   // @Override
   //   protected void onCreate(Bundle savedInstanceState) {
@@ -97,15 +113,21 @@ public class MainActivity extends ReactActivity {
   //   }
 
  @Override
-  protected void onCreate(Bundle savedInstanceState) {
-      super.onCreate(savedInstanceState);
-      setContentView(R.layout.activity_main);
+protected void onCreate(Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+   
+
     dbFileName = getFilesDir().getAbsolutePath() + "/zkfinger10.db";
-    initUI();
+
     checkStoragePermission();
-    zkusbManager = new ZKUSBManager(this.getApplicationContext(), zkusbManagerListener);
+
+    zkusbManager = new ZKUSBManager(
+        this.getApplicationContext(),
+        zkusbManagerListener
+    );
     zkusbManager.registerUSBPermissionReceiver();
-  }
+}
+
   /**
    * Returns the instance of the {@link ReactActivityDelegate}. There the RootView is created and
    * you can specify the renderer you wish to use - the new renderer (Fabric) or the old renderer
@@ -150,14 +172,16 @@ public class MainActivity extends ReactActivity {
       if (ret > 0)
       {
           String strRes[] = new String(bufids).split("\t");
-          setResult("the finger already enroll by " + strRes[0] + ",cancel enroll");
+          sendResultToReact("the finger already enroll by " + strRes[0] + ", cancel enroll");
+
           bRegister = false;
           enroll_index = 0;
           return;
       }
       if (enroll_index > 0 && (ret = ZKFingerService.verify(regtemparray[enroll_index-1], template)) <= 0)
       {
-          setResult("please press the same finger 3 times for the enrollment, cancel enroll, socre=" + ret);
+sendResultToReact("please press the same finger 3 times for the enrollment, score=" + ret);
+
           bRegister = false;
           enroll_index = 0;
           return;
@@ -175,18 +199,22 @@ public class MainActivity extends ReactActivity {
               {
                   String strFeature = Base64.encodeToString(regTemp, 0, ret, Base64.NO_WRAP);
                   dbManager.insertUser(strUid, strFeature);
-                  setResult("enroll succ");
+                 sendResultToReact("enroll succ");
+
               }
               else
               {
-                  setResult("enroll fail, add template fail, ret=" + retVal);
+               sendResultToReact("enroll fail, add template fail, ret=" + retVal);
+
               }
           } else {
-              setResult("enroll fail");
+         sendResultToReact("enroll fail");
+
           }
           bRegister = false;
       } else {
-          setResult("You need to press the " + (3 - enroll_index) + " times fingerprint");
+          sendResultToReact("You need to press the " + (3 - enroll_index) + " times fingerprint");
+
       }
   }
 
@@ -196,9 +224,13 @@ public class MainActivity extends ReactActivity {
       int ret = ZKFingerService.identify(template, bufids, 70, 1);
       if (ret > 0) {
           String strRes[] = new String(bufids).split("\t");
-          setResult("identify succ, userid:" + strRes[0].trim() + ", score:" + strRes[1].trim());
+       sendResultToReact(
+    "identify succ, userid:" + strRes[0].trim() + ", score:" + strRes[1].trim()
+);
+
       } else {
-          setResult("identify fail, ret=" + ret);
+    sendResultToReact("identify fail, ret=" + ret);
+
       }
   }
 
@@ -399,15 +431,25 @@ public class MainActivity extends ReactActivity {
         return Base64.encodeToString(byteArray, Base64.DEFAULT);
     }
 
-    public void sendBitmapToReactNative(String base64String) {
-        ReactContext reactContext = getReactNativeHost().getReactInstanceManager().getCurrentReactContext();
-        WritableMap params = Arguments.createMap();
-        params.putString("imageBase64", base64String);
+public void sendBitmapToReactNative(String base64String) {
+    ReactContext reactContext =
+        getReactNativeHost()
+            .getReactInstanceManager()
+            .getCurrentReactContext();
 
-        reactContext
-            .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-            .emit("ImageReceivedEvent", params);
+    if (reactContext == null) {
+        Log.w("RN", "ReactContext not ready yet, skipping image emit");
+        return;
     }
+
+    WritableMap params = Arguments.createMap();
+    params.putString("imageBase64", base64String);
+
+    reactContext
+        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+        .emit("ImageReceivedEvent", params);
+}
+
         
     public FingerprintExceptionListener fingerprintExceptionListener = new FingerprintExceptionListener() {
         @Override
@@ -445,12 +487,7 @@ public class MainActivity extends ReactActivity {
         }
     };
 
-  private void initUI()
-  {
-    textView = (TextView)findViewById(R.id.txtResult);
-    editText = (EditText)findViewById(R.id.editID);
-    imageView = (ImageView)findViewById(R.id.imageFP);
-  }
+
 
   /**
    * storage permission
@@ -603,133 +640,133 @@ public class MainActivity extends ReactActivity {
       }
   }
 
-  public void onBnStart(View view){
-      if (bStarted)
-      {
-          textView.setText("Device already connected!");
-          return;
-      }
-      if (!enumSensor())
-      {
-          textView.setText("Device not found!");
-          return;
-      }
-      tryGetUSBPermission();
-  }
+//   public void onBnStart(View view){
+//       if (bStarted)
+//       {
+//           textView.setText("Device already connected!");
+//           return;
+//       }
+//       if (!enumSensor())
+//       {
+//           textView.setText("Device not found!");
+//           return;
+//       }
+//       tryGetUSBPermission();
+//   }
 
-  public void onBnStop(View view){
-      if (!bStarted)
-      {
-          textView.setText("Device not connected!");
-          return;
-      }
-      closeDevice();
-      textView.setText("Device closed!");
-  }
+//   public void onBnStop(View view){
+//       if (!bStarted)
+//       {
+//           textView.setText("Device not connected!");
+//           return;
+//       }
+//       closeDevice();
+//       textView.setText("Device closed!");
+//   }
 
-  public void onBnRegister(View view){
-      if (bStarted) {
-          strUid = editText.getText().toString();
-          if (null == strUid || strUid.isEmpty()) {
-              // textView.setText("Please input your user id");
-              Toast.makeText(this, "Please input your user id!", Toast.LENGTH_SHORT).show();
-              bRegister = false;
-              return;
-          }
-          if (dbManager.isUserExited(strUid)) {
-              bRegister = false;
-              // textView.setText("The user[" + strUid + "] had registered!");
-              Toast.makeText(this, "The user[" + strUid + "] had registered!", Toast.LENGTH_SHORT).show();
-              return;
-          }
-          bRegister = true;
-          enroll_index = 0;
-          // textView.setText("Please press your finger 3 times.");
-            Toast.makeText(this, "Please press your finger 3 times.", Toast.LENGTH_SHORT).show();
-      } else {
-          // textView.setText("Please start capture first");
-          Toast.makeText(this, "Please start capture first!", Toast.LENGTH_SHORT).show();
-      }
-  }
+//   public void onBnRegister(View view){
+//       if (bStarted) {
+//           strUid = editText.getText().toString();
+//           if (null == strUid || strUid.isEmpty()) {
+//               // textView.setText("Please input your user id");
+//               Toast.makeText(this, "Please input your user id!", Toast.LENGTH_SHORT).show();
+//               bRegister = false;
+//               return;
+//           }
+//           if (dbManager.isUserExited(strUid)) {
+//               bRegister = false;
+//               // textView.setText("The user[" + strUid + "] had registered!");
+//               Toast.makeText(this, "The user[" + strUid + "] had registered!", Toast.LENGTH_SHORT).show();
+//               return;
+//           }
+//           bRegister = true;
+//           enroll_index = 0;
+//           // textView.setText("Please press your finger 3 times.");
+//             Toast.makeText(this, "Please press your finger 3 times.", Toast.LENGTH_SHORT).show();
+//       } else {
+//           // textView.setText("Please start capture first");
+//           Toast.makeText(this, "Please start capture first!", Toast.LENGTH_SHORT).show();
+//       }
+//   }
 
-  public void onBnIdentify(View view){
-      if (bStarted) {
-          bRegister = false;
-          enroll_index = 0;
-      } else {
-          // textView.setText("Please start capture first");
-          Toast.makeText(this, "Please start capture first!", Toast.LENGTH_SHORT).show();
-      }
-  }
+//   public void onBnIdentify(View view){
+//       if (bStarted) {
+//           bRegister = false;
+//           enroll_index = 0;
+//       } else {
+//           // textView.setText("Please start capture first");
+//           Toast.makeText(this, "Please start capture first!", Toast.LENGTH_SHORT).show();
+//       }
+//   }
 
-  private void setResult(String result){
-      final String mStrText = result;
-      runOnUiThread(new Runnable() {
-          @Override
-          public void run() {
-              textView.setText(mStrText);
-          }
-      });
-  }
+//   private void setResult(String result){
+//       final String mStrText = result;
+//       runOnUiThread(new Runnable() {
+//           @Override
+//           public void run() {
+//               textView.setText(mStrText);
+//           }
+//       });
+//   }
 
-  public void onBnDelete(View view){
-      if (bStarted) {
-          strUid = editText.getText().toString();
-          if (null == strUid || strUid.isEmpty()) {
-              textView.setText("Please input your user id");
-              return;
-          }
-          if (!dbManager.isUserExited(strUid)) {
-              textView.setText("The user no registered");
-              return;
-          }
-          new AlertDialog.Builder(this)
-                  .setTitle("Do you want to delete the user ?")
-                  .setIcon(android.R.drawable.ic_dialog_info)
-                  .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                      @Override
-                      public void onClick(DialogInterface dialog, int which) {
-                          if (dbManager.deleteUser(strUid)) {
-                              ZKFingerService.del(strUid);
-                              setResult("Delete success !");
-                          } else {
-                              setResult("Open db fail !");
-                          }
-                      }
-                  })
-                  .setNegativeButton("No", new DialogInterface.OnClickListener() {
-                      @Override
-                      public void onClick(DialogInterface dialog, int which) {
-                      }
-                  }).show();
-      }
-  }
+//   public void onBnDelete(View view){
+//       if (bStarted) {
+//           strUid = editText.getText().toString();
+//           if (null == strUid || strUid.isEmpty()) {
+//               textView.setText("Please input your user id");
+//               return;
+//           }
+//           if (!dbManager.isUserExited(strUid)) {
+//               textView.setText("The user no registered");
+//               return;
+//           }
+//           new AlertDialog.Builder(this)
+//                   .setTitle("Do you want to delete the user ?")
+//                   .setIcon(android.R.drawable.ic_dialog_info)
+//                   .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+//                       @Override
+//                       public void onClick(DialogInterface dialog, int which) {
+//                           if (dbManager.deleteUser(strUid)) {
+//                               ZKFingerService.del(strUid);
+//                               setResult("Delete success !");
+//                           } else {
+//                               setResult("Open db fail !");
+//                           }
+//                       }
+//                   })
+//                   .setNegativeButton("No", new DialogInterface.OnClickListener() {
+//                       @Override
+//                       public void onClick(DialogInterface dialog, int which) {
+//                       }
+//                   }).show();
+//       }
+//   }
 
-  public void onBnClear(View view){
-      if (bStarted) {
-          new AlertDialog.Builder(this)
-                  .setTitle("Do you want to delete all the users ?")
-                  .setIcon(android.R.drawable.ic_dialog_info)
-                  .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                      @Override
-                      public void onClick(DialogInterface dialog, int which) {
-                          if (dbManager.clear()) {
-                              ZKFingerService.clear();
-                              setResult("Clear success！");
-                          } else {
-                              setResult("Open db fail！");
-                          }
-                      }
-                  })
-                  .setNegativeButton("no", new DialogInterface.OnClickListener() {
-                      @Override
-                      public void onClick(DialogInterface dialog, int which) {
+//   public void onBnClear(View view){
+//       if (bStarted) {
+//           new AlertDialog.Builder(this)
+//                   .setTitle("Do you want to delete all the users ?")
+//                   .setIcon(android.R.drawable.ic_dialog_info)
+//                   .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+//                       @Override
+//                       public void onClick(DialogInterface dialog, int which) {
+//                           if (dbManager.clear()) {
+//                               ZKFingerService.clear();
+//                               setResult("Clear success！");
+//                           } else {
+//                               setResult("Open db fail！");
+//                           }
+//                       }
+//                   })
+//                   .setNegativeButton("no", new DialogInterface.OnClickListener() {
+//                       @Override
+//                       public void onClick(DialogInterface dialog, int which) {
 
-                      }
-                  })
-                  .show();
-      }
-  }
+//                       }
+//                   })
+//                   .show();
+//       }
+//   }
 
   @Override
   protected void onDestroy() {

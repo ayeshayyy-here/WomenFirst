@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ImageBackground, StyleSheet, Dimensions, Image, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ImageBackground, StyleSheet, Dimensions, Image, Alert, KeyboardAvoidingView, Platform, ScrollView, NativeModules, ToastAndroid} from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import EncryptedStorage from 'react-native-encrypted-storage';
 import syncStorage from 'react-native-sync-storage';
 import notifee, { AndroidImportance } from '@notifee/react-native';
+
 
 const LoginC = ({ navigation }) => {
   const [cnic, setCnic] = useState('');
@@ -12,24 +13,148 @@ const LoginC = ({ navigation }) => {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
 
-const {ZKTecoModule} = NativeModules;
-const initializeDevice = () => {
-    // Alert.alert(
-    //       'External Device Unavailable',
-    //       'The external fingerprint scanner is currently not supported. Verifiers with mobile devices equipped with fingerprint scanners should use their mobile device for biometric verification and capture the fingerprint using the camera. \n\nIf biometric verification is not possible, select the "Not Scanned" option to proceed without verification.'
-    //     );
+const ZKTecoModule = NativeModules?.ZKTecoModule;
 
-    //   return;
-    ZKTecoModule.onBnStart()
-      .then(fingerprint => {
-        console.log('fingerprint', fingerprint);
-        ToastAndroid.show(fingerprint, ToastAndroid.LONG);
-        return;
-      })
-      .catch(error => {
-        console.error(error);
-      });
-  };
+// Log NativeModules to see all available modules
+console.log('=== ZKTECO DEBUG LOGS START ===');
+console.log('1. All NativeModules available:', Object.keys(NativeModules || {}));
+console.log('2. Is NativeModules defined?', NativeModules ? 'Yes' : 'No');
+console.log('3. Is ZKTecoModule available?', ZKTecoModule ? 'Yes' : 'No');
+console.log('4. ZKTecoModule object:', ZKTecoModule);
+
+if (ZKTecoModule) {
+  console.log('5. ZKTecoModule methods:', Object.keys(ZKTecoModule));
+  console.log('6. ZKTecoModule methods with details:');
+  Object.keys(ZKTecoModule).forEach(key => {
+    console.log(`   - ${key}:`, typeof ZKTecoModule[key]);
+  });
+}
+
+const initializeDevice = async () => {
+  console.log('\n=== FINGERPRINT INITIALIZATION STARTED ===');
+  console.log('1. Function initializeDevice called');
+  console.log('2. ZKTecoModule check:', ZKTecoModule ? 'Available' : 'Not Available');
+  console.log('3. ZKTecoModule value:', ZKTecoModule);
+  
+  try {
+    if (!ZKTecoModule) {
+      console.error('4. ERROR: ZKTecoModule is null/undefined');
+      console.warn('5. WARNING: Check if the native module is properly linked');
+      console.log('6. Available NativeModules:', Object.keys(NativeModules || {}));
+      
+      Alert.alert(
+        'Device Not Available',
+        'Fingerprint device module not found. Please check if the device is connected and the native module is properly installed.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    console.log('4. ZKTecoModule found, checking for onBnStart method...');
+    console.log('5. onBnStart method exists?', typeof ZKTecoModule.onBnStart === 'function' ? 'Yes' : 'No');
+    
+    if (typeof ZKTecoModule.onBnStart !== 'function') {
+      console.error('6. ERROR: onBnStart is not a function');
+      console.log('7. Available methods in ZKTecoModule:', Object.keys(ZKTecoModule));
+      Alert.alert('Error', 'Fingerprint scanning method not available');
+      return;
+    }
+
+    console.log('6. Calling ZKTecoModule.onBnStart()...');
+    
+    // Add a timeout to prevent hanging
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Fingerprint scan timeout after 30 seconds')), 30000);
+    });
+
+    const fingerprintPromise = ZKTecoModule.onBnStart();
+    
+    console.log('7. Waiting for fingerprint response...');
+    
+    // Race between the fingerprint scan and timeout
+    const fingerprint = await Promise.race([fingerprintPromise, timeoutPromise]);
+    
+    console.log('8. SUCCESS: Fingerprint scan completed!');
+    console.log('9. Raw fingerprint data:', fingerprint);
+    console.log('10. Fingerprint data type:', typeof fingerprint);
+    console.log('11. Fingerprint data length:', fingerprint?.length || 'No length property');
+    
+    // Check if fingerprint data looks valid
+    if (!fingerprint) {
+      console.warn('12. WARNING: Fingerprint data is empty/null');
+      ToastAndroid.show('No fingerprint data received', ToastAndroid.LONG);
+    } else if (typeof fingerprint === 'string' && fingerprint.trim() === '') {
+      console.warn('13. WARNING: Fingerprint data is empty string');
+      ToastAndroid.show('Empty fingerprint data', ToastAndroid.LONG);
+    } else {
+      console.log('12. Fingerprint data looks valid');
+      console.log('13. First 100 chars of data:', fingerprint.substring ? fingerprint.substring(0, 100) : fingerprint);
+      
+      ToastAndroid.show(
+        `Fingerprint captured! (${fingerprint.length || 'Unknown'} chars)`,
+        ToastAndroid.LONG
+      );
+    }
+
+  } catch (error) {
+    console.error('\n=== FINGERPRINT ERROR DETAILS ===');
+    console.error('1. Error type:', error.constructor.name);
+    console.error('2. Error message:', error.message);
+    console.error('3. Error stack:', error.stack);
+    console.error('4. Full error object:', JSON.stringify(error, null, 2));
+    
+    let errorMessage = 'Unknown error occurred';
+    
+    if (error.message.includes('timeout')) {
+      errorMessage = 'Fingerprint scan timed out. Please try again.';
+      console.log('5. Error was a timeout');
+    } else if (error.message.includes('permission')) {
+      errorMessage = 'Permission denied. Please check app permissions.';
+      console.log('5. Error was permission-related');
+    } else if (error.message.includes('device') || error.message.includes('hardware')) {
+      errorMessage = 'Fingerprint device not found or not working.';
+      console.log('5. Error was device-related');
+    }
+    
+    Alert.alert(
+      'Error',
+      errorMessage,
+      [
+        { text: 'OK', style: 'cancel' },
+        { text: 'Retry', onPress: () => {
+          console.log('User pressed Retry');
+          setTimeout(initializeDevice, 1000);
+        }},
+        { text: 'Debug Info', onPress: () => {
+          Alert.alert(
+            'Debug Info',
+            `Error: ${error.message}\n\nModule available: ${ZKTecoModule ? 'Yes' : 'No'}`
+          );
+        }}
+      ]
+    );
+  } finally {
+    console.log('\n=== FINGERPRINT INITIALIZATION COMPLETED ===');
+    console.log('Timestamp:', new Date().toISOString());
+    console.log('Platform:', Platform.OS);
+    console.log('Platform Version:', Platform.Version);
+  }
+};
+
+// You can also add some initial logging when the component mounts
+useEffect(() => {
+  console.log('=== COMPONENT MOUNTED ===');
+  console.log('ZKTecoModule check on mount:', ZKTecoModule ? 'Available' : 'Not Available');
+  
+  // Check if the module has any initialization method
+  if (ZKTecoModule && ZKTecoModule.initialize) {
+    console.log('Found initialize method, calling it...');
+    ZKTecoModule.initialize()
+      .then(() => console.log('Module initialized successfully'))
+      .catch(err => console.error('Module initialization failed:', err));
+  }
+}, []);
+
   // 🔔 Simple helper: show notification in tray
  const showNotification = async (title, body) => {
   try {
@@ -411,18 +536,49 @@ const storeUserData = async (userData) => {
               <Icon name="arrow-forward" size={20} color="white" style={styles.buttonIcon} />
             </LinearGradient>
           </TouchableOpacity>
-          {/* <TouchableOpacity
-                                onPress={initializeDevice}
-                                style={{
-                                  borderWidth: 0.8,
-                                  borderRadius: 8,
-                                  borderColor: '#003060',
-                                  padding: 8,
-                                  flex: 1,
-                                  height: 70,
-                                }}>
-                                
-                              </TouchableOpacity> */}
+        <TouchableOpacity
+  onPress={initializeDevice}
+  style={{
+    borderWidth: 2,
+    borderRadius: 12,
+    borderColor: '#003060',
+    backgroundColor: '#ffffff',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    flex: 1,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    marginHorizontal: 8,
+    marginTop:10,
+  }}
+  activeOpacity={0.7}
+>
+  <View style={{
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  }}>
+     <Icon name="fingerprint" size={20} color="#003060" />
+ 
+    <Text style={{
+      marginLeft: 12,
+      fontSize: 12,
+      fontWeight: '600',
+      color: '#003060',
+    }}>
+      Scan Fingerprint
+    </Text>
+  </View>
+</TouchableOpacity>
 
           {/* Registration Prompt */}
           <View style={styles.registerContainer}>
