@@ -14,6 +14,7 @@ import {
   ScrollView,
   NativeModules,
   ToastAndroid,
+  DeviceEventEmitter,
 } from 'react-native';
 import {LinearGradient} from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -580,10 +581,9 @@ const LoginC = ({navigation}) => {
                             />
                           </TouchableOpacity>
                         </View>
-            ):
-            null
+            )
           }
-
+        
           {/* Registration Prompt */}
           <View style={styles.registerContainer}>
             <Text style={styles.registerText}>Don't have an account?</Text>
