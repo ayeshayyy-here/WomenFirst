@@ -1,201 +1,128 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ImageBackground, StyleSheet, Dimensions, Image, Alert, KeyboardAvoidingView, Platform, ScrollView, NativeModules, ToastAndroid} from 'react-native';
-import { LinearGradient } from 'react-native-linear-gradient';
+import React, {useState, useEffect} from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ImageBackground,
+  StyleSheet,
+  Dimensions,
+  Image,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  NativeModules,
+  ToastAndroid,
+} from 'react-native';
+import {LinearGradient} from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import EncryptedStorage from 'react-native-encrypted-storage';
 import syncStorage from 'react-native-sync-storage';
-import notifee, { AndroidImportance } from '@notifee/react-native';
+import ImageView from 'react-native-image-viewing';
+import notifee, {AndroidImportance} from '@notifee/react-native';
 
-
-const LoginC = ({ navigation }) => {
+const LoginC = ({navigation}) => {
   const [cnic, setCnic] = useState('');
   const [mobile, setMobile] = useState('');
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [filesVisibile, setFilesVisible] = useState(false);
+  const [imageBase64, setImageBase64] = React.useState(null);
+  const {ZKTecoModule} = NativeModules;
 
-const ZKTecoModule = NativeModules?.ZKTecoModule;
-
-// Log NativeModules to see all available modules
-console.log('=== ZKTECO DEBUG LOGS START ===');
-console.log('1. All NativeModules available:', Object.keys(NativeModules || {}));
-console.log('2. Is NativeModules defined?', NativeModules ? 'Yes' : 'No');
-console.log('3. Is ZKTecoModule available?', ZKTecoModule ? 'Yes' : 'No');
-console.log('4. ZKTecoModule object:', ZKTecoModule);
-
-if (ZKTecoModule) {
-  console.log('5. ZKTecoModule methods:', Object.keys(ZKTecoModule));
-  console.log('6. ZKTecoModule methods with details:');
-  Object.keys(ZKTecoModule).forEach(key => {
-    console.log(`   - ${key}:`, typeof ZKTecoModule[key]);
-  });
-}
-
-const initializeDevice = async () => {
-  console.log('\n=== FINGERPRINT INITIALIZATION STARTED ===');
-  console.log('1. Function initializeDevice called');
-  console.log('2. ZKTecoModule check:', ZKTecoModule ? 'Available' : 'Not Available');
-  console.log('3. ZKTecoModule value:', ZKTecoModule);
   
-  try {
-    if (!ZKTecoModule) {
-      console.error('4. ERROR: ZKTecoModule is null/undefined');
-      console.warn('5. WARNING: Check if the native module is properly linked');
-      console.log('6. Available NativeModules:', Object.keys(NativeModules || {}));
-      
-      Alert.alert(
-        'Device Not Available',
-        'Fingerprint device module not found. Please check if the device is connected and the native module is properly installed.',
-        [{ text: 'OK' }]
-      );
-      return;
+  const initializeDevice = () => {
+    // Alert.alert(
+    //       'External Device Unavailable',
+    //       'The external fingerprint scanner is currently not supported. Verifiers with mobile devices equipped with fingerprint scanners should use their mobile device for biometric verification and capture the fingerprint using the camera. \n\nIf biometric verification is not possible, select the "Not Scanned" option to proceed without verification.'
+    //     );
+
+    //   return;
+    ZKTecoModule.onBnStart()
+      .then(fingerprint => {
+        console.log('fingerprint', fingerprint);
+        ToastAndroid.show(fingerprint, ToastAndroid.LONG);
+        return;
+      })
+      .catch(error => {
+        console.error(error);
+      });
+  };
+  const biometricObj = syncStorage.get('biometric_obj');
+  const FPImage = biometricObj && biometricObj.image ? biometricObj.image : '';
+  // You can also add some initial logging when the component mounts
+  useEffect(() => {
+  const eventListener = DeviceEventEmitter.addListener(
+    'ImageReceivedEvent',
+    event => {
+      const { imageBase64 } = event;
+      console.log('Image Base64', imageBase64);
+
+      const img_obj = {
+        image: imageBase64,
+        pwd_id: pwd_id,
+        about: aboutBio,
+        rem: guardianBiometric.rem,
+        rel: guardianBiometric.rel,
+      };
+
+      syncStorage.set('biometric_obj', img_obj);
+      setImageBase64(imageBase64);
     }
+  );
 
-    console.log('4. ZKTecoModule found, checking for onBnStart method...');
-    console.log('5. onBnStart method exists?', typeof ZKTecoModule.onBnStart === 'function' ? 'Yes' : 'No');
-    
-    if (typeof ZKTecoModule.onBnStart !== 'function') {
-      console.error('6. ERROR: onBnStart is not a function');
-      console.log('7. Available methods in ZKTecoModule:', Object.keys(ZKTecoModule));
-      Alert.alert('Error', 'Fingerprint scanning method not available');
-      return;
-    }
+  // Cleanup function: remove listener when component unmounts
+  return () => {
+    eventListener.remove();
+  };
+}, []); // empty array = run once on mount
 
-    console.log('6. Calling ZKTecoModule.onBnStart()...');
-    
-    // Add a timeout to prevent hanging
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Fingerprint scan timeout after 30 seconds')), 30000);
-    });
-
-    const fingerprintPromise = ZKTecoModule.onBnStart();
-    
-    console.log('7. Waiting for fingerprint response...');
-    
-    // Race between the fingerprint scan and timeout
-    const fingerprint = await Promise.race([fingerprintPromise, timeoutPromise]);
-    
-    console.log('8. SUCCESS: Fingerprint scan completed!');
-    console.log('9. Raw fingerprint data:', fingerprint);
-    console.log('10. Fingerprint data type:', typeof fingerprint);
-    console.log('11. Fingerprint data length:', fingerprint?.length || 'No length property');
-    
-    // Check if fingerprint data looks valid
-    if (!fingerprint) {
-      console.warn('12. WARNING: Fingerprint data is empty/null');
-      ToastAndroid.show('No fingerprint data received', ToastAndroid.LONG);
-    } else if (typeof fingerprint === 'string' && fingerprint.trim() === '') {
-      console.warn('13. WARNING: Fingerprint data is empty string');
-      ToastAndroid.show('Empty fingerprint data', ToastAndroid.LONG);
-    } else {
-      console.log('12. Fingerprint data looks valid');
-      console.log('13. First 100 chars of data:', fingerprint.substring ? fingerprint.substring(0, 100) : fingerprint);
-      
-      ToastAndroid.show(
-        `Fingerprint captured! (${fingerprint.length || 'Unknown'} chars)`,
-        ToastAndroid.LONG
-      );
-    }
-
-  } catch (error) {
-    console.error('\n=== FINGERPRINT ERROR DETAILS ===');
-    console.error('1. Error type:', error.constructor.name);
-    console.error('2. Error message:', error.message);
-    console.error('3. Error stack:', error.stack);
-    console.error('4. Full error object:', JSON.stringify(error, null, 2));
-    
-    let errorMessage = 'Unknown error occurred';
-    
-    if (error.message.includes('timeout')) {
-      errorMessage = 'Fingerprint scan timed out. Please try again.';
-      console.log('5. Error was a timeout');
-    } else if (error.message.includes('permission')) {
-      errorMessage = 'Permission denied. Please check app permissions.';
-      console.log('5. Error was permission-related');
-    } else if (error.message.includes('device') || error.message.includes('hardware')) {
-      errorMessage = 'Fingerprint device not found or not working.';
-      console.log('5. Error was device-related');
-    }
-    
-    Alert.alert(
-      'Error',
-      errorMessage,
-      [
-        { text: 'OK', style: 'cancel' },
-        { text: 'Retry', onPress: () => {
-          console.log('User pressed Retry');
-          setTimeout(initializeDevice, 1000);
-        }},
-        { text: 'Debug Info', onPress: () => {
-          Alert.alert(
-            'Debug Info',
-            `Error: ${error.message}\n\nModule available: ${ZKTecoModule ? 'Yes' : 'No'}`
-          );
-        }}
-      ]
-    );
-  } finally {
-    console.log('\n=== FINGERPRINT INITIALIZATION COMPLETED ===');
-    console.log('Timestamp:', new Date().toISOString());
-    console.log('Platform:', Platform.OS);
-    console.log('Platform Version:', Platform.Version);
-  }
-};
-
-// You can also add some initial logging when the component mounts
-useEffect(() => {
-  console.log('=== COMPONENT MOUNTED ===');
-  console.log('ZKTecoModule check on mount:', ZKTecoModule ? 'Available' : 'Not Available');
-  
-  // Check if the module has any initialization method
-  if (ZKTecoModule && ZKTecoModule.initialize) {
-    console.log('Found initialize method, calling it...');
-    ZKTecoModule.initialize()
-      .then(() => console.log('Module initialized successfully'))
-      .catch(err => console.error('Module initialization failed:', err));
-  }
-}, []);
 
   // 🔔 Simple helper: show notification in tray
- const showNotification = async (title, body) => {
-  try {
-    console.log('Showing notification:', title, body);
-    await notifee.requestPermission();
+  const showNotification = async (title, body) => {
+    try {
+      console.log('Showing notification:', title, body);
+      await notifee.requestPermission();
 
-    const channelId = await notifee.createChannel({
-      id: 'default',
-      name: 'General Notifications',
-      importance: AndroidImportance.HIGH,
-    });
+      const channelId = await notifee.createChannel({
+        id: 'default',
+        name: 'General Notifications',
+        importance: AndroidImportance.HIGH,
+      });
 
-    await notifee.displayNotification({
-      title,
-      body,
-      android: {
-        channelId,
-        smallIcon: 'wwh_logo',
-        pressAction: { id: 'default' },
-      },
-    });
+      await notifee.displayNotification({
+        title,
+        body,
+        android: {
+          channelId,
+          smallIcon: 'wwh_logo',
+          pressAction: {id: 'default'},
+        },
+      });
 
-    console.log('✅ Notification displayed successfully!');
-  } catch (error) {
-    console.log('❌ Notification error:', error);
-  }
-};
-
+      console.log('✅ Notification displayed successfully!');
+    } catch (error) {
+      console.log('❌ Notification error:', error);
+    }
+  };
 
   // 🔔 Fetch both APIs and show notifications
   const fetchAndShowNotifications = async cnicNumber => {
     try {
       // 1️⃣ FAP notification
-      const fapRes = await fetch(`https://fa-wdd.punjab.gov.pk/api/fapnotification/${cnicNumber}`);
+      const fapRes = await fetch(
+        `https://fa-wdd.punjab.gov.pk/api/fapnotification/${cnicNumber}`,
+      );
       const fapData = await fapRes.json();
       if (fapData.header && fapData.message) {
         await showNotification(fapData.header, fapData.message);
       }
 
       // 2️⃣ YPC notification
-      const ypcRes = await fetch(`https://ypc-wdd.punjab.gov.pk/api/ypcnotification/${cnicNumber}`);
+      const ypcRes = await fetch(
+        `https://ypc-wdd.punjab.gov.pk/api/ypcnotification/${cnicNumber}`,
+      );
       const ypcData = await ypcRes.json();
       if (ypcData.header && ypcData.message) {
         await showNotification(ypcData.header, ypcData.message);
@@ -228,9 +155,17 @@ useEffect(() => {
           const oneMonth = 30 * 24 * 60 * 60 * 1000; // 30 days
 
           console.log('Session age:', sessionAge, 'ms');
-          console.log('Session valid for:', oneMonth - sessionAge, 'ms remaining');
+          console.log(
+            'Session valid for:',
+            oneMonth - sessionAge,
+            'ms remaining',
+          );
 
-          if (parsedSession.token && parsedProfile.cnic && sessionAge < oneMonth) {
+          if (
+            parsedSession.token &&
+            parsedProfile.cnic &&
+            sessionAge < oneMonth
+          ) {
             console.log('Valid session found, navigating to Dashboard');
             navigation.navigate('DashboardWDD');
           } else {
@@ -264,7 +199,7 @@ useEffect(() => {
 
   // const handleLogin = async () => {
   //   if (!validateForm()) return;
-    
+
   //   setIsLoading(true);
   //   try {
   //     console.log('Making login request with:', { CNIC: cnic, Contact: mobile });
@@ -279,10 +214,10 @@ useEffect(() => {
   //         Contact: mobile
   //       })
   //     });
-      
+
   //     const data = await response.json();
   //     console.log('Login response:', data);
-      
+
   //     if (response.ok) {
   //       console.log('Login successful, storing user data');
   //       await storeUserData(data.user);
@@ -309,166 +244,178 @@ useEffect(() => {
   //   }
   // };
 
-
-
   const handleLogin = async () => {
-  if (!validateForm()) return;
+    if (!validateForm()) return;
 
-  setIsLoading(true);
-  try {
-    console.log('Making login request with:', { CNIC: cnic, Contact: mobile });
-   const response = await fetch('https://dashboard-wdd.punjab.gov.pk/api/login', {
-     // const response = await fetch('https://b62388893531.ngrok-free.app/api/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify({
-        CNIC: cnic,
-        Contact: mobile
-      })
-    });
+    setIsLoading(true);
+    try {
+      console.log('Making login request with:', {CNIC: cnic, Contact: mobile});
+      const response = await fetch(
+        'https://dashboard-wdd.punjab.gov.pk/api/login',
+        {
+          // const response = await fetch('https://b62388893531.ngrok-free.app/api/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          body: JSON.stringify({
+            CNIC: cnic,
+            Contact: mobile,
+          }),
+        },
+      );
 
-    const data = await response.json();
-    console.log('Login response:', data);
+      const data = await response.json();
+      console.log('Login response:', data);
 
-    if (response.ok) {
-      console.log('Login successful, storing user data');
-      await storeUserData(data.user);
-   await fetchAndShowNotifications(cnic);
-      let targetScreen = 'DashboardWDD'; // default
-      if (data.user.role === 'ManagerH') {
-        targetScreen = 'HostelManagerScreen';
-      } else if (data.user.role === 'user') {
-        targetScreen = 'DashboardWDD';
-      }
-      else if (data.user.role === 'Admin') {
-        targetScreen = 'ImportCentralizedUsers';
-      }
-      // you can extend here if you add 'admin' later
+      if (response.ok) {
+        console.log('Login successful, storing user data');
+        await storeUserData(data.user);
+        await fetchAndShowNotifications(cnic);
+        let targetScreen = 'DashboardWDD'; // default
+        if (data.user.role === 'ManagerH') {
+          targetScreen = 'HostelManagerScreen';
+        } else if (data.user.role === 'user') {
+          targetScreen = 'DashboardWDD';
+        } else if (data.user.role === 'Admin') {
+          targetScreen = 'ImportCentralizedUsers';
+        }
+        // you can extend here if you add 'admin' later
 
-      Alert.alert('Success', 'Login successful!', [
-        { text: 'OK', onPress: () => navigation.navigate(targetScreen) }
-      ]);
-    } else {
-      if (response.status === 409) {
-        Alert.alert('Error', data.message || 'CNIC/Contact mismatch');
-      } else if (response.status === 422) {
-        setErrors(prev => ({ ...prev, ...data.errors }));
-        Alert.alert('Validation Error', 'Please check your inputs');
-      } else if (response.status === 404) {
-        Alert.alert('Error', data.message || 'No matching record found. Please register first.');
+        Alert.alert('Success', 'Login successful!', [
+          {text: 'OK', onPress: () => navigation.navigate(targetScreen)},
+        ]);
       } else {
-        Alert.alert('Error', data.message || 'Login failed. Please try again.');
+        if (response.status === 409) {
+          Alert.alert('Error', data.message || 'CNIC/Contact mismatch');
+        } else if (response.status === 422) {
+          setErrors(prev => ({...prev, ...data.errors}));
+          Alert.alert('Validation Error', 'Please check your inputs');
+        } else if (response.status === 404) {
+          Alert.alert(
+            'Error',
+            data.message || 'No matching record found. Please register first.',
+          );
+        } else {
+          Alert.alert(
+            'Error',
+            data.message || 'Login failed. Please try again.',
+          );
+        }
       }
+    } catch (error) {
+      Alert.alert(
+        'Error',
+        'Network error. Please check your connection and try again.',
+      );
+      console.error('Login error:', error);
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    Alert.alert('Error', 'Network error. Please check your connection and try again.');
-    console.error('Login error:', error);
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   // updated storeUserData
-const storeUserData = async (userData) => {
-  try {
-    console.log('[DEBUG] 📦 Storing user data in both storage systems');
-    console.log('[DEBUG] Original API user data:', userData);
-    
-    // Prepare data for EncryptedStorage
-    const encryptedData = {
-      token: userData?.token || 'auth_token_placeholder',
-      user: {
+  const storeUserData = async userData => {
+    try {
+      console.log('[DEBUG] 📦 Storing user data in both storage systems');
+      console.log('[DEBUG] Original API user data:', userData);
+
+      // Prepare data for EncryptedStorage
+      const encryptedData = {
+        token: userData?.token || 'auth_token_placeholder',
+        user: {
+          cnic: userData.CNIC,
+          contact: userData.Contact,
+          Name: userData.Name,
+          D_O_B: userData.D_O_B,
+          Email: userData.Email,
+          District: userData.District,
+          Tehsil: userData.Tehsil,
+          Address: userData.address,
+        },
+        timestamp: new Date().getTime(),
+      };
+
+      console.log('[DEBUG] 🔐 Data for EncryptedStorage:', encryptedData);
+
+      // Store in EncryptedStorage (secure)
+      await EncryptedStorage.setItem(
+        'user_session',
+        JSON.stringify(encryptedData),
+      );
+
+      // Verify EncryptedStorage
+      const encryptedVerify = await EncryptedStorage.getItem('user_session');
+      console.log('[DEBUG] 🔍 EncryptedStorage verification:', encryptedVerify);
+
+      // Prepare data for syncStorage
+      const syncData = {
+        name: userData.Name,
         cnic: userData.CNIC,
+        dob: userData.D_O_B,
         contact: userData.Contact,
-        Name: userData.Name,
-        D_O_B: userData.D_O_B,
-        Email: userData.Email,
-        District: userData.District,
-        Tehsil: userData.Tehsil,
-        Address: userData.address
-      },
-      timestamp: new Date().getTime(),
-    };
-    
-    console.log('[DEBUG] 🔐 Data for EncryptedStorage:', encryptedData);
-    
-    // Store in EncryptedStorage (secure)
-    await EncryptedStorage.setItem('user_session', JSON.stringify(encryptedData));
-    
-    // Verify EncryptedStorage
-    const encryptedVerify = await EncryptedStorage.getItem('user_session');
-    console.log('[DEBUG] 🔍 EncryptedStorage verification:', encryptedVerify);
-    
-    // Prepare data for syncStorage
-    const syncData = {
-      name: userData.Name,
-      cnic: userData.CNIC,
-      dob: userData.D_O_B,
-      contact: userData.Contact,
-      email: userData.Email,
-      district: userData.District,
-      tehsil: userData.Tehsil,
-      address: userData.Address,
-      timestamp: new Date().getTime(),
-    };
-    
-    console.log('[DEBUG] ⚡ Data for syncStorage:', syncData);
-    
-    // Store in syncStorage (quick access for other screens)
-    syncStorage.set('user_profile', JSON.stringify(syncData));
-    
-    // Verify syncStorage
-    const syncVerify = syncStorage.get('user_profile');
-    console.log('[DEBUG] 🔍 syncStorage verification:', syncVerify);
-    
-    console.log('[DEBUG] ✅ Data stored in both EncryptedStorage and syncStorage successfully!');
-    
-  } catch (error) {
-    console.error('[DEBUG] ❌ Error storing user data:', error);
-    Alert.alert('Error', 'Failed to save login data. Please try again.');
-  }
-};
+        email: userData.Email,
+        district: userData.District,
+        tehsil: userData.Tehsil,
+        address: userData.Address,
+        timestamp: new Date().getTime(),
+      };
+
+      console.log('[DEBUG] ⚡ Data for syncStorage:', syncData);
+
+      // Store in syncStorage (quick access for other screens)
+      syncStorage.set('user_profile', JSON.stringify(syncData));
+
+      // Verify syncStorage
+      const syncVerify = syncStorage.get('user_profile');
+      console.log('[DEBUG] 🔍 syncStorage verification:', syncVerify);
+
+      console.log(
+        '[DEBUG] ✅ Data stored in both EncryptedStorage and syncStorage successfully!',
+      );
+    } catch (error) {
+      console.error('[DEBUG] ❌ Error storing user data:', error);
+      Alert.alert('Error', 'Failed to save login data. Please try again.');
+    }
+  };
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
+      style={styles.container}>
       {/* Curved Header Background */}
       <View style={styles.headerBackground}>
         <LinearGradient
           colors={['#8e44ad', '#9b59b6']}
           style={styles.gradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-        >
+          start={{x: 0, y: 0}}
+          end={{x: 1, y: 0}}>
           <View style={styles.headerCurve} />
         </LinearGradient>
       </View>
 
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContainer}
-        showsVerticalScrollIndicator={false}
-      >
+        showsVerticalScrollIndicator={false}>
         {/* Combined Header Content */}
         <View style={styles.headerContent}>
-          <Image 
-            source={{uri: 'https://cmp.punjab.gov.pk/img/maryam.png'}} 
+          <Image
+            source={{uri: 'https://cmp.punjab.gov.pk/img/maryam.png'}}
             style={styles.headerLogo}
             resizeMode="contain"
           />
-          
+
           <View style={styles.headerTextContainer}>
             <Text style={styles.headerTitle}>WOMEN FIRST!</Text>
             <View style={styles.taglineBox}>
               <Text style={styles.urduTagline}>ایک ایپ، آٹھ سہولتیں</Text>
-              <Text style={styles.englishTagline}>One App, Eight Facilities</Text>
+              <Text style={styles.englishTagline}>
+                One App, Eight Facilities
+              </Text>
             </View>
           </View>
-    
-          <Image 
+
+          <Image
             source={require('../../assets/images/women.png')}
             style={styles.headerLogo}
             resizeMode="contain"
@@ -485,8 +432,14 @@ const storeUserData = async (userData) => {
           {/* CNIC Field */}
           <View style={styles.inputSection}>
             <Text style={styles.inputLabel}>CNIC Number</Text>
-            <View style={[styles.inputContainer, errors.cnic && styles.errorInput]}>
-              <Icon name="credit-card" size={20} color="#8e44ad" style={styles.inputIcon} />
+            <View
+              style={[styles.inputContainer, errors.cnic && styles.errorInput]}>
+              <Icon
+                name="credit-card"
+                size={20}
+                color="#8e44ad"
+                style={styles.inputIcon}
+              />
               <TextInput
                 style={styles.input}
                 placeholder="Enter 13-digit CNIC"
@@ -503,8 +456,17 @@ const storeUserData = async (userData) => {
           {/* Mobile Field */}
           <View style={styles.inputSection}>
             <Text style={styles.inputLabel}>Mobile Number</Text>
-            <View style={[styles.inputContainer, errors.mobile && styles.errorInput]}>
-              <Icon name="phone" size={20} color="#8e44ad" style={styles.inputIcon} />
+            <View
+              style={[
+                styles.inputContainer,
+                errors.mobile && styles.errorInput,
+              ]}>
+              <Icon
+                name="phone"
+                size={20}
+                color="#8e44ad"
+                style={styles.inputIcon}
+              />
               <TextInput
                 style={styles.input}
                 placeholder="03XXXXXXXXX"
@@ -515,70 +477,115 @@ const storeUserData = async (userData) => {
                 maxLength={11}
               />
             </View>
-            {errors.mobile && <Text style={styles.errorText}>{errors.mobile}</Text>}
+            {errors.mobile && (
+              <Text style={styles.errorText}>{errors.mobile}</Text>
+            )}
           </View>
 
           {/* Login Button */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.loginButton}
             onPress={handleLogin}
-            disabled={isLoading}
-          >
+            disabled={isLoading}>
             <LinearGradient
               colors={['#8e44ad', '#9b59b6']}
               style={styles.gradientButton}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
+              start={{x: 0, y: 0}}
+              end={{x: 1, y: 0}}>
               <Text style={styles.loginButtonText}>
                 {isLoading ? 'PLEASE WAIT...' : 'LOGIN'}
               </Text>
-              <Icon name="arrow-forward" size={20} color="white" style={styles.buttonIcon} />
+              <Icon
+                name="arrow-forward"
+                size={20}
+                color="white"
+                style={styles.buttonIcon}
+              />
             </LinearGradient>
           </TouchableOpacity>
-        <TouchableOpacity
-  onPress={initializeDevice}
-  style={{
-    borderWidth: 2,
-    borderRadius: 12,
-    borderColor: '#003060',
-    backgroundColor: '#ffffff',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    flex: 1,
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    marginHorizontal: 8,
-    marginTop:10,
-  }}
-  activeOpacity={0.7}
->
-  <View style={{
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  }}>
-     <Icon name="fingerprint" size={20} color="#003060" />
- 
-    <Text style={{
-      marginLeft: 12,
-      fontSize: 12,
-      fontWeight: '600',
-      color: '#003060',
-    }}>
-      Scan Fingerprint
-    </Text>
-  </View>
-</TouchableOpacity>
+          <TouchableOpacity
+            onPress={initializeDevice}
+            style={{
+              borderWidth: 2,
+              borderRadius: 12,
+              borderColor: '#003060',
+              backgroundColor: '#ffffff',
+              paddingVertical: 16,
+              paddingHorizontal: 24,
+              flex: 1,
+              height: 50,
+              justifyContent: 'center',
+              alignItems: 'center',
+              shadowColor: '#000',
+              shadowOffset: {
+                width: 0,
+                height: 2,
+              },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+              elevation: 3,
+              marginHorizontal: 8,
+              marginTop: 10,
+            }}
+            activeOpacity={0.7}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+              <Icon name="fingerprint" size={20} color="#003060" />
+
+              <Text
+                style={{
+                  marginLeft: 12,
+                  fontSize: 12,
+                  fontWeight: '600',
+                  color: '#003060',
+                }}>
+                Scan Fingerprint
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          {
+            FPImage && (
+              <View style={{flex: 1, marginTop: 10}}>
+                          <Text
+                            style={{
+                              color: '#000',
+                              fontSize: 14,
+                              fontWeight: 'bold',
+                            }}>
+                            Captured Fingerprint From Biometric Device:
+                          </Text>
+                          <TouchableOpacity
+                            style={{
+                              marginTop: 10,
+                              backgroundColor: '#D3D3D3',
+                              borderRadius: 10,
+                              height: 150,
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                            }}
+                            onPress={() => {
+                              setFilesVisible(true);
+                            }}>
+                            <Image
+                              source={{
+                                uri: `data:image/png;base64,${FPImage}`,
+                              }}
+                              style={{
+                                width: '50%',
+                                alignSelf: 'center',
+                                height: 140,
+                              }}
+                            />
+                          </TouchableOpacity>
+                        </View>
+            ):
+            null
+          }
 
           {/* Registration Prompt */}
           <View style={styles.registerContainer}>
@@ -591,15 +598,26 @@ const storeUserData = async (userData) => {
 
         {/* Footer now perfectly positioned at the bottom */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>©  Women Development Department</Text>
+          <Text style={styles.footerText}>© Women Development Department</Text>
         </View>
       </ScrollView>
+      <ImageView
+                      images={[
+                        {
+                          uri: `data:image/png;base64,${FPImage}`,
+                        },
+                      ]}
+                      imageIndex={0}
+                      visible={filesVisibile}
+                      onRequestClose={() =>
+                        setFilesVisible(false)
+                      }
+                    />
     </KeyboardAvoidingView>
   );
 };
 
-
-const { width, height } = Dimensions.get('window');
+const {width, height} = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
@@ -607,7 +625,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   headerBackground: {
-    height: height * 0.28,  // Slightly increased height
+    height: height * 0.28, // Slightly increased height
     width: '100%',
     position: 'absolute',
     top: 0,
@@ -640,7 +658,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 5,
@@ -657,7 +675,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     textAlign: 'center',
     textShadowColor: 'rgba(0, 0, 0, 0.2)',
-    textShadowOffset: { width: 1, height: 1 },
+    textShadowOffset: {width: 1, height: 1},
     textShadowRadius: 2,
     marginBottom: 8,
   },
@@ -689,7 +707,7 @@ const styles = StyleSheet.create({
     minHeight: height * 0.55, // Increased height
     justifyContent: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
+    shadowOffset: {width: 0, height: 5},
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 8,
