@@ -14,7 +14,7 @@ import {
 import { LinearGradient } from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import SyncStorage from 'react-native-sync-storage';
-
+import BottomFPButton from '../components/BottomFPButton';
 const { width } = Dimensions.get('window');
 
 const AmbassadorTrackingScreen = ({ navigation }) => {
@@ -453,8 +453,16 @@ const AmbassadorTrackingScreen = ({ navigation }) => {
             <Text style={styles.refreshText}>Refresh Status</Text>
           </TouchableOpacity>
         </View>
+      
+
       </ScrollView>
+           <View>
+  {/* YOUR SCREEN CONTENT */}
+
+  <BottomFPButton navigation={navigation} />
+</View>
     </View>
+   
   );
 };
 

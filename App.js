@@ -81,6 +81,7 @@ import LoginC from './src/CentralizedUsers/LoginC';
 import RegisterC from './src/CentralizedUsers/RegisterC';
 import ProfileScreen from './src/CentralizedUsers/ProfileScreen';
 import ImportCentralizedUsers from './src/CentralizedUsers/ImportCentralizedUsers';
+import FPImageStore from './src/CentralizedUsers/FPImageStore';
 
 // WomenExpo
 import WomenEntrepreneurshipRegistrationScreen from './src/WomenExpo/WomenEntrepreneurshipRegistrationScreen';
@@ -211,7 +212,7 @@ const App = () => {
       <Stack.Screen name="WorkingWomenHostelScreen" component={WorkingWomenHostelScreen} />
       <Stack.Screen name="HostelManagerScreen" component={HostelManagerScreen} />
       <Stack.Screen name="ImportCentralizedUsers" component={ImportCentralizedUsers} />
-
+      <Stack.Screen name="FPImageStore" component={FPImageStore} />
 {/* notification screen */}
     <Stack.Screen name="NotificationsScreen" component={NotificationsScreen} />
 

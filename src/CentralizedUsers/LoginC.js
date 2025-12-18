@@ -322,6 +322,7 @@ const LoginC = ({navigation}) => {
           District: userData.District,
           Tehsil: userData.Tehsil,
           Address: userData.address,
+          biometric_obj:userData.biometric_obj,
         },
         timestamp: new Date().getTime(),
       };
@@ -348,6 +349,7 @@ const LoginC = ({navigation}) => {
         district: userData.District,
         tehsil: userData.Tehsil,
         address: userData.Address,
+        biometric_obj:userData.biometric_obj,
         timestamp: new Date().getTime(),
       };
 
