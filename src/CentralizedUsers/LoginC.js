@@ -32,14 +32,7 @@ const LoginC = ({navigation}) => {
   const [imageBase64, setImageBase64] = React.useState(null);
   const {ZKTecoModule} = NativeModules;
 
-  
   const initializeDevice = () => {
-    // Alert.alert(
-    //       'External Device Unavailable',
-    //       'The external fingerprint scanner is currently not supported. Verifiers with mobile devices equipped with fingerprint scanners should use their mobile device for biometric verification and capture the fingerprint using the camera. \n\nIf biometric verification is not possible, select the "Not Scanned" option to proceed without verification.'
-    //     );
-
-    //   return;
     ZKTecoModule.onBnStart()
       .then(fingerprint => {
         console.log('fingerprint', fingerprint);
@@ -54,28 +47,26 @@ const LoginC = ({navigation}) => {
   const FPImage = biometricObj && biometricObj.image ? biometricObj.image : '';
   // You can also add some initial logging when the component mounts
   useEffect(() => {
-  const eventListener = DeviceEventEmitter.addListener(
-    'ImageReceivedEvent',
-    event => {
-      const { imageBase64 } = event;
-      console.log('Image Base64', imageBase64);
+    const eventListener = DeviceEventEmitter.addListener(
+      'ImageReceivedEvent',
+      event => {
+        const {imageBase64} = event;
+        console.log('Image Base64', imageBase64);
 
-      const img_obj = {
-        image: imageBase64, //add other fields as needed to object such as Ambassador CNIC 
-        
-      };
+        const img_obj = {
+          image: imageBase64, //add other fields as needed to object such as Ambassador CNIC
+        };
 
-      syncStorage.set('biometric_obj', img_obj);
-      setImageBase64(imageBase64);
-    }
-  );
+        syncStorage.set('biometric_obj', img_obj);
+        setImageBase64(imageBase64);
+      },
+    );
 
-  // Cleanup function: remove listener when component unmounts
-  return () => {
-    eventListener.remove();
-  };
-}, []); // empty array = run once on mount
-
+    // Cleanup function: remove listener when component unmounts
+    return () => {
+      eventListener.remove();
+    };
+  }, []); // empty array = run once on mount
 
   // 🔔 Simple helper: show notification in tray
   const showNotification = async (title, body) => {
@@ -546,48 +537,49 @@ const LoginC = ({navigation}) => {
             </View>
           </TouchableOpacity>
 
-          {
-            FPImage && (
-              <View style={{flex: 1, marginTop: 10}}>
-                          <Text
-                            style={{
-                              color: '#000',
-                              fontSize: 14,
-                              fontWeight: 'bold',
-                            }}>
-                            Captured Fingerprint From Biometric Device:
-                          </Text>
-                          <TouchableOpacity
-                            style={{
-                              marginTop: 10,
-                              backgroundColor: '#D3D3D3',
-                              borderRadius: 10,
-                              height: 150,
-                              justifyContent: 'center',
-                              alignItems: 'center',
-                            }}
-                            onPress={() => {
-                              setFilesVisible(true);
-                            }}>
-                            <Image
-                              source={{
-                                uri: `data:image/png;base64,${FPImage}`,
-                              }}
-                              style={{
-                                width: '50%',
-                                alignSelf: 'center',
-                                height: 140,
-                              }}
-                            />
-                          </TouchableOpacity>
-                        </View>
-            )
-          }
-        
+          {FPImage && (
+            <View style={{flex: 1, marginTop: 10}}>
+              <Text
+                style={{
+                  color: '#000',
+                  fontSize: 14,
+                  fontWeight: 'bold',
+                }}>
+                Captured Fingerprint From Biometric Device:
+              </Text>
+              <TouchableOpacity
+                style={{
+                  marginTop: 10,
+                  backgroundColor: '#D3D3D3',
+                  borderRadius: 10,
+                  height: 150,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+                onPress={() => {
+                  setFilesVisible(true);
+                }}>
+                <Image
+                  source={{
+                    uri: `data:image/png;base64,${FPImage}`,
+                  }}
+                  style={{
+                    width: '50%',
+                    alignSelf: 'center',
+                    height: 140,
+                  }}
+                />
+              </TouchableOpacity>
+            </View>
+          )}
+
           {/* Registration Prompt */}
           <View style={styles.registerContainer}>
             <Text style={styles.registerText}>Don't have an account?</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('RegisterC')}>
+            <TouchableOpacity onPress={() => {
+            console.log(syncStorage.get('biometric_obj'));
+            navigation.navigate('RegisterC');
+            }}>
               <Text style={styles.registerLink}>Register Now</Text>
             </TouchableOpacity>
           </View>
@@ -599,17 +591,15 @@ const LoginC = ({navigation}) => {
         </View>
       </ScrollView>
       <ImageView
-                      images={[
-                        {
-                          uri: `data:image/png;base64,${FPImage}`,
-                        },
-                      ]}
-                      imageIndex={0}
-                      visible={filesVisibile}
-                      onRequestClose={() =>
-                        setFilesVisible(false)
-                      }
-                    />
+        images={[
+          {
+            uri: `data:image/png;base64,${FPImage}`,
+          },
+        ]}
+        imageIndex={0}
+        visible={filesVisibile}
+        onRequestClose={() => setFilesVisible(false)}
+      />
     </KeyboardAvoidingView>
   );
 };
