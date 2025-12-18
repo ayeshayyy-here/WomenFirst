@@ -60,11 +60,8 @@ const LoginC = ({navigation}) => {
       console.log('Image Base64', imageBase64);
 
       const img_obj = {
-        image: imageBase64,
-        pwd_id: pwd_id,
-        about: aboutBio,
-        rem: guardianBiometric.rem,
-        rel: guardianBiometric.rel,
+        image: imageBase64, //add other fields as needed to object such as Ambassador CNIC 
+        
       };
 
       syncStorage.set('biometric_obj', img_obj);
