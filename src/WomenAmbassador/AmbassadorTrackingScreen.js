@@ -209,7 +209,7 @@ const AmbassadorTrackingScreen = ({ navigation }) => {
       console.error('[ERROR] 💥 Error stack:', error.stack);
       Alert.alert(
         'Connection Error', 
-        'Failed to fetch tracking data. Please check your internet connection and try again.',
+        'Failed to fetch registered data. Your data does not exists in our records ',
         [{ text: 'OK' }]
       );
     } finally {
@@ -300,16 +300,7 @@ const AmbassadorTrackingScreen = ({ navigation }) => {
           </TouchableOpacity>
         )}
 
-        {/* Progress Summary */}
-        <View style={styles.progressSummary}>
-          {/* <Text style={styles.progressText}>
-            Progress: {trackingSteps.completed_count}/{trackingSteps.total_steps} Steps Completed
-          </Text>
-          <Text style={styles.progressPercent}>
-            {trackingSteps.progress}%
-          </Text> */}
-          
-        </View>
+    
       </View>
        <OperationExectiveTrackingScreen 
             userCnic={trackingData.registration.cnic_bform || userCnic}

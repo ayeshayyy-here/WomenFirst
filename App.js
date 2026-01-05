@@ -91,7 +91,7 @@ import AmbassadorTrackingScreen from './src/WomenAmbassador/AmbassadorTrackingSc
 import OperationExectiveTrackingScreen from './src/WomenAmbassador/OperationExectiveTrackingScreen';
 import ActivityCalendarScreen from './src/WomenAmbassador/ActivityCalendarScreen';
 import ActivitiesMonitoringScreen from './src/WomenAmbassador/ActivitiesMonitoringScreen';
-
+import AccountsDetailsScreen from './src/WomenAmbassador/AccountsDetailsScreen';
 // YouthPitchRegistrationScreen
 import YouthPitchRegistrationScreen from './src/YouthPitch/YouthPitchRegistrationScreen';
 import { fetchAndShowNotifications } from './src/utils/notificationHandler';
@@ -209,7 +209,7 @@ const App = () => {
       <Stack.Screen name="OperationExectiveTrackingScreen" component={OperationExectiveTrackingScreen} />
       <Stack.Screen name="ActivityCalendarScreen" component={ActivityCalendarScreen} />
        <Stack.Screen name="ActivitiesMonitoringScreen" component={ActivitiesMonitoringScreen} />
-      
+      <Stack.Screen name="AccountsDetailsScreen" component={AccountsDetailsScreen} />
 {/* YouthPitchRegistrationScreen */}
   <Stack.Screen name="YouthPitchRegistrationScreen" component={YouthPitchRegistrationScreen} />
       

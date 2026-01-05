@@ -494,7 +494,7 @@ const LoginC = ({navigation}) => {
               />
             </LinearGradient>
           </TouchableOpacity>
-          <TouchableOpacity
+          {/* <TouchableOpacity
             onPress={initializeDevice}
             style={{
               borderWidth: 2,
@@ -573,7 +573,7 @@ const LoginC = ({navigation}) => {
                 />
               </TouchableOpacity>
             </View>
-          )}
+          )} */}
 
           {/* Registration Prompt */}
           <View style={styles.registerContainer}>

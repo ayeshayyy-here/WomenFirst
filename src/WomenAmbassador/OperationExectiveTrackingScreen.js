@@ -46,7 +46,7 @@ const OperationExectiveTrackingScreen = ({ userCnic }) => {
       
       console.log('[STEP 1] 🌐 Checking Operation & Executive status for CNIC:', cnic);
 
-      const API_URL = 'https://b00886286dc4.ngrok-free.app/api/ambassador/operation-executive-status';
+      const API_URL = 'https://fa-wdd.punjab.gov.pk/api/ambassador/operation-executive-status';
       
       const requestBody = {
         cnic: cnic
@@ -149,19 +149,11 @@ const OperationExectiveTrackingScreen = ({ userCnic }) => {
         break;
         
       case 'accounts':
-        Alert.alert(
-          'Accounts Details',
-          'This will open the Accounts Details screen',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { 
-              text: 'Open', 
-              onPress: () => {
-                Alert.alert('Coming Soon', 'Accounts Details screen will be implemented next');
-              }
-            }
-          ]
-        );
+        navigation.navigate('AccountsDetailsScreen', { 
+          userCnic: userCnic,
+          registrationId: executiveData?.registration_id
+        });
+        
         break;
         
       case 'award':

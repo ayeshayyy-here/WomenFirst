@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -15,17 +16,14 @@ import {
   FlatList,
   Image,
   SafeAreaView,
-  Animated,
+  TextInput,
 } from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import Icon2 from 'react-native-vector-icons/MaterialIcons';
 import moment from 'moment';
 import DocumentPicker from 'react-native-document-picker';
-import ImagePicker from 'react-native-image-picker';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
-import Video from 'react-native-video';
 
 const { width, height } = Dimensions.get('window');
 
@@ -39,65 +37,102 @@ const ActivitiesMonitoringScreen = ({ route, navigation }) => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showFillModal, setShowFillModal] = useState(false);
   const [activityDetails, setActivityDetails] = useState(null);
-  const [fadeAnim] = useState(new Animated.Value(0));
   
-  // Form state for filling activity
+  // Complete form state matching web form
   const [formData, setFormData] = useState({
+    application_id: registrationId,
+    orientactivity_id: '',
+    activity_title: '',
+    activity_date: '',
+    mode: '', // 'university_in_person' or 'online'
+    type: '', // Activity type
+    type_other: '', // Other type text
+    audience: [], // Array of selected audience
+    audience_other: '', // Other audience text
+    male: '0',
+    female: '0',
     description: '',
-    male_participants: '',
-    female_participants: '',
+    attendance_sheet: null,
     photos: [],
     video: null,
     supporting_material: [],
-    social_links: [''],
-    attendance_sheet: null,
+    social: {
+      linkedin: { enabled: false, url: '' },
+      facebook: { enabled: false, url: '' },
+      instagram: { enabled: false, url: '' },
+      twitter: { enabled: false, url: '' },
+      whatsapp: { enabled: false, url: '' },
+      others: { enabled: false, url: '' },
+    },
   });
+
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  const API_BASE_URL = 'https://b00886286dc4.ngrok-free.app';
+  // Activity types (same as web)
+  const activityTypes = [
+    'Orientation Session',
+    'Training Workshop',
+    'Awareness Campaign',
+    'Community Service',
+    'Networking Event',
+    'Fundraising Activity',
+    'Educational Session',
+    'Sports Activity',
+    'Cultural Event',
+    'Research Activity',
+    'other'
+  ];
+
+  // Audience options (same as web)
+  const audienceOptions = [
+    'students',
+    'faculty',
+    'general_public',
+    'ngos_cbos',
+    'media_persons',
+    'guest_speaker',
+    'other'
+  ];
+
+  const API_BASE_URL = 'https://fa-wdd.punjab.gov.pk/api';
 
   useEffect(() => {
     console.log('[INIT] 🚀 ActivitiesMonitoringScreen mounted');
-    console.log('[INIT] 🔑 CNIC:', userCnic);
     console.log('[INIT] 📋 Registration ID:', registrationId);
     
-    if (userCnic && registrationId) {
+    if (registrationId) {
       fetchActivities();
     } else {
-      Alert.alert('Error', 'Required information not available');
+      Alert.alert('Error', 'Registration ID not available');
       navigation.goBack();
     }
-  }, [userCnic, registrationId]);
+  }, [registrationId]);
 
+  // Fetch activities list
   const fetchActivities = async () => {
     try {
       setLoading(true);
       
-      const API_URL = `${API_BASE_URL}/api/activities-monitoring/activities/${registrationId}`;
+      console.log('[API] 📦 Fetching activities for registration:', registrationId);
       
-      console.log('[API] 📦 Fetching activities...');
-      
-      const response = await fetch(API_URL, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/ambassador/${registrationId}/activities`,
+        {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+        }
+      );
 
       const data = await response.json();
-      console.log('[API] ✅ Activities data received:', data.success);
+      console.log('[API] ✅ Activities data received:', data);
       
       if (data.success) {
         setActivities(data.data || []);
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }).start();
       } else {
         Alert.alert('Error', data.message || 'Failed to load activities');
       }
@@ -110,26 +145,39 @@ const ActivitiesMonitoringScreen = ({ route, navigation }) => {
     }
   };
 
+  // Fetch activity details
   const fetchActivityDetails = async (activityId) => {
     try {
       setLoading(true);
       
-      const API_URL = `${API_BASE_URL}/api/activities-monitoring/activity/${registrationId}/${activityId}/details`;
+      console.log('[API] 📦 Fetching activity details:', activityId);
       
-      console.log('[API] 📦 Fetching activity details...');
-      
-      const response = await fetch(API_URL, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/ambassador/${registrationId}/activities/${activityId}/details`,
+        {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+          },
+        }
+      );
 
       const data = await response.json();
-      console.log('[API] ✅ Activity details received:', data.success);
+      console.log('[API] ✅ Activity details received:', data);
       
       if (data.success) {
-        setActivityDetails(data.data);
+        const formattedDetails = {
+          id: data.data.id,
+          activity_title: data.data.activity_title,
+          activity_date: data.data.activity_date,
+          mode: data.data.mode,
+          venue: data.data.venue,
+          university_name: data.data.university_name,
+          is_filled: data.data.is_filled,
+          details: data.data.data || {},
+        };
+        
+        setActivityDetails(formattedDetails);
         setShowDetailsModal(true);
       } else {
         if (data.redirect) {
@@ -158,72 +206,316 @@ const ActivitiesMonitoringScreen = ({ route, navigation }) => {
     }
   };
 
+  // Handle fill activity button
   const handleFillActivity = (activityId) => {
     const activity = activities.find(a => a.id === activityId);
     if (activity) {
       setSelectedActivity(activity);
-      resetForm();
+      
+      // Determine mode from web data
+      let mode = '';
+      if (activity.mode === 'Physical') {
+        mode = 'university_in_person';
+      } else if (activity.mode === 'Online') {
+        mode = 'online';
+      }
+      
+      setFormData(prev => ({
+        ...prev,
+        orientactivity_id: activityId,
+        activity_title: activity.activity_title,
+        activity_date: moment(activity.activity_date, 'DD-MM-YYYY').format('YYYY-MM-DD'),
+        mode: mode,
+      }));
+      
       setShowFillModal(true);
     }
   };
 
+  // Handle view details
   const handleViewDetails = (activityId) => {
     fetchActivityDetails(activityId);
   };
 
+  // Refresh
   const onRefresh = () => {
     setRefreshing(true);
     fetchActivities();
   };
 
+  // Reset form
   const resetForm = () => {
     setFormData({
+      application_id: registrationId,
+      orientactivity_id: '',
+      activity_title: '',
+      activity_date: '',
+      mode: '',
+      type: '',
+      type_other: '',
+      audience: [],
+      audience_other: '',
+      male: '0',
+      female: '0',
       description: '',
-      male_participants: '',
-      female_participants: '',
+      attendance_sheet: null,
       photos: [],
       video: null,
       supporting_material: [],
-      social_links: [''],
-      attendance_sheet: null,
+      social: {
+        linkedin: { enabled: false, url: '' },
+        facebook: { enabled: false, url: '' },
+        instagram: { enabled: false, url: '' },
+        twitter: { enabled: false, url: '' },
+        whatsapp: { enabled: false, url: '' },
+        others: { enabled: false, url: '' },
+      },
     });
     setFormErrors({});
   };
 
+  // Validate form (matching web validation)
   const validateForm = () => {
     const errors = {};
     
+    console.log('[VALIDATION] Starting form validation...');
+    
+    // Activity title
+    if (!formData.activity_title.trim()) {
+      errors.activity_title = 'Activity Title is required';
+      console.log('[VALIDATION] ❌ Activity title missing');
+    }
+    
+    // Mode
+    if (!formData.mode) {
+      errors.mode = 'Venue/Mode is required';
+      console.log('[VALIDATION] ❌ Mode missing');
+    }
+    
+    // Type
+    if (!formData.type) {
+      errors.type = 'Type of Activity is required';
+      console.log('[VALIDATION] ❌ Type missing');
+    }
+    
+    // Type other (if type is 'other')
+    if (formData.type === 'other' && !formData.type_other.trim()) {
+      errors.type_other = 'Please specify other type';
+      console.log('[VALIDATION] ❌ Type other missing');
+    }
+    
+    // Audience
+    if (formData.audience.length === 0) {
+      errors.audience = 'Target Audience is required';
+      console.log('[VALIDATION] ❌ Audience missing');
+    }
+    
+    // Audience other (if 'other' is selected)
+    if (formData.audience.includes('other') && !formData.audience_other.trim()) {
+      errors.audience_other = 'Please specify other audience';
+      console.log('[VALIDATION] ❌ Audience other missing');
+    }
+    
+    // Male participants
+    if (!formData.male || isNaN(formData.male) || parseInt(formData.male) < 0) {
+      errors.male = 'Enter valid number of male participants';
+      console.log('[VALIDATION] ❌ Male participants invalid:', formData.male);
+    }
+    
+    // Female participants
+    if (!formData.female || isNaN(formData.female) || parseInt(formData.female) < 0) {
+      errors.female = 'Enter valid number of female participants';
+      console.log('[VALIDATION] ❌ Female participants invalid:', formData.female);
+    }
+    
+    // Description
     if (!formData.description.trim()) {
       errors.description = 'Description is required';
+      console.log('[VALIDATION] ❌ Description missing');
     }
     
-    if (!formData.male_participants || isNaN(formData.male_participants) || parseInt(formData.male_participants) < 0) {
-      errors.male_participants = 'Enter valid number of male participants';
+    // Word count check
+    const wordCount = formData.description.trim().split(/\s+/).length;
+    if (wordCount > 300) {
+      errors.description = 'Description must be 300 words or less';
+      console.log('[VALIDATION] ❌ Description too long:', wordCount);
     }
     
-    if (!formData.female_participants || isNaN(formData.female_participants) || parseInt(formData.female_participants) < 0) {
-      errors.female_participants = 'Enter valid number of female participants';
-    }
-    
-    // Validate at least one photo
-    if (formData.photos.length === 0) {
-      errors.photos = 'At least one photo is required';
-    }
-    
-    // Validate attendance sheet
+    // Attendance sheet
     if (!formData.attendance_sheet) {
       errors.attendance_sheet = 'Attendance sheet is required';
+      console.log('[VALIDATION] ❌ Attendance sheet missing');
     }
     
+    // Photos (3-6 required)
+    if (formData.photos.length < 3 || formData.photos.length > 6) {
+      errors.photos = '3-6 photos are required';
+      console.log('[VALIDATION] ❌ Photos count invalid:', formData.photos.length);
+    }
+    
+    // Social media validation - at least one required
+    const hasSocialMedia = Object.values(formData.social).some(
+      platform => platform.enabled && platform.url.trim()
+    );
+    
+    if (!hasSocialMedia) {
+      errors.social = 'At least one social media link is required';
+      console.log('[VALIDATION] ❌ Social media missing');
+    } else {
+      // Validate URLs for enabled platforms
+      Object.entries(formData.social).forEach(([platform, data]) => {
+        if (data.enabled && data.url.trim()) {
+          const urlRegex = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
+          if (!urlRegex.test(data.url)) {
+            errors[`social_${platform}`] = `Invalid ${platform} URL`;
+            console.log(`[VALIDATION] ❌ Invalid ${platform} URL:`, data.url);
+          }
+        }
+      });
+    }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
+    console.log('[VALIDATION] Validation errors:', errors);
     return errors;
   };
 
+  // Submit activity form
+  const submitActivityForm = async () => {
+    console.log('[SUBMIT] Starting form submission...');
+    console.log('[SUBMIT] Form data:', JSON.stringify(formData, null, 2));
+    
+    const errors = validateForm();
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      Alert.alert('Validation Error', 'Please fill all required fields correctly');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      
+      const data = new FormData();
+      
+      // Basic fields
+      data.append('application_id', formData.application_id.toString());
+      data.append('orientactivity_id', formData.orientactivity_id.toString());
+      data.append('activity_title', formData.activity_title);
+      data.append('activity_date', formData.activity_date);
+      data.append('mode', formData.mode);
+      data.append('type', formData.type);
+      
+      if (formData.type === 'other') {
+        data.append('type_other', formData.type_other);
+      }
+      
+      // Audience (array)
+      formData.audience.forEach((item, index) => {
+        data.append(`audience[${index}]`, item);
+      });
+      
+      if (formData.audience.includes('other') && formData.audience_other) {
+        data.append('audience_other', formData.audience_other);
+      }
+      
+      data.append('male', formData.male);
+      data.append('female', formData.female);
+      data.append('description', formData.description);
+      
+      // Attendance sheet
+      if (formData.attendance_sheet) {
+        data.append('attendance_sheet', {
+          uri: formData.attendance_sheet.uri,
+          type: formData.attendance_sheet.type,
+          name: formData.attendance_sheet.name,
+        });
+      }
+      
+      // Photos (3-6)
+      formData.photos.forEach((photo, index) => {
+        data.append(`photos[${index}]`, {
+          uri: photo.uri,
+          type: photo.type,
+          name: photo.name,
+        });
+      });
+      
+      // Video (optional)
+      if (formData.video) {
+        data.append('video', {
+          uri: formData.video.uri,
+          type: formData.video.type,
+          name: formData.video.name,
+        });
+      }
+      
+      // Supporting files (optional)
+      formData.supporting_material.forEach((file, index) => {
+        data.append(`supporting_material[${index}]`, {
+          uri: file.uri,
+          type: file.type,
+          name: file.name,
+        });
+      });
+      
+      // Social media links
+      Object.entries(formData.social).forEach(([platform, platformData]) => {
+        if (platformData.enabled && platformData.url.trim()) {
+          data.append(`social.${platform}.enabled`, '1');
+          data.append(`social.${platform}.url`, platformData.url.trim());
+        }
+      });
+
+      console.log('[API] 📦 Submitting activity form. ');
+      
+      const response = await fetch(
+        `${API_BASE_URL}/activityform/submit`,
+        {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'multipart/form-data',
+          },
+          body: data,
+        }
+      );
+
+      const result = await response.json();
+      console.log('[API] ✅ Submit response:', result);
+      
+      if (result.success) {
+        Alert.alert('Success!', 'Activity submitted successfully!', [
+          { 
+            text: 'OK', 
+            onPress: () => {
+              setShowFillModal(false);
+              resetForm();
+              fetchActivities();
+            }
+          }
+        ]);
+      } else {
+        let errorMessage = result.message || 'Failed to submit activity';
+        if (result.errors) {
+          errorMessage = Object.values(result.errors).flat().join('\n');
+        }
+        Alert.alert('Error', errorMessage);
+      }
+    } catch (error) {
+      console.error('[ERROR] 💥 Submit failed:', error);
+      Alert.alert('Error', 'Failed to submit activity. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+      setUploadProgress(0);
+    }
+  };
+
+  // File picker functions
   const pickPhotos = async () => {
     try {
+      console.log('[FILE] Picking photos...');
       const result = await launchImageLibrary({
         mediaType: 'photo',
         quality: 0.8,
-        selectionLimit: 10, // Allow multiple photos
+        selectionLimit: 6 - formData.photos.length, // Max 6 total
       });
       
       if (result.assets && result.assets.length > 0) {
@@ -241,15 +533,18 @@ const ActivitiesMonitoringScreen = ({ route, navigation }) => {
         if (formErrors.photos) {
           setFormErrors(prev => ({ ...prev, photos: '' }));
         }
+        
+        console.log('[FILE] Photos selected:', newPhotos.length);
       }
     } catch (error) {
-      console.error('Photo picker error:', error);
+      console.error('[FILE] Photo picker error:', error);
       Alert.alert('Error', 'Failed to pick photos');
     }
   };
 
   const takePhoto = async () => {
     try {
+      console.log('[FILE] Taking photo...');
       const result = await launchCamera({
         mediaType: 'photo',
         quality: 0.8,
@@ -263,23 +558,30 @@ const ActivitiesMonitoringScreen = ({ route, navigation }) => {
           name: result.assets[0].fileName || `camera_${Date.now()}.jpg`,
         };
         
-        setFormData(prev => ({
-          ...prev,
-          photos: [...prev.photos, newPhoto]
-        }));
-        
-        if (formErrors.photos) {
-          setFormErrors(prev => ({ ...prev, photos: '' }));
+        if (formData.photos.length < 6) {
+          setFormData(prev => ({
+            ...prev,
+            photos: [...prev.photos, newPhoto]
+          }));
+          
+          if (formErrors.photos) {
+            setFormErrors(prev => ({ ...prev, photos: '' }));
+          }
+          
+          console.log('[FILE] Photo taken successfully');
+        } else {
+          Alert.alert('Limit Reached', 'Maximum 6 photos allowed');
         }
       }
     } catch (error) {
-      console.error('Camera error:', error);
+      console.error('[FILE] Camera error:', error);
       Alert.alert('Error', 'Failed to take photo');
     }
   };
 
   const pickVideo = async () => {
     try {
+      console.log('[FILE] Picking video...');
       const result = await launchImageLibrary({
         mediaType: 'video',
         quality: 0.8,
@@ -296,15 +598,18 @@ const ActivitiesMonitoringScreen = ({ route, navigation }) => {
           ...prev,
           video: video
         }));
+        
+        console.log('[FILE] Video selected:', video.name);
       }
     } catch (error) {
-      console.error('Video picker error:', error);
+      console.error('[FILE] Video picker error:', error);
       Alert.alert('Error', 'Failed to pick video');
     }
   };
 
   const pickAttendanceSheet = async () => {
     try {
+      console.log('[FILE] Picking attendance sheet...');
       const result = await DocumentPicker.pick({
         type: [DocumentPicker.types.pdf, DocumentPicker.types.images],
       });
@@ -324,9 +629,11 @@ const ActivitiesMonitoringScreen = ({ route, navigation }) => {
       if (formErrors.attendance_sheet) {
         setFormErrors(prev => ({ ...prev, attendance_sheet: '' }));
       }
+      
+      console.log('[FILE] Attendance sheet selected:', file.name);
     } catch (error) {
       if (!DocumentPicker.isCancel(error)) {
-        console.error('Document picker error:', error);
+        console.error('[FILE] Document picker error:', error);
         Alert.alert('Error', 'Failed to pick document');
       }
     }
@@ -334,13 +641,12 @@ const ActivitiesMonitoringScreen = ({ route, navigation }) => {
 
   const pickSupportingFiles = async () => {
     try {
-      const result = await DocumentPicker.pickMultiple({
+      console.log('[FILE] Picking supporting files...');
+      const result = await DocumentPicker.pick({
         type: [
           DocumentPicker.types.pdf,
           DocumentPicker.types.images,
-          DocumentPicker.types.docx,
-          DocumentPicker.types.ppt,
-          DocumentPicker.types.xlsx,
+       
         ],
       });
       
@@ -355,38 +661,19 @@ const ActivitiesMonitoringScreen = ({ route, navigation }) => {
         ...prev,
         supporting_material: [...prev.supporting_material, ...newFiles]
       }));
+      
+      console.log('[FILE] Supporting files selected:', newFiles.length);
     } catch (error) {
       if (!DocumentPicker.isCancel(error)) {
-        console.error('Document picker error:', error);
+        console.error('[FILE] Document picker error:', error);
         Alert.alert('Error', 'Failed to pick files');
       }
     }
   };
 
-  const addSocialLinkField = () => {
-    setFormData(prev => ({
-      ...prev,
-      social_links: [...prev.social_links, '']
-    }));
-  };
-
-  const removeSocialLinkField = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      social_links: prev.social_links.filter((_, i) => i !== index)
-    }));
-  };
-
-  const updateSocialLink = (index, value) => {
-    const newLinks = [...formData.social_links];
-    newLinks[index] = value;
-    setFormData(prev => ({
-      ...prev,
-      social_links: newLinks
-    }));
-  };
-
+  // Remove functions
   const removePhoto = (index) => {
+    console.log('[FILE] Removing photo at index:', index);
     setFormData(prev => ({
       ...prev,
       photos: prev.photos.filter((_, i) => i !== index)
@@ -394,119 +681,85 @@ const ActivitiesMonitoringScreen = ({ route, navigation }) => {
   };
 
   const removeSupportingFile = (index) => {
+    console.log('[FILE] Removing supporting file at index:', index);
     setFormData(prev => ({
       ...prev,
       supporting_material: prev.supporting_material.filter((_, i) => i !== index)
     }));
   };
 
-  const submitActivityForm = async () => {
-    const errors = validateForm();
-    if (Object.keys(errors).length > 0) {
-      setFormErrors(errors);
-      Alert.alert('Validation Error', 'Please fill all required fields correctly');
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-      setUploading(true);
+  // Handle audience selection
+  const toggleAudience = (audienceItem) => {
+    console.log('[FORM] Toggling audience:', audienceItem);
+    setFormData(prev => {
+      const newAudience = prev.audience.includes(audienceItem)
+        ? prev.audience.filter(item => item !== audienceItem)
+        : [...prev.audience, audienceItem];
       
-      const formDataToSend = new FormData();
-      
-      // Add basic data
-      formDataToSend.append('registration_id', registrationId.toString());
-      formDataToSend.append('activity_id', selectedActivity.id.toString());
-      formDataToSend.append('description', formData.description);
-      formDataToSend.append('male_participants', formData.male_participants);
-      formDataToSend.append('female_participants', formData.female_participants);
-      
-      // Add photos
-      formData.photos.forEach((photo, index) => {
-        formDataToSend.append(`photos[${index}]`, {
-          uri: photo.uri,
-          type: photo.type,
-          name: photo.name,
-        });
-      });
-      
-      // Add video if exists
-      if (formData.video) {
-        formDataToSend.append('video', {
-          uri: formData.video.uri,
-          type: formData.video.type,
-          name: formData.video.name,
-        });
+      if (formErrors.audience) {
+        setFormErrors(prevErrors => ({ ...prevErrors, audience: '' }));
       }
       
-      // Add supporting files
-      formData.supporting_material.forEach((file, index) => {
-        formDataToSend.append(`supporting_material[${index}]`, {
-          uri: file.uri,
-          type: file.type,
-          name: file.name,
-        });
-      });
+      if (audienceItem === 'other' && !newAudience.includes('other')) {
+        return { ...prev, audience: newAudience, audience_other: '' };
+      }
       
-      // Add social links
-      formData.social_links.forEach((link, index) => {
-        if (link.trim()) {
-          formDataToSend.append(`social_links[${index}]`, link.trim());
+      return { ...prev, audience: newAudience };
+    });
+  };
+
+  // Handle social media toggles
+  const toggleSocialMedia = (platform) => {
+    console.log('[FORM] Toggling social media:', platform);
+    setFormData(prev => ({
+      ...prev,
+      social: {
+        ...prev.social,
+        [platform]: {
+          ...prev.social[platform],
+          enabled: !prev.social[platform].enabled
         }
-      });
-      
-      // Add attendance sheet
-      if (formData.attendance_sheet) {
-        formDataToSend.append('attendance_sheet', {
-          uri: formData.attendance_sheet.uri,
-          type: formData.attendance_sheet.type,
-          name: formData.attendance_sheet.name,
-        });
       }
-      
-      const API_URL = `${API_BASE_URL}/api/activities-monitoring/submit-activity`;
-      
-      console.log('[API] 📦 Submitting activity form...');
-      
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'multipart/form-data',
-        },
-        body: formDataToSend,
+    }));
+    
+    if (formErrors.social || formErrors[`social_${platform}`]) {
+      setFormErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.social;
+        delete newErrors[`social_${platform}`];
+        return newErrors;
       });
-
-      const data = await response.json();
-      console.log('[API] ✅ Submit response:', data.success);
-      
-      if (data.success) {
-        Alert.alert('Success!', 'Activity submitted successfully!', [
-          { 
-            text: 'OK', 
-            onPress: () => {
-              setShowFillModal(false);
-              resetForm();
-              fetchActivities();
-            }
-          }
-        ]);
-      } else {
-        Alert.alert('Error', data.message || 'Failed to submit activity');
-      }
-    } catch (error) {
-      console.error('[ERROR] 💥 Submit failed:', error);
-      Alert.alert('Error', 'Failed to submit activity. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-      setUploading(false);
-      setUploadProgress(0);
     }
   };
 
+  // Update social media URL
+  const updateSocialUrl = (platform, url) => {
+    console.log('[FORM] Updating social URL:', platform, url);
+    setFormData(prev => ({
+      ...prev,
+      social: {
+        ...prev.social,
+        [platform]: {
+          ...prev.social[platform],
+          url: url
+        }
+      }
+    }));
+    
+    if (formErrors[`social_${platform}`]) {
+      setFormErrors(prev => ({ ...prev, [`social_${platform}`]: '' }));
+    }
+  };
+
+  // Calculate word count
+  const getWordCount = () => {
+    return formData.description.trim().split(/\s+/).filter(word => word.length > 0).length;
+  };
+
+  // Render activity item
   const renderActivityItem = ({ item, index }) => {
     const isFilled = item.is_filled || false;
-    const activityDate = moment(item.activity_date).format('MMM D, YYYY');
+    const activityDate = item.activity_date || '—';
     const universityName = item.university_name || 'University';
     
     return (
@@ -579,6 +832,7 @@ const ActivitiesMonitoringScreen = ({ route, navigation }) => {
     );
   };
 
+  // Render activity list
   const renderActivityList = () => {
     if (activities.length === 0) {
       return (
@@ -619,249 +873,286 @@ const ActivitiesMonitoringScreen = ({ route, navigation }) => {
     );
   };
 
+  // Render details modal
   const renderDetailsModal = () => {
     if (!activityDetails) return null;
     
     const activity = activityDetails;
-    const isFilled = activity.is_filled || false;
+    const details = activity.details || {};
     
     return (
-      <Modal
-        visible={showDetailsModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowDetailsModal(false)}
+   <Modal
+  visible={showDetailsModal}
+  animationType="slide"
+  transparent={true}
+  onRequestClose={() => setShowDetailsModal(false)}
+>
+  <SafeAreaView style={styles.modalOverlay}>
+    <View style={styles.modalContent}>
+      <LinearGradient
+        colors={['#6B2D5C', '#3E2A5D']}
+        style={styles.modalHeader}
       >
-        <SafeAreaView style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <LinearGradient
-              colors={['#6B2D5C', '#3E2A5D']}
-              style={styles.modalHeader}
-            >
-              <View style={styles.modalHeaderContent}>
-                <Icon name="tasks" size={18} color="#fff" />
-                <Text style={styles.modalTitle} numberOfLines={2}>
-                  Activity Details
-                </Text>
-              </View>
-              <TouchableOpacity 
-                style={styles.closeButton}
-                onPress={() => setShowDetailsModal(false)}
-              >
-                <Icon name="times" size={18} color="#fff" />
-              </TouchableOpacity>
-            </LinearGradient>
-            
-            <ScrollView 
-              style={styles.modalBody} 
-              showsVerticalScrollIndicator={false}
-            >
-              {/* Basic Info */}
-              <View style={styles.detailSection}>
-                <Text style={styles.sectionTitle}>Activity Information</Text>
-                
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Title:</Text>
-                  <Text style={styles.detailValue}>{activity.activity_title}</Text>
-                </View>
-                
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Date:</Text>
-                  <Text style={styles.detailValue}>
-                    {moment(activity.activity_date).format('dddd, MMMM D, YYYY')}
+        <View style={styles.modalHeaderContent}>
+          <Icon name="tasks" size={18} color="#fff" />
+          <Text style={styles.modalTitle} numberOfLines={2}>
+            {activity.activity_title}
+          </Text>
+        </View>
+        <TouchableOpacity 
+          style={styles.closeButton}
+          onPress={() => setShowDetailsModal(false)}
+        >
+          <Icon name="times" size={18} color="#fff" />
+        </TouchableOpacity>
+      </LinearGradient>
+      
+      <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+        <View style={styles.detailSection}>
+          <Text style={styles.sectionTitle}>Activity Information</Text>
+            <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Title:</Text>
+            <Text style={styles.detailValue}> {activity.activity_title}</Text>
+          </View>
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Date:</Text>
+            <Text style={styles.detailValue}>{activity.activity_date}</Text>
+          </View>
+          
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Mode:</Text>
+            <View style={[
+              styles.modeBadge,
+              { backgroundColor: activity.mode === 'Physical' ? '#4CAF50' : '#2196F3' }
+            ]}>
+              <Text style={styles.modeBadgeText}>{activity.mode}</Text>
+            </View>
+          </View>
+          
+          {activity.venue && activity.venue !== '—' && (
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Venue:</Text>
+              <Text style={styles.detailValue}>{activity.venue}</Text>
+            </View>
+          )}
+          
+          {activity.university_name && (
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>University:</Text>
+              <Text style={styles.detailValue}>{activity.university_name}</Text>
+            </View>
+          )}
+        </View>
+        
+        {activity.is_filled && (
+          <>
+            <View style={styles.detailSection}>
+              <Text style={styles.sectionTitle}>Attendance</Text>
+              
+              <View style={styles.attendanceRow}>
+                <View style={styles.attendanceItem}>
+                  <Icon name="male" size={16} color="#2196F3" />
+                  <Text style={styles.attendanceLabel}>Male</Text>
+                  <Text style={styles.attendanceValue}>
+                    {details.male || 0}
                   </Text>
                 </View>
                 
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Mode:</Text>
-                  <View style={[
-                    styles.modeBadge,
-                    { backgroundColor: activity.mode === 'Physical' ? '#4CAF50' : '#2196F3' }
-                  ]}>
-                    <Text style={styles.modeBadgeText}>{activity.mode}</Text>
-                  </View>
+                <View style={styles.attendanceItem}>
+                  <Icon name="female" size={16} color="#E91E63" />
+                  <Text style={styles.attendanceLabel}>Female</Text>
+                  <Text style={styles.attendanceValue}>
+                    {details.female || 0}
+                  </Text>
                 </View>
                 
-                {activity.venue && (
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Venue:</Text>
-                    <Text style={styles.detailValue}>{activity.venue}</Text>
-                  </View>
-                )}
-                
-                {activity.university_name && (
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>University:</Text>
-                    <Text style={styles.detailValue}>{activity.university_name}</Text>
-                  </View>
-                )}
+                <View style={styles.attendanceItem}>
+                  <Icon name="users" size={16} color="#4CAF50" />
+                  <Text style={styles.attendanceLabel}>Total</Text>
+                  <Text style={styles.attendanceValue}>
+                    {(parseInt(details.male) || 0) + (parseInt(details.female) || 0)}
+                  </Text>
+                </View>
               </View>
-              
-              {/* Filled Details (if activity is filled) */}
-              {isFilled && activity.details && (
-                <>
-                  {/* Attendance */}
-                  <View style={styles.detailSection}>
-                    <Text style={styles.sectionTitle}>Attendance</Text>
+            </View>
+            
+            {details.description && (
+              <View style={styles.detailSection}>
+                <Text style={styles.sectionTitle}>Description</Text>
+                <Text style={styles.descriptionText}>
+                  {details.description}
+                </Text>
+              </View>
+            )}
+            
+            {/* FIXED: Photos Section - remove /storage/ from path */}
+            {details.photos && details.photos.length > 0 && (
+              <View style={styles.detailSection}>
+                <Text style={styles.sectionTitle}>Photos ({details.photos.length})</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  {details.photos.map((photo, index) => {
+                    // Construct URL: Remove /storage/ prefix and use correct base
+                    let photoUrl = photo;
+                    if (!photo.startsWith('http')) {
+                      // Remove /storage/ from the beginning of the path
+                      const cleanPath = photo.replace(/^\/storage\//, '');
+                      photoUrl = `https://fa-wdd.punjab.gov.pk/${cleanPath}`;
+                    }
                     
-                    <View style={styles.attendanceRow}>
-                      <View style={styles.attendanceItem}>
-                        <Icon name="male" size={16} color="#2196F3" />
-                        <Text style={styles.attendanceLabel}>Male</Text>
-                        <Text style={styles.attendanceValue}>
-                          {activity.details.male || 0}
-                        </Text>
-                      </View>
-                      
-                      <View style={styles.attendanceItem}>
-                        <Icon name="female" size={16} color="#E91E63" />
-                        <Text style={styles.attendanceLabel}>Female</Text>
-                        <Text style={styles.attendanceValue}>
-                          {activity.details.female || 0}
-                        </Text>
-                      </View>
-                      
-                      <View style={styles.attendanceItem}>
-                        <Icon name="users" size={16} color="#4CAF50" />
-                        <Text style={styles.attendanceLabel}>Total</Text>
-                        <Text style={styles.attendanceValue}>
-                          {(parseInt(activity.details.male) || 0) + (parseInt(activity.details.female) || 0)}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                  
-                  {/* Description */}
-                  {activity.details.description && (
-                    <View style={styles.detailSection}>
-                      <Text style={styles.sectionTitle}>Description</Text>
-                      <Text style={styles.descriptionText}>
-                        {activity.details.description}
-                      </Text>
-                    </View>
-                  )}
-                  
-                  {/* Photos */}
-                  {activity.details.photos && activity.details.photos.length > 0 && (
-                    <View style={styles.detailSection}>
-                      <Text style={styles.sectionTitle}>Photos ({activity.details.photos.length})</Text>
-                      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                        {activity.details.photos.map((photo, index) => (
-                          <TouchableOpacity 
-                            key={index}
-                            style={styles.photoItem}
-                            onPress={() => Linking.openURL(photo)}
-                          >
-                            <Icon name="image" size={20} color="#6B2D5C" />
-                            <Text style={styles.photoText}>Photo {index + 1}</Text>
-                          </TouchableOpacity>
-                        ))}
-                      </ScrollView>
-                    </View>
-                  )}
-                  
-                  {/* Video */}
-                  {activity.details.video && (
-                    <View style={styles.detailSection}>
-                      <Text style={styles.sectionTitle}>Video</Text>
+                    return (
                       <TouchableOpacity 
-                        style={styles.videoItem}
-                        onPress={() => Linking.openURL(activity.details.video)}
+                        key={index}
+                        style={styles.photoItem}
+                        onPress={() => Linking.openURL(photoUrl)}
                       >
-                        <Icon name="play-circle" size={20} color="#FF5722" />
-                        <Text style={styles.videoText}>View Video</Text>
+                        <Icon name="eye" size={20} color="#6B2D5C" />
+                        <Text style={styles.photoText}>Photo {index + 1}</Text>
+                         <Text style={styles.photoTextt}>click to view</Text>
                       </TouchableOpacity>
-                    </View>
-                  )}
-                  
-                  {/* Supporting Files */}
-                  {activity.details.supporting_material && activity.details.supporting_material.length > 0 && (
-                    <View style={styles.detailSection}>
-                      <Text style={styles.sectionTitle}>
-                        Supporting Files ({activity.details.supporting_material.length})
-                      </Text>
-                      {activity.details.supporting_material.map((file, index) => (
-                        <TouchableOpacity 
-                          key={index}
-                          style={styles.fileItem}
-                          onPress={() => Linking.openURL(file)}
-                        >
-                          <Icon name="file" size={16} color="#9C27B0" />
-                          <Text style={styles.fileText}>
-                            File {index + 1}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  )}
-                  
-                  {/* Social Media Links */}
-                  {activity.details.social_links && activity.details.social_links.length > 0 && (
-                    <View style={styles.detailSection}>
-                      <Text style={styles.sectionTitle}>Social Media Links</Text>
-                      {activity.details.social_links.map((link, index) => (
-                        <TouchableOpacity 
-                          key={index}
-                          style={styles.linkItem}
-                          onPress={() => Linking.openURL(link.startsWith('http') ? link : `https://${link}`)}
-                        >
-                          <Icon name="external-link" size={14} color="#2196F3" />
-                          <Text style={styles.linkText} numberOfLines={1}>
-                            {link.replace(/^https?:\/\//, '').replace(/^www\./, '')}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  )}
-                  
-                  {/* Attendance Sheet */}
-                  {activity.details.attendance_sheet && (
-                    <View style={styles.detailSection}>
-                      <Text style={styles.sectionTitle}>Attendance Sheet</Text>
-                      <TouchableOpacity 
-                        style={styles.attendanceSheetItem}
-                        onPress={() => Linking.openURL(activity.details.attendance_sheet)}
-                      >
-                        <Icon name="file-pdf" size={18} color="#F44336" />
-                        <Text style={styles.attendanceSheetText}>View Attendance Sheet</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </>
-              )}
-              
-              {/* Action Buttons */}
-              <View style={styles.actionButtons}>
-                {!isFilled && (
-                  <TouchableOpacity 
-                    style={[styles.actionButton, styles.fillButtonLarge]}
-                    onPress={() => {
-                      setShowDetailsModal(false);
-                      handleFillActivity(activity.id);
-                    }}
-                  >
-                    <Icon name="edit" size={14} color="#fff" />
-                    <Text style={styles.actionButtonText}>Fill Activity</Text>
-                  </TouchableOpacity>
-                )}
-                
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            )}
+            
+            {/* FIXED: Video Section - remove /storage/ from path */}
+            {details.video && (
+              <View style={styles.detailSection}>
+                <Text style={styles.sectionTitle}>Video</Text>
                 <TouchableOpacity 
-                  style={[styles.actionButton, styles.closeButtonLarge]}
-                  onPress={() => setShowDetailsModal(false)}
+                  style={styles.videoItem}
+                  onPress={() => {
+                    // Construct URL: Remove /storage/ prefix
+                    let videoUrl = details.video;
+                    if (!videoUrl.startsWith('http')) {
+                      // Remove /storage/ from the beginning of the path
+                      const cleanPath = videoUrl.replace(/^\/storage\//, '');
+                      videoUrl = `https://fa-wdd.punjab.gov.pk/${cleanPath}`;
+                    }
+                    Linking.openURL(videoUrl);
+                  }}
                 >
-                  <Icon name="check" size={14} color="#fff" />
-                  <Text style={styles.actionButtonText}>Close</Text>
+                  <Icon name="play-circle" size={20} color="#FF5722" />
+                  <Text style={styles.videoText}>View Video</Text>
                 </TouchableOpacity>
               </View>
-            </ScrollView>
-          </View>
-        </SafeAreaView>
-      </Modal>
+            )}
+            
+            {/* FIXED: Supporting Materials Section - remove /storage/ from path */}
+            {details.supporting_material && details.supporting_material.length > 0 && (
+              <View style={styles.detailSection}>
+                <Text style={styles.sectionTitle}>
+                  Supporting Files ({details.supporting_material.length})
+                </Text>
+                {details.supporting_material.map((file, index) => {
+                  // Construct URL: Remove /storage/ prefix
+                  let fileUrl = file;
+                  if (!fileUrl.startsWith('http')) {
+                    // Remove /storage/ from the beginning of the path
+                    const cleanPath = fileUrl.replace(/^\/storage\//, '');
+                    fileUrl = `https://fa-wdd.punjab.gov.pk/${cleanPath}`;
+                  }
+                  
+                  // Extract filename from path
+                  const fileName = file.split('/').pop() || `File ${index + 1}`;
+                  
+                  return (
+                    <TouchableOpacity 
+                      key={index}
+                      style={styles.fileItem}
+                      onPress={() => Linking.openURL(fileUrl)}
+                    >
+                      <Icon 
+                        name={file.includes('.pdf') ? "file-pdf" : "file"} 
+                        size={16} 
+                        color={file.includes('.pdf') ? "#F44336" : "#9C27B0"} 
+                      />
+                      <Text style={styles.fileText} numberOfLines={1}>
+                        {fileName}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+            
+            {details.social_links && details.social_links.length > 0 && (
+              <View style={styles.detailSection}>
+                <Text style={styles.sectionTitle}>Social Media Links</Text>
+                {details.social_links.map((link, index) => (
+                  <TouchableOpacity 
+                    key={index}
+                    style={styles.linkItem}
+                    onPress={() => Linking.openURL(link.startsWith('http') ? link : `https://${link}`)}
+                  >
+                    <Icon name="external-link" size={14} color="#2196F3" />
+                    <Text style={styles.linkText} numberOfLines={1}>
+                      {link.replace(/^https?:\/\//, '').replace(/^www\./, '')}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+            
+            {/* FIXED: Attendance Sheet - remove /storage/ from path */}
+            {details.attendance_sheet && (
+              <View style={styles.detailSection}>
+                <Text style={styles.sectionTitle}>Attendance Sheet</Text>
+                <TouchableOpacity 
+                  style={styles.attendanceSheetItem}
+                  onPress={() => {
+                    // Construct URL: Remove /storage/ prefix
+                    let sheetUrl = details.attendance_sheet;
+                    if (!sheetUrl.startsWith('http')) {
+                      // Remove /storage/ from the beginning of the path
+                      const cleanPath = sheetUrl.replace(/^\/storage\//, '');
+                      sheetUrl = `https://fa-wdd.punjab.gov.pk/${cleanPath}`;
+                    }
+                    Linking.openURL(sheetUrl);
+                  }}
+                >
+                  <Icon name="file" size={18} color="#F44336" />
+                  <Text style={styles.attendanceSheetText}>View Attendance Sheet</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </>
+        )}
+        
+        <View style={styles.actionButtons}>
+          {!activity.is_filled && (
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.fillButtonLarge]}
+              onPress={() => {
+                setShowDetailsModal(false);
+                handleFillActivity(activity.id);
+              }}
+            >
+              <Icon name="edit" size={14} color="#fff" />
+              <Text style={styles.actionButtonText}>Fill Activity</Text>
+            </TouchableOpacity>
+          )}
+          
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.closeButtonLarge]}
+            onPress={() => setShowDetailsModal(false)}
+          >
+            <Icon name="check" size={14} color="#fff" />
+            <Text style={styles.actionButtonText}>Close</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </View>
+  </SafeAreaView>
+</Modal>
     );
   };
 
+  // Render fill modal - COMPLETE WEB FORM
   const renderFillModal = () => {
     if (!selectedActivity) return null;
+    
+    const wordCount = getWordCount();
     
     return (
       <Modal
@@ -901,106 +1192,327 @@ const ActivitiesMonitoringScreen = ({ route, navigation }) => {
             </LinearGradient>
             
             <View style={styles.fillForm}>
-              {/* Activity Info Banner */}
-              <View style={styles.activityInfoBanner}>
-                <Text style={styles.bannerTitle}>
-                  {selectedActivity.activity_title}
-                </Text>
-                <Text style={styles.bannerDate}>
-                  {moment(selectedActivity.activity_date).format('ddd, MMM D, YYYY')}
-                </Text>
-                <Text style={styles.bannerMode}>
-                  {selectedActivity.mode} • {selectedActivity.university_name}
-                </Text>
+              {/* Activity Section Header */}
+              <View style={styles.sectionHeader}>
+                <Icon2 name="event" size={16} color="#6B2D5C" />
+                <Text style={styles.sectionHeaderText}>Activity Section</Text>
               </View>
               
-              {/* Required Fields Section */}
-              <Text style={styles.formSectionTitle}>Required Information</Text>
-              
-              {/* Description */}
+              {/* Activity Title */}
               <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>
-                  Activity Description <Text style={styles.requiredStar}>*</Text>
+                  Activity Title <Text style={styles.requiredStar}>*</Text>
+                </Text>
+                <TextInput
+                  style={[
+                    styles.input,
+                    formErrors.activity_title && styles.inputError
+                  ]}
+                  placeholder="Enter activity title"
+                  placeholderTextColor="#999"
+                  value={formData.activity_title}
+                  onChangeText={(text) => {
+                    console.log('[FORM] Activity title changed:', text);
+                    setFormData(prev => ({ ...prev, activity_title: text }));
+                    if (formErrors.activity_title) setFormErrors(prev => ({ ...prev, activity_title: '' }));
+                  }}
+                />
+                {formErrors.activity_title && (
+                  <Text style={styles.errorText}>{formErrors.activity_title}</Text>
+                )}
+              </View>
+              
+              {/* Date (read-only) */}
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Date of Activity</Text>
+                <View style={[styles.input, styles.readOnlyInput]}>
+                  <Text style={styles.readOnlyText}>
+                    {moment(selectedActivity.activity_date, 'DD-MM-YYYY').format('DD/MM/YYYY')}
+                  </Text>
+                </View>
+              </View>
+              
+              {/* Venue/Mode Radio Buttons */}
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>
+                  Venue/Mode of Activity <Text style={styles.requiredStar}>*</Text>
+                </Text>
+                <View style={styles.radioGroup}>
+                  <TouchableOpacity 
+                    style={styles.radioOption}
+                    onPress={() => {
+                      console.log('[FORM] Mode selected: university_in_person');
+                      setFormData(prev => ({ ...prev, mode: 'university_in_person' }));
+                      if (formErrors.mode) setFormErrors(prev => ({ ...prev, mode: '' }));
+                    }}
+                  >
+                    <View style={styles.radioCircle}>
+                      {formData.mode === 'university_in_person' && <View style={styles.selectedRadio} />}
+                    </View>
+                    <Text style={styles.radioLabel}>University (In-Person)</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={styles.radioOption}
+                    onPress={() => {
+                      console.log('[FORM] Mode selected: online');
+                      setFormData(prev => ({ ...prev, mode: 'online' }));
+                      if (formErrors.mode) setFormErrors(prev => ({ ...prev, mode: '' }));
+                    }}
+                  >
+                    <View style={styles.radioCircle}>
+                      {formData.mode === 'online' && <View style={styles.selectedRadio} />}
+                    </View>
+                    <Text style={styles.radioLabel}>Online</Text>
+                  </TouchableOpacity>
+                </View>
+                {formErrors.mode && (
+                  <Text style={styles.errorText}>{formErrors.mode}</Text>
+                )}
+              </View>
+              
+              {/* Type of Activity Dropdown */}
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>
+                  Type of Activity <Text style={styles.requiredStar}>*</Text>
+                </Text>
+                <ScrollView 
+                  style={styles.typeDropdown}
+                  nestedScrollEnabled={true}
+                  showsVerticalScrollIndicator={false}
+                >
+                  {activityTypes.map((type, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={[
+                        styles.typeOption,
+                        formData.type === type && styles.typeOptionSelected
+                      ]}
+                      onPress={() => {
+                        console.log('[FORM] Type selected:', type);
+                        setFormData(prev => ({ 
+                          ...prev, 
+                          type: type,
+                          type_other: type === 'other' ? prev.type_other : ''
+                        }));
+                        if (formErrors.type) setFormErrors(prev => ({ ...prev, type: '' }));
+                        if (formErrors.type_other) setFormErrors(prev => ({ ...prev, type_other: '' }));
+                      }}
+                    >
+                      <Text style={[
+                        styles.typeOptionText,
+                        formData.type === type && styles.typeOptionTextSelected
+                      ]}>
+                        {type === 'other' ? 'Other' : type}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+                {formErrors.type && (
+                  <Text style={styles.errorText}>{formErrors.type}</Text>
+                )}
+                
+                {/* Other Type Input */}
+                {formData.type === 'other' && (
+                  <View style={styles.otherInputContainer}>
+                    <TextInput
+                      style={[
+                        styles.input,
+                        formErrors.type_other && styles.inputError
+                      ]}
+                      placeholder="Specify other type"
+                      placeholderTextColor="#999"
+                      value={formData.type_other}
+                      onChangeText={(text) => {
+                        console.log('[FORM] Type other changed:', text);
+                        setFormData(prev => ({ ...prev, type_other: text }));
+                        if (formErrors.type_other) setFormErrors(prev => ({ ...prev, type_other: '' }));
+                      }}
+                    />
+                    {formErrors.type_other && (
+                      <Text style={styles.errorText}>{formErrors.type_other}</Text>
+                    )}
+                  </View>
+                )}
+              </View>
+              
+              {/* Target Audience Checkboxes */}
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>
+                  Target Audience (Click to select multiple) <Text style={styles.requiredStar}>*</Text>
+                </Text>
+                <View style={styles.audienceGrid}>
+                  {audienceOptions.map((audience, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={[
+                        styles.audienceOption,
+                        formData.audience.includes(audience) && styles.audienceOptionSelected
+                      ]}
+                      onPress={() => toggleAudience(audience)}
+                    >
+                      <Text style={[
+                        styles.audienceText,
+                        formData.audience.includes(audience) && styles.audienceTextSelected
+                      ]}>
+                        {audience.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                {formErrors.audience && (
+                  <Text style={styles.errorText}>{formErrors.audience}</Text>
+                )}
+                
+                {/* Other Audience Input */}
+                {formData.audience.includes('other') && (
+                  <View style={styles.otherInputContainer}>
+                    <TextInput
+                      style={[
+                        styles.input,
+                        formErrors.audience_other && styles.inputError
+                      ]}
+                      placeholder="Specify other audience type(s)"
+                      placeholderTextColor="#999"
+                      value={formData.audience_other}
+                      onChangeText={(text) => {
+                        console.log('[FORM] Audience other changed:', text);
+                        setFormData(prev => ({ ...prev, audience_other: text }));
+                        if (formErrors.audience_other) setFormErrors(prev => ({ ...prev, audience_other: '' }));
+                      }}
+                    />
+                    {formErrors.audience_other && (
+                      <Text style={styles.errorText}>{formErrors.audience_other}</Text>
+                    )}
+                  </View>
+                )}
+              </View>
+              
+              {/* Number of Participants */}
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Number of Participants</Text>
+                <View style={styles.participantsRow}>
+                  <View style={styles.participantInput}>
+                    <Text style={styles.participantLabel}>Male:</Text>
+                    <TextInput
+                      style={[
+                        styles.input,
+                        styles.smallInput,
+                        formErrors.male && styles.inputError
+                      ]}
+                      placeholder="e.g., 35"
+                      placeholderTextColor="#999"
+                      value={formData.male}
+                      onChangeText={(text) => {
+                        console.log('[FORM] Male participants changed:', text);
+                        setFormData(prev => ({ ...prev, male: text.replace(/[^0-9]/g, '') }));
+                        if (formErrors.male) setFormErrors(prev => ({ ...prev, male: '' }));
+                      }}
+                      keyboardType="numeric"
+                    />
+                    {formErrors.male && (
+                      <Text style={styles.errorText}>{formErrors.male}</Text>
+                    )}
+                  </View>
+                  
+                  <View style={styles.participantInput}>
+                    <Text style={styles.participantLabel}>Female:</Text>
+                    <TextInput
+                      style={[
+                        styles.input,
+                        styles.smallInput,
+                        formErrors.female && styles.inputError
+                      ]}
+                      placeholder="e.g., 42"
+                      placeholderTextColor="#999"
+                      value={formData.female}
+                      onChangeText={(text) => {
+                        console.log('[FORM] Female participants changed:', text);
+                        setFormData(prev => ({ ...prev, female: text.replace(/[^0-9]/g, '') }));
+                        if (formErrors.female) setFormErrors(prev => ({ ...prev, female: '' }));
+                      }}
+                      keyboardType="numeric"
+                    />
+                    {formErrors.female && (
+                      <Text style={styles.errorText}>{formErrors.female}</Text>
+                    )}
+                  </View>
+                </View>
+              </View>
+              
+              {/* Description with Word Count */}
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>
+                  Description of Activity (Max 300 words) <Text style={styles.requiredStar}>*</Text>
                 </Text>
                 <TextInput
                   style={[
                     styles.textArea,
                     formErrors.description && styles.inputError
                   ]}
-                  placeholder="Describe the activity, what was done, outcomes, etc."
+                  placeholder="Provide a detailed description..."
                   placeholderTextColor="#999"
                   value={formData.description}
                   onChangeText={(text) => {
+                    console.log('[FORM] Description changed, word count:', getWordCount());
                     setFormData(prev => ({ ...prev, description: text }));
                     if (formErrors.description) setFormErrors(prev => ({ ...prev, description: '' }));
                   }}
                   multiline
-                  numberOfLines={4}
+                  numberOfLines={6}
                   textAlignVertical="top"
                 />
+                <View style={styles.wordCountContainer}>
+                  <Text style={[
+                    styles.wordCountText,
+                    wordCount > 300 && styles.wordCountError
+                  ]}>
+                    Word count: {wordCount}/300
+                  </Text>
+                </View>
                 {formErrors.description && (
                   <Text style={styles.errorText}>{formErrors.description}</Text>
                 )}
               </View>
               
-              {/* Attendance */}
-              <View style={styles.formRow}>
-                <View style={[styles.formGroup, styles.halfInput]}>
-                  <Text style={styles.formLabel}>
-                    Male Participants <Text style={styles.requiredStar}>*</Text>
-                  </Text>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      formErrors.male_participants && styles.inputError
-                    ]}
-                    placeholder="0"
-                    placeholderTextColor="#999"
-                    value={formData.male_participants}
-                    onChangeText={(text) => {
-                      setFormData(prev => ({ ...prev, male_participants: text.replace(/[^0-9]/g, '') }));
-                      if (formErrors.male_participants) setFormErrors(prev => ({ ...prev, male_participants: '' }));
-                    }}
-                    keyboardType="numeric"
-                  />
-                  {formErrors.male_participants && (
-                    <Text style={styles.errorText}>{formErrors.male_participants}</Text>
-                  )}
-                </View>
-                
-                <View style={[styles.formGroup, styles.halfInput]}>
-                  <Text style={styles.formLabel}>
-                    Female Participants <Text style={styles.requiredStar}>*</Text>
-                  </Text>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      formErrors.female_participants && styles.inputError
-                    ]}
-                    placeholder="0"
-                    placeholderTextColor="#999"
-                    value={formData.female_participants}
-                    onChangeText={(text) => {
-                      setFormData(prev => ({ ...prev, female_participants: text.replace(/[^0-9]/g, '') }));
-                      if (formErrors.female_participants) setFormErrors(prev => ({ ...prev, female_participants: '' }));
-                    }}
-                    keyboardType="numeric"
-                  />
-                  {formErrors.female_participants && (
-                    <Text style={styles.errorText}>{formErrors.female_participants}</Text>
-                  )}
-                </View>
+              {/* Evidence Upload Section */}
+              <View style={styles.sectionHeader}>
+                <Icon2 name="cloud-upload" size={16} color="#6B2D5C" />
+                <Text style={styles.sectionHeaderText}>Evidence Upload</Text>
               </View>
               
-              {/* Photos */}
+              {/* Attendance Sheet */}
               <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>
-                  Activity Photos <Text style={styles.requiredStar}>*</Text>
-                  <Text style={styles.optionalText}> (At least one)</Text>
+                  Upload Attendance Sheet (PDF/JPG) <Text style={styles.requiredStar}>*</Text>
                 </Text>
-                {formErrors.photos && (
-                  <Text style={styles.errorText}>{formErrors.photos}</Text>
+                <TouchableOpacity 
+                  style={[
+                    styles.filePickerButton,
+                    formErrors.attendance_sheet && styles.inputError
+                  ]}
+                  onPress={pickAttendanceSheet}
+                >
+                  <Icon name="tasks" size={16} color="#6B2D5C" />
+                  <Text style={styles.filePickerText}>
+                    {formData.attendance_sheet 
+                      ? formData.attendance_sheet.name 
+                      : 'No file chosen'}
+                  </Text>
+                </TouchableOpacity>
+                {formErrors.attendance_sheet && (
+                  <Text style={styles.errorText}>{formErrors.attendance_sheet}</Text>
                 )}
+              </View>
+              
+              {/* Photos (3-6) */}
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>
+                  Upload Photos (High Resolution, Min 3, Max 6) <Text style={styles.requiredStar}>*</Text>
+                </Text>
+                <Text style={styles.fileNote}>
+                  Select 3–6 high-resolution images (JPG/PNG). {formData.photos.length} selected.
+                </Text>
                 
                 <View style={styles.photoButtons}>
                   <TouchableOpacity 
@@ -1008,7 +1520,7 @@ const ActivitiesMonitoringScreen = ({ route, navigation }) => {
                     onPress={pickPhotos}
                   >
                     <Icon name="photo" size={14} color="#6B2D5C" />
-                    <Text style={styles.photoButtonText}>Choose Photos</Text>
+                    <Text style={styles.photoButtonText}>Add Photo</Text>
                   </TouchableOpacity>
                   
                   <TouchableOpacity 
@@ -1022,9 +1534,6 @@ const ActivitiesMonitoringScreen = ({ route, navigation }) => {
                 
                 {formData.photos.length > 0 && (
                   <View style={styles.photosPreview}>
-                    <Text style={styles.photosCount}>
-                      {formData.photos.length} photo(s) selected
-                    </Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                       {formData.photos.map((photo, index) => (
                         <View key={index} style={styles.photoPreviewItem}>
@@ -1035,44 +1544,23 @@ const ActivitiesMonitoringScreen = ({ route, navigation }) => {
                           >
                             <Icon name="times" size={10} color="#fff" />
                           </TouchableOpacity>
+                          <Text style={styles.photoNumber}>{index + 1}</Text>
                         </View>
                       ))}
                     </ScrollView>
                   </View>
                 )}
-              </View>
-              
-              {/* Attendance Sheet */}
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>
-                  Attendance Sheet <Text style={styles.requiredStar}>*</Text>
-                  <Text style={styles.optionalText}> (PDF or Image)</Text>
-                </Text>
-                <TouchableOpacity 
-                  style={[
-                    styles.filePickerButton,
-                    formErrors.attendance_sheet && styles.inputError
-                  ]}
-                  onPress={pickAttendanceSheet}
-                >
-                  <Icon name="file-pdf" size={16} color="#6B2D5C" />
-                  <Text style={styles.filePickerText}>
-                    {formData.attendance_sheet 
-                      ? formData.attendance_sheet.name 
-                      : 'Choose Attendance Sheet'}
-                  </Text>
-                </TouchableOpacity>
-                {formErrors.attendance_sheet && (
-                  <Text style={styles.errorText}>{formErrors.attendance_sheet}</Text>
+                {formErrors.photos && (
+                  <Text style={styles.errorText}>{formErrors.photos}</Text>
                 )}
               </View>
               
-              {/* Optional Fields Section */}
-              <Text style={styles.formSectionTitle}>Optional Information</Text>
-              
               {/* Video */}
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Activity Video</Text>
+                <Text style={styles.formLabel}>Upload Short Video Clip (Optional)</Text>
+                <Text style={styles.fileNote}>
+                  Edited, 1–3 minutes, 100–150 MB, 720p/1080p recommended. Max 3 minutes, high quality, edited.
+                </Text>
                 <TouchableOpacity 
                   style={styles.filePickerButton}
                   onPress={pickVideo}
@@ -1081,14 +1569,17 @@ const ActivitiesMonitoringScreen = ({ route, navigation }) => {
                   <Text style={styles.filePickerText}>
                     {formData.video 
                       ? formData.video.name 
-                      : 'Choose Video File'}
+                      : 'No file chosen'}
                   </Text>
                 </TouchableOpacity>
               </View>
               
-              {/* Supporting Files */}
+              {/* Supporting Material */}
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Supporting Files</Text>
+                <Text style={styles.formLabel}>Upload Supporting Material (Optional)</Text>
+                <Text style={styles.fileNote}>
+                  Poster, banner, presentation, etc.
+                </Text>
                 <TouchableOpacity 
                   style={styles.filePickerButton}
                   onPress={pickSupportingFiles}
@@ -1121,61 +1612,229 @@ const ActivitiesMonitoringScreen = ({ route, navigation }) => {
               
               {/* Social Media Links */}
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Social Media Links</Text>
-                {formData.social_links.map((link, index) => (
-                  <View key={index} style={styles.linkInputRow}>
-                    <TextInput
-                      style={[styles.input, styles.linkInput]}
-                      placeholder="https://facebook.com/post-url"
-                      placeholderTextColor="#999"
-                      value={link}
-                      onChangeText={(text) => updateSocialLink(index, text)}
-                    />
-                    {formData.social_links.length > 1 && (
-                      <TouchableOpacity 
-                        style={styles.removeLinkButton}
-                        onPress={() => removeSocialLinkField(index)}
-                      >
-                        <Icon name="times" size={12} color="#dc3545" />
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                ))}
+                <Text style={styles.formLabel}>
+                  Place Social Media Links (where you posted) <Text style={styles.requiredStar}>*</Text>
+                </Text>
+                {formErrors.social && (
+                  <Text style={styles.errorText}>{formErrors.social}</Text>
+                )}
                 
-                <TouchableOpacity 
-                  style={styles.addLinkButton}
-                  onPress={addSocialLinkField}
-                >
-                  <Icon name="plus" size={12} color="#6B2D5C" />
-                  <Text style={styles.addLinkText}>Add Another Link</Text>
-                </TouchableOpacity>
-              </View>
-              
-              {/* Upload Progress */}
-              {uploading && (
-                <View style={styles.uploadProgressContainer}>
-                  <Text style={styles.uploadProgressText}>
-                    Uploading... {uploadProgress}%
-                  </Text>
-                  <View style={styles.progressBar}>
-                    <View 
+                {/* LinkedIn */}
+                <View style={styles.socialMediaRow}>
+                  <TouchableOpacity 
+                    style={styles.socialCheckbox}
+                    onPress={() => toggleSocialMedia('linkedin')}
+                  >
+                    <View style={[
+                      styles.checkbox,
+                      formData.social.linkedin.enabled && styles.checkboxChecked
+                    ]}>
+                      {formData.social.linkedin.enabled && (
+                        <Icon name="check" size={10} color="#fff" />
+                      )}
+                    </View>
+                    <Text style={styles.socialLabel}>Linkedin</Text>
+                  </TouchableOpacity>
+                  
+                  {formData.social.linkedin.enabled && (
+                    <TextInput
                       style={[
-                        styles.progressFill,
-                        { width: `${uploadProgress}%` }
-                      ]} 
+                        styles.input,
+                        styles.socialInput,
+                        formErrors.social_linkedin && styles.inputError
+                      ]}
+                      placeholder="https://linkedin.com/..."
+                      placeholderTextColor="#999"
+                      value={formData.social.linkedin.url}
+                      onChangeText={(text) => updateSocialUrl('linkedin', text)}
+                      keyboardType="url"
+                      autoCapitalize="none"
                     />
-                  </View>
+                  )}
                 </View>
-              )}
+                {formErrors.social_linkedin && (
+                  <Text style={styles.errorText}>{formErrors.social_linkedin}</Text>
+                )}
+                
+                {/* Facebook */}
+                <View style={styles.socialMediaRow}>
+                  <TouchableOpacity 
+                    style={styles.socialCheckbox}
+                    onPress={() => toggleSocialMedia('facebook')}
+                  >
+                    <View style={[
+                      styles.checkbox,
+                      formData.social.facebook.enabled && styles.checkboxChecked
+                    ]}>
+                      {formData.social.facebook.enabled && (
+                        <Icon name="check" size={10} color="#fff" />
+                      )}
+                    </View>
+                    <Text style={styles.socialLabel}>Facebook</Text>
+                  </TouchableOpacity>
+                  
+                  {formData.social.facebook.enabled && (
+                    <TextInput
+                      style={[
+                        styles.input,
+                        styles.socialInput,
+                        formErrors.social_facebook && styles.inputError
+                      ]}
+                      placeholder="https://facebook.com/..."
+                      placeholderTextColor="#999"
+                      value={formData.social.facebook.url}
+                      onChangeText={(text) => updateSocialUrl('facebook', text)}
+                      keyboardType="url"
+                      autoCapitalize="none"
+                    />
+                  )}
+                </View>
+                
+                {/* Instagram */}
+                <View style={styles.socialMediaRow}>
+                  <TouchableOpacity 
+                    style={styles.socialCheckbox}
+                    onPress={() => toggleSocialMedia('instagram')}
+                  >
+                    <View style={[
+                      styles.checkbox,
+                      formData.social.instagram.enabled && styles.checkboxChecked
+                    ]}>
+                      {formData.social.instagram.enabled && (
+                        <Icon name="check" size={10} color="#fff" />
+                      )}
+                    </View>
+                    <Text style={styles.socialLabel}>Instagram</Text>
+                  </TouchableOpacity>
+                  
+                  {formData.social.instagram.enabled && (
+                    <TextInput
+                      style={[
+                        styles.input,
+                        styles.socialInput,
+                        formErrors.social_instagram && styles.inputError
+                      ]}
+                      placeholder="https://instagram.com/..."
+                      placeholderTextColor="#999"
+                      value={formData.social.instagram.url}
+                      onChangeText={(text) => updateSocialUrl('instagram', text)}
+                      keyboardType="url"
+                      autoCapitalize="none"
+                    />
+                  )}
+                </View>
+                
+                {/* Twitter */}
+                <View style={styles.socialMediaRow}>
+                  <TouchableOpacity 
+                    style={styles.socialCheckbox}
+                    onPress={() => toggleSocialMedia('twitter')}
+                  >
+                    <View style={[
+                      styles.checkbox,
+                      formData.social.twitter.enabled && styles.checkboxChecked
+                    ]}>
+                      {formData.social.twitter.enabled && (
+                        <Icon name="check" size={10} color="#fff" />
+                      )}
+                    </View>
+                    <Text style={styles.socialLabel}>Twitter</Text>
+                  </TouchableOpacity>
+                  
+                  {formData.social.twitter.enabled && (
+                    <TextInput
+                      style={[
+                        styles.input,
+                        styles.socialInput,
+                        formErrors.social_twitter && styles.inputError
+                      ]}
+                      placeholder="https://twitter.com/..."
+                      placeholderTextColor="#999"
+                      value={formData.social.twitter.url}
+                      onChangeText={(text) => updateSocialUrl('twitter', text)}
+                      keyboardType="url"
+                      autoCapitalize="none"
+                    />
+                  )}
+                </View>
+                
+                {/* WhatsApp */}
+                <View style={styles.socialMediaRow}>
+                  <TouchableOpacity 
+                    style={styles.socialCheckbox}
+                    onPress={() => toggleSocialMedia('whatsapp')}
+                  >
+                    <View style={[
+                      styles.checkbox,
+                      formData.social.whatsapp.enabled && styles.checkboxChecked
+                    ]}>
+                      {formData.social.whatsapp.enabled && (
+                        <Icon name="check" size={10} color="#fff" />
+                      )}
+                    </View>
+                    <Text style={styles.socialLabel}>Whatsapp</Text>
+                  </TouchableOpacity>
+                  
+                  {formData.social.whatsapp.enabled && (
+                    <TextInput
+                      style={[
+                        styles.input,
+                        styles.socialInput,
+                        formErrors.social_whatsapp && styles.inputError
+                      ]}
+                      placeholder="https://whatsapp.com/..."
+                      placeholderTextColor="#999"
+                      value={formData.social.whatsapp.url}
+                      onChangeText={(text) => updateSocialUrl('whatsapp', text)}
+                      keyboardType="url"
+                      autoCapitalize="none"
+                    />
+                  )}
+                </View>
+                
+                {/* Others */}
+                <View style={styles.socialMediaRow}>
+                  <TouchableOpacity 
+                    style={styles.socialCheckbox}
+                    onPress={() => toggleSocialMedia('others')}
+                  >
+                    <View style={[
+                      styles.checkbox,
+                      formData.social.others.enabled && styles.checkboxChecked
+                    ]}>
+                      {formData.social.others.enabled && (
+                        <Icon name="check" size={10} color="#fff" />
+                      )}
+                    </View>
+                    <Text style={styles.socialLabel}>Others</Text>
+                  </TouchableOpacity>
+                  
+                  {formData.social.others.enabled && (
+                    <TextInput
+                      style={[
+                        styles.input,
+                        styles.socialInput,
+                        formErrors.social_others && styles.inputError
+                      ]}
+                      placeholder="https://..."
+                      placeholderTextColor="#999"
+                      value={formData.social.others.url}
+                      onChangeText={(text) => updateSocialUrl('others', text)}
+                      keyboardType="url"
+                      autoCapitalize="none"
+                    />
+                  )}
+                </View>
+              </View>
               
               {/* Submit Button */}
               <TouchableOpacity 
                 style={[
                   styles.submitButton,
-                  (isSubmitting || uploading) && styles.submitButtonDisabled
+                  isSubmitting && styles.submitButtonDisabled
                 ]}
                 onPress={submitActivityForm}
-                disabled={isSubmitting || uploading}
+                disabled={isSubmitting}
               >
                 {isSubmitting ? (
                   <ActivityIndicator size="small" color="#fff" />
@@ -1275,68 +1934,64 @@ const ActivitiesMonitoringScreen = ({ route, navigation }) => {
           }
           showsVerticalScrollIndicator={false}
         >
-          <Animated.View style={{ opacity: fadeAnim }}>
-            {renderActivityList()}
-            
-            {/* Stats */}
-            {activities.length > 0 && (
-              <View style={styles.statsContainer}>
-                <View style={styles.statCard}>
-                  <Icon name="tasks" size={16} color="#6B2D5C" />
-                  <Text style={styles.statNumber}>{activities.length}</Text>
-                  <Text style={styles.statLabel}>Total</Text>
-                </View>
-                
-                <View style={styles.statCard}>
-                  <Icon name="check-circle" size={16} color="#4CAF50" />
-                  <Text style={styles.statNumber}>
-                    {activities.filter(a => a.is_filled).length}
-                  </Text>
-                  <Text style={styles.statLabel}>Completed</Text>
-                </View>
-                
-                <View style={styles.statCard}>
-                  <Icon name="edit" size={16} color="#FFC107" />
-                  <Text style={styles.statNumber}>
-                    {activities.filter(a => !a.is_filled).length}
-                  </Text>
-                  <Text style={styles.statLabel}>Pending</Text>
-                </View>
-              </View>
-            )}
-            
-            {/* Instructions */}
-            <View style={styles.instructionsContainer}>
-              <Text style={styles.instructionsTitle}>📝 How to Use</Text>
-              
-              <View style={styles.instructionStep}>
-                <View style={styles.stepIcon}>
-                  <Text style={styles.stepNumber}>1</Text>
-                </View>
-                <Text style={styles.stepText}>
-                  <Text style={styles.stepBold}>Tap on any activity</Text> to view details
-                </Text>
+          {renderActivityList()}
+          
+          {activities.length > 0 && (
+            <View style={styles.statsContainer}>
+              <View style={styles.statCard}>
+                <Icon name="tasks" size={16} color="#6B2D5C" />
+                <Text style={styles.statNumber}>{activities.length}</Text>
+                <Text style={styles.statLabel}>Total</Text>
               </View>
               
-              <View style={styles.instructionStep}>
-                <View style={styles.stepIcon}>
-                  <Text style={styles.stepNumber}>2</Text>
-                </View>
-                <Text style={styles.stepText}>
-                  <Text style={styles.stepBold}>Click "Fill Activity"</Text> to submit reports and evidence
+              <View style={styles.statCard}>
+                <Icon name="check-circle" size={16} color="#4CAF50" />
+                <Text style={styles.statNumber}>
+                  {activities.filter(a => a.is_filled).length}
                 </Text>
+                <Text style={styles.statLabel}>Completed</Text>
               </View>
               
-              <View style={styles.instructionStep}>
-                <View style={styles.stepIcon}>
-                  <Text style={styles.stepNumber}>3</Text>
-                </View>
-                <Text style={styles.stepText}>
-                  <Text style={styles.stepBold}>Upload photos, video,</Text> attendance sheet and supporting files
+              <View style={styles.statCard}>
+                <Icon name="edit" size={16} color="#FFC107" />
+                <Text style={styles.statNumber}>
+                  {activities.filter(a => !a.is_filled).length}
                 </Text>
+                <Text style={styles.statLabel}>Pending</Text>
               </View>
             </View>
-          </Animated.View>
+          )}
+          
+          <View style={styles.instructionsContainer}>
+            <Text style={styles.instructionsTitle}>📝 How to Use</Text>
+            
+            <View style={styles.instructionStep}>
+              <View style={styles.stepIcon}>
+                <Text style={styles.stepNumber}>1</Text>
+              </View>
+              <Text style={styles.stepText}>
+                <Text style={styles.stepBold}>Tap on any activity</Text> to view details
+              </Text>
+            </View>
+            
+            <View style={styles.instructionStep}>
+              <View style={styles.stepIcon}>
+                <Text style={styles.stepNumber}>2</Text>
+              </View>
+              <Text style={styles.stepText}>
+                <Text style={styles.stepBold}>Click "Fill Activity"</Text> to submit reports and evidence
+              </Text>
+            </View>
+            
+            <View style={styles.instructionStep}>
+              <View style={styles.stepIcon}>
+                <Text style={styles.stepNumber}>3</Text>
+              </View>
+              <Text style={styles.stepText}>
+                <Text style={styles.stepBold}>Upload photos, video,</Text> attendance sheet and supporting files
+              </Text>
+            </View>
+          </View>
         </ScrollView>
       </View>
       
@@ -1347,11 +2002,15 @@ const ActivitiesMonitoringScreen = ({ route, navigation }) => {
   );
 };
 
+
 const styles = StyleSheet.create({
+  // Main Container
   container: {
     flex: 1,
     backgroundColor: '#f8f9fa',
   },
+
+  // Loading Screen
   loadingContainer: {
     flex: 1,
   },
@@ -1374,6 +2033,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
   },
+
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1413,14 +2074,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+
+  // Main Content
   content: {
     flex: 1,
   },
   scrollView: {
     flex: 1,
   },
+
+  // Activity List
   listHeader: {
-    padding: 15,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
@@ -1429,15 +2095,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     color: '#6B2D5C',
+    marginBottom: 4,
   },
   listSubtitle: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#666',
-    marginTop: 4,
+    fontWeight: '600',
   },
   listContent: {
     paddingBottom: 20,
   },
+
+  // Activity Card
   activityCard: {
     backgroundColor: '#fff',
     marginHorizontal: 15,
@@ -1549,6 +2218,8 @@ const styles = StyleSheet.create({
     color: '#6B2D5C',
     fontWeight: '600',
   },
+
+  // Empty State
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -1584,23 +2255,25 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 9,
   },
+
+  // Stats Container
   statsContainer: {
     flexDirection: 'row',
-    marginHorizontal: 15,
-    marginTop: 15,
+    marginHorizontal: 12,
+    marginBottom: 12,
     gap: 8,
   },
   statCard: {
     flex: 1,
     backgroundColor: '#fff',
     padding: 12,
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 1,
+    shadowRadius: 6,
+    elevation: 2,
   },
   statNumber: {
     fontSize: 14,
@@ -1614,18 +2287,19 @@ const styles = StyleSheet.create({
     marginTop: 3,
     fontWeight: '600',
   },
+
+  // Instructions
   instructionsContainer: {
     backgroundColor: '#fff',
-    marginHorizontal: 15,
-    marginTop: 15,
+    marginHorizontal: 12,
     marginBottom: 20,
     padding: 15,
-    borderRadius: 12,
+    borderRadius: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 1,
+    shadowRadius: 6,
+    elevation: 2,
   },
   instructionsTitle: {
     fontSize: 12,
@@ -1663,26 +2337,25 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#333',
   },
+
+  // Details Modal
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'center',
   },
   modalContent: {
     backgroundColor: '#fff',
     borderRadius: 20,
-    marginHorizontal: 15,
-    maxHeight: height * 0.8,
+    margin: 12,
+    marginTop: StatusBar.currentHeight + 20,
+    marginBottom: 20,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 8,
-  },
-  fillModalContent: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1708,19 +2381,18 @@ const styles = StyleSheet.create({
   },
   modalBody: {
     padding: 16,
-    maxHeight: height * 0.6,
   },
   detailSection: {
     marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
   },
   sectionTitle: {
     fontSize: 11,
     fontWeight: '800',
     color: '#6B2D5C',
     marginBottom: 12,
-    paddingBottom: 6,
-    borderBottomWidth: 1.5,
-    borderBottomColor: '#f0f0f0',
   },
   detailRow: {
     flexDirection: 'row',
@@ -1729,8 +2401,8 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 10,
+    color: '#666',
     fontWeight: '600',
-    color: '#777',
     width: 80,
   },
   detailValue: {
@@ -1741,22 +2413,21 @@ const styles = StyleSheet.create({
   },
   modeBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 4,
     borderRadius: 4,
   },
   modeBadgeText: {
     fontSize: 9,
     color: '#fff',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   attendanceRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
     marginTop: 8,
   },
   attendanceItem: {
     alignItems: 'center',
-    flex: 1,
   },
   attendanceLabel: {
     fontSize: 9,
@@ -1764,7 +2435,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   attendanceValue: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '800',
     color: '#333',
     marginTop: 2,
@@ -1773,72 +2444,74 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#555',
     lineHeight: 16,
-    textAlign: 'justify',
   },
   photoItem: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 70,
-    height: 70,
+    width: 80,
+    height: 80,
     backgroundColor: '#f5f5f5',
     borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 8,
-    padding: 8,
   },
   photoText: {
-    fontSize: 8,
+    fontSize: 9,
     color: '#666',
     marginTop: 4,
-    textAlign: 'center',
+  },
+  photoTextt: {
+    fontSize: 6,
+    color: '#6e2727ff',
+    marginTop: 4,
   },
   videoItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF3E0',
+    backgroundColor: '#f5f5f5',
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 8,
-    gap: 6,
+    gap: 8,
   },
   videoText: {
     fontSize: 10,
-    color: '#FF5722',
-    fontWeight: '600',
+    color: '#333',
+    fontWeight: '500',
   },
   fileItem: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f5f5f5',
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 6,
     marginBottom: 6,
-    gap: 6,
+    gap: 8,
   },
   fileText: {
-    fontSize: 9,
+    fontSize: 10,
     color: '#333',
     flex: 1,
   },
   linkItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E3F2FD',
-    paddingHorizontal: 10,
+    backgroundColor: '#f5f5f5',
+    paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 6,
     marginBottom: 6,
-    gap: 6,
+    gap: 8,
   },
   linkText: {
-    fontSize: 9,
-    color: '#1976D2',
+    fontSize: 10,
+    color: '#2196F3',
     flex: 1,
   },
   attendanceSheetItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFEBEE',
+    backgroundColor: '#f5f5f5',
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 8,
@@ -1846,18 +2519,21 @@ const styles = StyleSheet.create({
   },
   attendanceSheetText: {
     fontSize: 10,
-    color: '#D32F2F',
-    fontWeight: '600',
+    color: '#333',
+    fontWeight: '500',
   },
   actionButtons: {
-    gap: 8,
+    flexDirection: 'row',
+    gap: 10,
     marginTop: 20,
   },
   actionButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    paddingVertical: 10,
+    marginBottom: 40,
     borderRadius: 8,
     gap: 6,
   },
@@ -1870,65 +2546,43 @@ const styles = StyleSheet.create({
   actionButtonText: {
     color: '#fff',
     fontWeight: '700',
-    fontSize: 10,
+    fontSize: 9,
+  
+  },
+
+  // Fill Activity Modal
+  fillModalContent: {
+    flex: 1,
+    backgroundColor: '#fff',
   },
   fillForm: {
     padding: 16,
   },
-  activityInfoBanner: {
-    backgroundColor: '#E3F2FD',
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 20,
-  },
-  bannerTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#1976D2',
-    marginBottom: 4,
-  },
-  bannerDate: {
-    fontSize: 10,
-    color: '#666',
-    marginBottom: 2,
-  },
-  bannerMode: {
-    fontSize: 9,
-    color: '#666',
-    fontStyle: 'italic',
-  },
-  formSectionTitle: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#6B2D5C',
-    marginBottom: 12,
-    paddingBottom: 6,
-    borderBottomWidth: 1.5,
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+    paddingBottom: 8,
+    borderBottomWidth: 2,
     borderBottomColor: '#f0f0f0',
   },
+  sectionHeaderText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#6B2D5C',
+  },
   formGroup: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   formLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   requiredStar: {
     color: '#dc3545',
-  },
-  optionalText: {
-    fontSize: 9,
-    color: '#666',
-    fontStyle: 'italic',
-  },
-  formRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  halfInput: {
-    flex: 1,
   },
   input: {
     backgroundColor: '#f8f9fa',
@@ -1940,17 +2594,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#333',
   },
-  textArea: {
-    backgroundColor: '#f8f9fa',
-    borderWidth: 1.5,
-    borderColor: '#e0e0e0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+  readOnlyInput: {
+    backgroundColor: '#f0f0f0',
+  },
+  readOnlyText: {
     fontSize: 11,
-    color: '#333',
-    height: 80,
-    textAlignVertical: 'top',
+    color: '#666',
   },
   inputError: {
     borderColor: '#dc3545',
@@ -1961,6 +2610,150 @@ const styles = StyleSheet.create({
     color: '#dc3545',
     marginTop: 4,
     fontWeight: '500',
+  },
+  radioGroup: {
+    flexDirection: 'row',
+    gap: 20,
+    marginTop: 8,
+  },
+  radioOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  radioCircle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: '#6B2D5C',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  selectedRadio: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#6B2D5C',
+  },
+  radioLabel: {
+    fontSize: 11,
+    color: '#333',
+  },
+  typeDropdown: {
+    maxHeight: 150,
+    borderWidth: 1.5,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  typeOption: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  typeOptionSelected: {
+    backgroundColor: '#E3F2FD',
+  },
+  typeOptionText: {
+    fontSize: 11,
+    color: '#333',
+  },
+  typeOptionTextSelected: {
+    color: '#1976D2',
+    fontWeight: '600',
+  },
+  otherInputContainer: {
+    marginTop: 10,
+  },
+  audienceGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
+  },
+  audienceOption: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: '#e0e0e0',
+    backgroundColor: '#f8f9fa',
+  },
+  audienceOptionSelected: {
+    backgroundColor: '#E3F2FD',
+    borderColor: '#1976D2',
+  },
+  audienceText: {
+    fontSize: 10,
+    color: '#666',
+  },
+  audienceTextSelected: {
+    color: '#1976D2',
+    fontWeight: '600',
+  },
+  participantsRow: {
+    flexDirection: 'row',
+    gap: 16,
+    marginTop: 8,
+  },
+  participantInput: {
+    flex: 1,
+  },
+  participantLabel: {
+    fontSize: 11,
+    color: '#333',
+    marginBottom: 4,
+  },
+  smallInput: {
+    paddingVertical: 8,
+  },
+  textArea: {
+    backgroundColor: '#f8f9fa',
+    borderWidth: 1.5,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 11,
+    color: '#333',
+    height: 100,
+    textAlignVertical: 'top',
+  },
+  wordCountContainer: {
+    alignItems: 'flex-end',
+    marginTop: 4,
+  },
+  wordCountText: {
+    fontSize: 9,
+    color: '#666',
+  },
+  wordCountError: {
+    color: '#dc3545',
+    fontWeight: '600',
+  },
+  fileNote: {
+    fontSize: 9,
+    color: '#666',
+    marginBottom: 8,
+    fontStyle: 'italic',
+  },
+  filePickerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    borderWidth: 1.5,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  filePickerText: {
+    fontSize: 11,
+    color: '#333',
+    flex: 1,
   },
   photoButtons: {
     flexDirection: 'row',
@@ -1980,25 +2773,20 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   photoButtonText: {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '600',
     color: '#6B2D5C',
   },
   photosPreview: {
     marginTop: 12,
   },
-  photosCount: {
-    fontSize: 9,
-    color: '#666',
-    marginBottom: 8,
-  },
   photoPreviewItem: {
     position: 'relative',
     marginRight: 8,
   },
   photoPreview: {
-    width: 60,
-    height: 60,
+    width: 80,
+    height: 80,
     borderRadius: 6,
     backgroundColor: '#f5f5f5',
   },
@@ -2006,34 +2794,29 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -4,
     right: -4,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     backgroundColor: '#dc3545',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  filePickerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f8f9fa',
-    borderWidth: 1.5,
-    borderColor: '#e0e0e0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  filePickerText: {
-    fontSize: 10,
-    color: '#333',
-    flex: 1,
+  photoNumber: {
+    position: 'absolute',
+    bottom: 4,
+    left: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    color: '#fff',
+    fontSize: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 3,
   },
   filesList: {
     marginTop: 12,
   },
   filesCount: {
-    fontSize: 9,
+    fontSize: 10,
     color: '#666',
     marginBottom: 6,
   },
@@ -2048,58 +2831,38 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   fileName: {
-    fontSize: 9,
+    fontSize: 10,
     color: '#333',
     flex: 1,
   },
-  linkInputRow: {
+  socialMediaRow: {
+    marginBottom: 10,
+  },
+  socialCheckbox: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
-    gap: 6,
+    gap: 8,
+    marginBottom: 6,
   },
-  linkInput: {
-    flex: 1,
-  },
-  removeLinkButton: {
-    padding: 6,
-  },
-  addLinkButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-    borderRadius: 6,
+  checkbox: {
+    width: 16,
+    height: 16,
+    borderRadius: 3,
     borderWidth: 1.5,
     borderColor: '#6B2D5C',
-    backgroundColor: '#fff',
-    gap: 4,
-    marginTop: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  addLinkText: {
-    fontSize: 9,
-    fontWeight: '600',
-    color: '#6B2D5C',
+  checkboxChecked: {
+    backgroundColor: '#6B2D5C',
   },
-  uploadProgressContainer: {
-    marginVertical: 16,
+  socialLabel: {
+    fontSize: 11,
+    color: '#333',
+    fontWeight: '500',
   },
-  uploadProgressText: {
-    fontSize: 10,
-    color: '#666',
-    marginBottom: 6,
-    textAlign: 'center',
-  },
-  progressBar: {
-    height: 6,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#4CAF50',
-    borderRadius: 3,
+  socialInput: {
+    marginTop: 4,
   },
   submitButton: {
     flexDirection: 'row',
@@ -2110,6 +2873,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     gap: 8,
     marginTop: 20,
+    marginBottom: 10,
   },
   submitButtonDisabled: {
     opacity: 0.7,
@@ -2117,18 +2881,22 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: '#fff',
     fontWeight: '700',
-    fontSize: 11,
+    fontSize: 12,
   },
   cancelButton: {
     alignItems: 'center',
     paddingVertical: 12,
-    marginTop: 12,
+   
   },
   cancelButtonText: {
-    fontSize: 10,
+    fontSize: 11,
     color: '#666',
     fontWeight: '600',
   },
 });
 
 export default ActivitiesMonitoringScreen;
+
+
+
+

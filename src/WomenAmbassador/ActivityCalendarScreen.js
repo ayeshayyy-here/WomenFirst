@@ -88,7 +88,7 @@ const ActivityCalendarScreen = ({ route, navigation }) => {
     try {
       setLoading(true);
       
-      const API_URL = 'https://b00886286dc4.ngrok-free.app/api/activity-calendar/scheduled-activities';
+      const API_URL = 'https://fa-wdd.punjab.gov.pk/api/activity-calendar/scheduled-activities';
       
       const requestBody = {
         cnic: userCnic,
@@ -131,7 +131,7 @@ const ActivityCalendarScreen = ({ route, navigation }) => {
 
   const fetchUniversities = async () => {
     try {
-      const API_URL = 'https://b00886286dc4.ngrok-free.app/api/activity-calendar/universitiess';
+      const API_URL = 'https://fa-wdd.punjab.gov.pk/api/activity-calendar/universitiess';
       
       const response = await fetch(API_URL, {
         method: 'GET',
@@ -304,7 +304,7 @@ const ActivityCalendarScreen = ({ route, navigation }) => {
     try {
       setIsSubmitting(true);
       
-      const API_URL = 'https://b00886286dc4.ngrok-free.app/api/activity-calendar/schedule';
+      const API_URL = 'https://fa-wdd.punjab.gov.pk/api/activity-calendar/schedule';
       
       console.log('[API] 📦 Scheduling activity...');
       
@@ -359,7 +359,7 @@ const ActivityCalendarScreen = ({ route, navigation }) => {
 
   const deleteActivity = async (activityId) => {
     try {
-      const API_URL = `https://b00886286dc4.ngrok-free.app/api/activity-calendar/activity/${activityId}`;
+      const API_URL = `https://fa-wdd.punjab.gov.pk/api/activity-calendar/activity/${activityId}`;
       
       const requestBody = {
         cnic: userCnic,
