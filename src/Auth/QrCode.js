@@ -7,7 +7,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 const { width } = Dimensions.get('window');
 
 const App = () => {
-    const url = "https://play.google.com/store/apps/details?id=com.workingwomenhostel&pcampaignid=web_share";
+    const url = "https://play.google.com/store/apps/details?id=com.womenfirst";
 
   
 
@@ -30,7 +30,7 @@ const App = () => {
             />
 
             {/* Footer Section */}
-            <Text style={styles.footer}>Working Women Hostel</Text>
+            <Text style={styles.footer}>Women First</Text>
         </View>
     );
 };

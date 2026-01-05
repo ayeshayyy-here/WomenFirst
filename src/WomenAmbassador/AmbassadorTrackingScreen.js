@@ -14,7 +14,9 @@ import {
 import { LinearGradient } from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import SyncStorage from 'react-native-sync-storage';
-import BottomFPButton from '../components/BottomFPButton';
+import OperationExectiveTrackingScreen from '../WomenAmbassador/OperationExectiveTrackingScreen';
+import Loader from '../components/Loader';
+
 const { width } = Dimensions.get('window');
 
 const AmbassadorTrackingScreen = ({ navigation }) => {
@@ -236,8 +238,10 @@ const AmbassadorTrackingScreen = ({ navigation }) => {
     const circleSize = width * 0.14;
 
     return (
+        <View style={styles.trackingContainerr}>
+          <Text style={styles.trackingHeading}>Application Tracking</Text>
       <View style={styles.trackingContainer}>
-        <Text style={styles.trackingHeading}>Ambassador Application Tracking</Text>
+          <Text style={styles.trackingHeadingw}>Ambassador Application Tracking</Text>
         
         {/* Progress Line Container */}
         <View style={styles.trackingLineContainer}>
@@ -298,13 +302,18 @@ const AmbassadorTrackingScreen = ({ navigation }) => {
 
         {/* Progress Summary */}
         <View style={styles.progressSummary}>
-          <Text style={styles.progressText}>
+          {/* <Text style={styles.progressText}>
             Progress: {trackingSteps.completed_count}/{trackingSteps.total_steps} Steps Completed
           </Text>
           <Text style={styles.progressPercent}>
             {trackingSteps.progress}%
-          </Text>
+          </Text> */}
+          
         </View>
+      </View>
+       <OperationExectiveTrackingScreen 
+            userCnic={trackingData.registration.cnic_bform || userCnic}
+          />
       </View>
     );
   };
@@ -400,7 +409,7 @@ const AmbassadorTrackingScreen = ({ navigation }) => {
     return (
       <View style={styles.loadingContainer}>
         <StatusBar backgroundColor="#6B2D5C" barStyle="light-content" />
-        <ActivityIndicator size="large" color="#6B2D5C" />
+       <Loader/>
         <Text style={styles.loadingText}>
           {userCnic ? 'Loading Your Application Status...' : 'Loading Your Profile...'}
         </Text>
@@ -457,9 +466,9 @@ const AmbassadorTrackingScreen = ({ navigation }) => {
 
       </ScrollView>
            <View>
-  {/* YOUR SCREEN CONTENT */}
 
-  <BottomFPButton navigation={navigation} />
+  {/* YOUR SCREEN CONTENT */}
+  {/*<BottomFPButton navigation={navigation} /> */}
 </View>
     </View>
    
@@ -517,6 +526,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginLeft: 6,
   },
+   trackingContainerr: {
+    backgroundColor: '#f4f1f3ff',
+    marginTop: 12,
+    padding: 6,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 8,
+  },
   trackingContainer: {
     backgroundColor: '#6B2D5C',
     margin: 12,
@@ -530,13 +550,28 @@ const styles = StyleSheet.create({
   },
   trackingHeading: {
     textAlign: 'center',
-    color: '#fff',
-    fontSize: 16,
+    color: '#6B2D5C',
+   fontSize: 18,
     fontWeight: '700',
+    marginBottom: 15,
     marginTop: 25,
-    marginBottom: 20,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
+  },
+  trackingHeadingw: {
+   textAlign: 'center',
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 15,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
   },
   trackingLineContainer: {
     height: 4,

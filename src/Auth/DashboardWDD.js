@@ -97,8 +97,9 @@ const DashboardWDD = ({ navigation, notifications }) => {
     },
     { 
       title: "Female Ambassador Program", 
-       image: Ambassador,
+      image: Ambassador,
       screen: "AmbassadorTrackingScreen",
+      // screen: "WomenAmbassadorRegistrationScreen",
       colors: ['#ffffff', '#ffffff'],
       shadow: '#ec407a'
     },

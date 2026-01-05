@@ -88,6 +88,10 @@ import WomenEntrepreneurshipRegistrationScreen from './src/WomenExpo/WomenEntrep
 // WomenAmbassador
 import WomenAmbassadorRegistrationScreen from './src/WomenAmbassador/WomenAmbassadorRegistrationScreen';
 import AmbassadorTrackingScreen from './src/WomenAmbassador/AmbassadorTrackingScreen';
+import OperationExectiveTrackingScreen from './src/WomenAmbassador/OperationExectiveTrackingScreen';
+import ActivityCalendarScreen from './src/WomenAmbassador/ActivityCalendarScreen';
+import ActivitiesMonitoringScreen from './src/WomenAmbassador/ActivitiesMonitoringScreen';
+
 // YouthPitchRegistrationScreen
 import YouthPitchRegistrationScreen from './src/YouthPitch/YouthPitchRegistrationScreen';
 import { fetchAndShowNotifications } from './src/utils/notificationHandler';
@@ -202,6 +206,10 @@ const App = () => {
       {/* //WomenAmbassador */}
       <Stack.Screen name="WomenAmbassadorRegistrationScreen" component={WomenAmbassadorRegistrationScreen} />
       <Stack.Screen name="AmbassadorTrackingScreen" component={AmbassadorTrackingScreen} />
+      <Stack.Screen name="OperationExectiveTrackingScreen" component={OperationExectiveTrackingScreen} />
+      <Stack.Screen name="ActivityCalendarScreen" component={ActivityCalendarScreen} />
+       <Stack.Screen name="ActivitiesMonitoringScreen" component={ActivitiesMonitoringScreen} />
+      
 {/* YouthPitchRegistrationScreen */}
   <Stack.Screen name="YouthPitchRegistrationScreen" component={YouthPitchRegistrationScreen} />
       
