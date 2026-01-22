@@ -30,8 +30,8 @@ android {
         applicationId "com.womenfirst"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 25
-        versionName "14.0"
+        versionCode 26
+        versionName "15.0"
         resConfigs "en", "us"
     }
     signingConfigs {
@@ -97,4 +97,3 @@ afterEvaluate {
         dependsOn("copyReactNativeVectorIconFonts")
     }
 }
-

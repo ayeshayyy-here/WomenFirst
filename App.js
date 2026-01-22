@@ -75,13 +75,15 @@ import ComplaintsM from './src/Manager/ComplaintsM';
 import Complaintsresolved from './src/Manager/Complaintsresolved';
 import Complaintspending from './src/Manager/Complaintspending';
 import ComplaintDetail from './src/Manager/ComplaintDetail';
-
+import EditExpelledScreen from './src/Manager/EditExpelledScreen';
+import ExpelledHomeScreen from './src/Manager/ExpelledHomeScreen';
 //Centralized Users 
 import LoginC from './src/CentralizedUsers/LoginC';
 import RegisterC from './src/CentralizedUsers/RegisterC';
 import ProfileScreen from './src/CentralizedUsers/ProfileScreen';
 import ImportCentralizedUsers from './src/CentralizedUsers/ImportCentralizedUsers';
 import FPImageStore from './src/CentralizedUsers/FPImageStore';
+import ProjectDateScreen from './src/CentralizedUsers/ProjectDateScreen';
 
 // WomenExpo
 import WomenEntrepreneurshipRegistrationScreen from './src/WomenExpo/WomenEntrepreneurshipRegistrationScreen';
@@ -92,8 +94,19 @@ import OperationExectiveTrackingScreen from './src/WomenAmbassador/OperationExec
 import ActivityCalendarScreen from './src/WomenAmbassador/ActivityCalendarScreen';
 import ActivitiesMonitoringScreen from './src/WomenAmbassador/ActivitiesMonitoringScreen';
 import AccountsDetailsScreen from './src/WomenAmbassador/AccountsDetailsScreen';
+import AmbassadorHomeScreen from './src/WomenAmbassador/AmbassadorHomeScreen';
 // YouthPitchRegistrationScreen
 import YouthPitchRegistrationScreen from './src/YouthPitch/YouthPitchRegistrationScreen';
+import ProfileTrackingScreenYPC from './src/YouthPitch/ProfileTrackingScreenYPC';
+import YPCHomeScreen from './src/YouthPitch/YPCHomeScreen';
+// SEHR
+import SEHRHomeScreen from './src/SEHR/SEHRHomeScreen';
+import BeauticianRegistrationForm from './src/SEHR/BeauticianRegistrationForm';
+import HospitalityRegistrationForm from './src/SEHR/HospitalityRegistrationForm';
+import DigitalSkillsRegistrationForm from './src/SEHR/DigitalSkillsRegistrationForm';
+import BeauticianTracking from './src/SEHR/BeauticianTracking';
+import HospitalityTracking from './src/SEHR/HospitalityTracking';
+
 import { fetchAndShowNotifications } from './src/utils/notificationHandler';
 import NotificationsScreen from './src/components/NotificationsScreen'
 import SessionChecker from './src/utils/SessionChecker';
@@ -201,6 +214,8 @@ const App = () => {
       <Stack.Screen name="Complaintspending" component={Complaintspending} />
       <Stack.Screen name="Complaintsresolved" component={Complaintsresolved} />
       <Stack.Screen name="ComplaintDetail" component={ComplaintDetail} />
+      <Stack.Screen name="ExpelledHomeScreen" component={ExpelledHomeScreen} />
+      <Stack.Screen name="EditExpelledScreen" component={EditExpelledScreen} />
       {/* //WomenExpo */}
       <Stack.Screen name="WomenEntrepreneurshipRegistrationScreen" component={WomenEntrepreneurshipRegistrationScreen} />
       {/* //WomenAmbassador */}
@@ -210,9 +225,21 @@ const App = () => {
       <Stack.Screen name="ActivityCalendarScreen" component={ActivityCalendarScreen} />
        <Stack.Screen name="ActivitiesMonitoringScreen" component={ActivitiesMonitoringScreen} />
       <Stack.Screen name="AccountsDetailsScreen" component={AccountsDetailsScreen} />
+       <Stack.Screen name="AmbassadorHomeScreen" component={AmbassadorHomeScreen} />
 {/* YouthPitchRegistrationScreen */}
-  <Stack.Screen name="YouthPitchRegistrationScreen" component={YouthPitchRegistrationScreen} />
-      
+      <Stack.Screen name="YouthPitchRegistrationScreen" component={YouthPitchRegistrationScreen} />
+      <Stack.Screen name="ProfileTrackingScreenYPC" component={ProfileTrackingScreenYPC} />
+      <Stack.Screen name="YPCHomeScreen" component={YPCHomeScreen} />
+      {/* SEHR */}
+      <Stack.Screen name="SEHRHomeScreen" component={SEHRHomeScreen} />
+      <Stack.Screen name="BeauticianRegistrationForm" component={BeauticianRegistrationForm} />
+      <Stack.Screen name="HospitalityRegistrationForm" component={HospitalityRegistrationForm} />
+      <Stack.Screen name="DigitalSkillsRegistrationForm" component={DigitalSkillsRegistrationForm} />
+      <Stack.Screen name="BeauticianTracking" component={BeauticianTracking} />
+      <Stack.Screen name="HospitalityTracking" component={HospitalityTracking} />
+
+
+
       {/* //CentralizedLogins */}
       <Stack.Screen name="LoginC" component={LoginC} />
       <Stack.Screen name="RegisterC" component={RegisterC} />
@@ -221,6 +248,7 @@ const App = () => {
       <Stack.Screen name="HostelManagerScreen" component={HostelManagerScreen} />
       <Stack.Screen name="ImportCentralizedUsers" component={ImportCentralizedUsers} />
       <Stack.Screen name="FPImageStore" component={FPImageStore} />
+      <Stack.Screen name="ProjectDateScreen" component={ProjectDateScreen} />
 {/* notification screen */}
     <Stack.Screen name="NotificationsScreen" component={NotificationsScreen} />
 

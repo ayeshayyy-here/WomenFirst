@@ -284,7 +284,18 @@ useEffect(() => {
                    style={styles.cardIconn}
                    resizeMode="contain"
                  />
-                 <Text style={styles.cardText}>Complaints</Text>
+                      <Text style={styles.cardText}>Complaints</Text>
+                
+               </TouchableOpacity>
+                 <TouchableOpacity style={styles.card}
+        onPress={() => navigation.navigate('ExpelledHomeScreen')} 
+               >
+                 <Image
+                   source={Machine}
+                   style={styles.cardIconn}
+                   resizeMode="contain"
+                 />
+                <Text style={styles.cardText}>Expelled</Text>
                </TouchableOpacity>
            
                </View>

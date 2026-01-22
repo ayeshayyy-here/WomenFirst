@@ -21,10 +21,12 @@ import Women from '../../assets/images/women.png';
 import Wepx from '../../assets/images/wepx.png';
 import Pitch from '../../assets/images/pitch.jpg';
 import Ambassador from '../../assets/images/ambassador.jpg';
+import SEHR_LOGO from '../../assets/images/SEHR_LOGO.png';
 import Hostel from '../../assets/images/hostel.png';
 import FloatingButton from '../components/FloatingButton';
 import notifee, { AndroidImportance } from '@notifee/react-native';
 import NotificationsScreen from '../components/NotificationsScreen';
+
 
 const { width, height } = Dimensions.get('window');
 
@@ -34,11 +36,6 @@ const DashboardWDD = ({ navigation, notifications }) => {
   const spinValue = new Animated.Value(0);
   const headerScrollY = new Animated.Value(0);
   const appState = useRef(AppState.currentState);
-
-
-
-
-  
 
   useEffect(() => {
     // Start animations
@@ -98,19 +95,25 @@ const DashboardWDD = ({ navigation, notifications }) => {
     { 
       title: "Female Ambassador Program", 
       image: Ambassador,
-      screen: "AmbassadorTrackingScreen",
-      // screen: "WomenAmbassadorRegistrationScreen",
+      // screen: "AmbassadorTrackingScreen",
+      screen: "AmbassadorHomeScreen",
       colors: ['#ffffff', '#ffffff'],
       shadow: '#ec407a'
     },
     { 
       title: "Youth Pitch", 
       image: Pitch, 
-      screen: "YouthPitchRegistrationScreen",
+      screen: "YPCHomeScreen",
       colors: ['#ffffff', '#ffffff'],
       shadow: '#42a5f5'
     },
-     
+      { 
+      title: "SEHR", 
+      image: SEHR_LOGO,
+      screen: "SEHRHomeScreen",
+      colors: ['#ffffff', '#ffffff'],
+      shadow: '#ef5350'
+    },
     { 
       title: "Day Care", 
       icon: <Icon3 name="baby-carriage" size={28} color="#7e57c2" />,
@@ -122,17 +125,11 @@ const DashboardWDD = ({ navigation, notifications }) => {
     { 
       title: "Empowerment", 
       icon: <Icon3 name="account-cash" size={28} color="#26a69a" />,
-      screen: "EmpowermentScreen",
+      screen: "ProjectDateScreen",
       colors: ['#ffffff', '#ffffff'],
       shadow: '#26a69a'
     },
-    { 
-      title: "SERR", 
-      icon: <Icon3 name="shield-account" size={28} color="#ef5350" />,
-      screen: "SERRScreen",
-      colors: ['#ffffff', '#ffffff'],
-      shadow: '#ef5350'
-    },
+   
     { 
       title: "Skill Dev", 
       icon: <Icon3 name="tools" size={28} color="#66bb6a" />,
@@ -199,7 +196,7 @@ const DashboardWDD = ({ navigation, notifications }) => {
 
  const handleProjectPress = (project) => {
     // Check if the project is WEPX or Women Hostel
-    if (project.title === "WEPX" || project.title === "Working Women Hostel" || project.title === "Female Ambassador Program" || project.title === "Youth Pitch") {
+    if (project.title === "WEPX" || project.title === "Working Women Hostel" || project.title === "Female Ambassador Program" || project.title === "Youth Pitch" || project.title === "SEHR") {
       navigation.navigate(project.screen);
     } else {
       // Show "Coming Soon" toast for all other projects

@@ -2681,7 +2681,7 @@ const renderUpdateButton = () => {
           <TouchableOpacity style={[styles.navButton, styles.prevButton]} onPress={handlePrevious}>
             <Text style={styles.buttonText}>Previous</Text>
           </TouchableOpacity>
-         <TouchableOpacity style={[styles.navButton, styles.submitButton]}  onPress={handleServiceUnavailable}>
+         <TouchableOpacity style={[styles.navButton, styles.submitButton]}  onPress={handleSubmit}>
   <Text style={styles.buttonText}>
     {isUpdateMode ? 'Update Registration' : 'Submit Registration'}
   </Text>

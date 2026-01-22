@@ -173,7 +173,8 @@ const Rooms = ({ navigation }) => {
       <Text style={styles.headerTitle}>Rooms</Text>
       {userStatus ? (
         <View style={styles.userStatusContainer}>
-          <Text style={styles.userStatusText}>{userStatus}</Text>
+          {/* <Text style={styles.userStatusText}>{userStatus}</Text> */}
+          <Text style={styles.userStatusText}> Room allotment status will display here</Text>
           <TouchableOpacity onPress={hideUserStatus}>
             <Icon name="times-circle" size={20} color="maroon" />
           </TouchableOpacity>

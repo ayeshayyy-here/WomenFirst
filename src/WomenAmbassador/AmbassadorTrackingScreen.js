@@ -16,6 +16,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import SyncStorage from 'react-native-sync-storage';
 import OperationExectiveTrackingScreen from '../WomenAmbassador/OperationExectiveTrackingScreen';
 import Loader from '../components/Loader';
+import AutoRegisterBadge from '../components/AutoRegisterBadge';
 
 const { width } = Dimensions.get('window');
 
@@ -242,6 +243,7 @@ const AmbassadorTrackingScreen = ({ navigation }) => {
           <Text style={styles.trackingHeading}>Application Tracking</Text>
       <View style={styles.trackingContainer}>
           <Text style={styles.trackingHeadingw}>Ambassador Application Tracking</Text>
+           <AutoRegisterBadge role="ambassador" />
         
         {/* Progress Line Container */}
         <View style={styles.trackingLineContainer}>

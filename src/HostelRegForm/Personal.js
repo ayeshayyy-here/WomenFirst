@@ -1246,11 +1246,13 @@ const validateForm = () => {
           onChangeText={text => handleInputChange('erelationship', text)}
         />
         
-        <Text style={styles.text}>Address:</Text>
+        <Text style={styles.text}>CNIC:</Text>
         <TextInput
           style={styles.input}
-          placeholder="Enter Address"
+       placeholder="Enter CNIC"
+          keyboardType="numeric"
           placeholderTextColor="grey"
+          maxLength={13}
           value={formData.eaddress}
           onChangeText={text => handleInputChange('eaddress', text)}
         />

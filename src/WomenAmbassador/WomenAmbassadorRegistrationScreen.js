@@ -2199,7 +2199,7 @@ const isFiveYearProgram = (program) => {
               {loading ? (
                 <ActivityIndicator size="small" color="white" />
               ) : (
-                <Text style={styles.buttonText}>Update Registration</Text>
+                <Text style={styles.buttonText}>Apply for Phase 2</Text>
               )}
             </TouchableOpacity>
           ) : (
@@ -2256,11 +2256,11 @@ const isFiveYearProgram = (program) => {
           </View>
 
           {renderUpdateButton()}
-<ProgramPopup
+   <ProgramPopup
         visible={showPopup}
         onClose={() => setShowPopup(false)}
         programType="ambassador"
-      /> 
+      />
        <AutoRegisterBadge role="ambassador" />
           <View style={styles.welcomeCard}>
             <Text style={styles.welcomeTitle}>Welcome, Future Ambassador!</Text>
