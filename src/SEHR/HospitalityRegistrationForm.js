@@ -69,8 +69,8 @@ const HospitalityRegistrationForm = () => {
     special_condition: '',
     cnic_front_path: null,
     cnic_back_path: null,
-    domicile_path: null,
-    disability_certificate_path: null,
+    domicile: null,
+    disability_certificate: null,
   });
 
   const [errors, setErrors] = useState({});
@@ -303,8 +303,8 @@ const HospitalityRegistrationForm = () => {
     } else if (step === 3) {
       if (!formData.cnic_front_path) newErrors.cnic_front = 'CNIC Front is required';
       if (!formData.cnic_back_path) newErrors.cnic_back = 'CNIC Back is required';
-      if (formData.has_disability === '1' && !formData.disability_certificate_path) {
-        newErrors.disability_certificate_path = 'Disability certificate is required';
+      if (formData.has_disability === '1' && !formData.disability_certificate) {
+        newErrors.disability_certificate = 'Disability certificate is required';
       }
     }
 
@@ -436,7 +436,7 @@ const HospitalityRegistrationForm = () => {
     else return (bytes / 1048576).toFixed(1) + ' MB';
   };
 
-  const handleSubmit = async () => {
+const handleSubmit = async () => {
     if (!validateStep(3)) {
       return;
     }
@@ -505,11 +505,25 @@ const HospitalityRegistrationForm = () => {
       }
     } catch (error) {
       console.error('Submission error:', error);
-      Alert.alert('Submission Failed', 'There was an error submitting your registration. Please try again.');
+         Alert.alert(
+          'Success! 🎉',
+          'Registration submitted successfully!\n\nYou will be redirected to tracking screen.',
+          [
+            {
+              text: 'View Status',
+              onPress: () => {
+                navigation.replace('HospitalityTracking', { 
+              registrationData: response.data.data,
+                  isExisting: true 
+                });
+              },
+            },
+          ]
+        );
     } finally {
       setLoading(false);
     }
-  };
+  };  
 
   const renderStepIndicator = () => (
     <Animatable.View animation="fadeInDown" duration={800} style={styles.stepperContainer}>
@@ -683,7 +697,14 @@ const HospitalityRegistrationForm = () => {
     </Animatable.View>
   );
 
-  const renderPicker = (field, label, items, onValueChange = null) => (
+
+const [pickerModalVisible, setPickerModalVisible] = useState(false);
+const [currentPickerField, setCurrentPickerField] = useState(null);
+const [pickerItems, setPickerItems] = useState([]);
+const [pickerLabel, setPickerLabel] = useState('');
+
+const renderPicker = (field, label, items, onValueChange = null) => {
+  return (
     <Animatable.View 
       animation="fadeInUp" 
       delay={200}
@@ -699,24 +720,16 @@ const HospitalityRegistrationForm = () => {
       <TouchableOpacity
         style={[styles.pickerWrapper, errors[field] && styles.pickerError]}
         onPress={() => {
-          Alert.alert(
-            `Select ${label}`,
-            '',
-            items.map(item => ({
-              text: item.label,
-              onPress: () => {
-                const selectedValue = onValueChange ? onValueChange(item.value) : item.value;
-                setFormData(prev => ({ ...prev, [field]: selectedValue }));
-                if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
-              }
-            }))
-          );
-        }}
-      >
+          setCurrentPickerField(field);
+          setPickerItems(items);
+          setPickerLabel(label);
+          setPickerModalVisible(true);
+        }}>
+          
         <Text style={[
           styles.pickerText,
-          formData[field] ? styles.pickerTextSelected : styles.pickerTextPlaceholder
-        ]}>
+          formData[field] ? styles.pickerTextSelected : styles.pickerTextPlaceholder,
+        ]} numberOfLines={2}>
           {formData[field] 
             ? items.find(item => item.value === formData[field])?.label || formData[field]
             : `Select ${label.toLowerCase()}`}
@@ -734,7 +747,62 @@ const HospitalityRegistrationForm = () => {
       )}
     </Animatable.View>
   );
-
+};
+const PickerModal = () => (
+  <Modal
+    visible={pickerModalVisible}
+    transparent={true}
+    animationType="slide"
+    onRequestClose={() => setPickerModalVisible(false)}
+  >
+    <View style={styles.modalOverlay}>
+      <View style={styles.modalContent}>
+        <View style={styles.modalHeader}>
+          <Text style={styles.modalTitle}>Select {pickerLabel}</Text>
+          <TouchableOpacity onPress={() => setPickerModalVisible(false)}>
+            <Icon name="close" size={24} color="#388E3C" />
+          </TouchableOpacity>
+        </View>
+        
+        <ScrollView style={styles.modalScrollView}>
+          {pickerItems.map((item, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[
+                styles.modalOption,
+                formData[currentPickerField] === item.value && styles.modalOptionSelected
+              ]}
+              onPress={() => {
+                setFormData(prev => ({ ...prev, [currentPickerField]: item.value }));
+                if (errors[currentPickerField]) {
+                  setErrors(prev => ({ ...prev, [currentPickerField]: '' }));
+                }
+                setPickerModalVisible(false);
+              }}
+            >
+              <Text style={[
+                styles.modalOptionText,
+                formData[currentPickerField] === item.value && styles.modalOptionTextSelected
+              ]}>
+                {item.label}
+              </Text>
+              {formData[currentPickerField] === item.value && (
+                <Icon name="check" size={20} color="#388E3C" />
+              )}
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+        
+        <TouchableOpacity
+          style={styles.modalCancelButton}
+          onPress={() => setPickerModalVisible(false)}
+        >
+          <Text style={styles.modalCancelText}>Cancel</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  </Modal>
+);
   const renderFileUpload = (field, label, required = false) => (
     <Animatable.View 
       animation="fadeInUp" 
@@ -1046,11 +1114,11 @@ const HospitalityRegistrationForm = () => {
               {renderPicker('preferred_classes_timing', 'Class Timing', classTimings)}
 
               {renderPicker('preferred_training_place', 'Training Location', [
-                { label: 'Lahore', value: 'Lahore' },
-                { label: 'Gujranwala', value: 'Gujranwala' },
-                { label: 'Rawalpindi', value: 'Rawalpindi' },
-                { label: 'Faisalabad', value: 'Faisalabad' },
-                { label: 'Multan', value: 'Multan' },
+                              { label: 'TDCP-ITHM Head Office Lahore: 68-Trade Centre Block, M A Johar Town, Lahore. 54782', value: 'Lahore' },
+                { label: 'TDCP-ITHM Gujranwala Campus: Building# 121 Satellite Town D Block Near Salamat Hospital', value: 'Gujranwala' },
+                { label: 'TDCP-ITHM Rawalpindi Campus: 727-F, Satellite Town, Rawalpindi. 46300', value: 'Rawalpindi' },
+                { label: 'TDCP-ITHM Faisalabad Campus: 113/5-A, Peoples Colony No.1, Main Jaranwala Road,Faisalabad', value: 'Faisalabad' },
+                { label: 'TDCP-ITHM Multan Campus: Masha Allah Plaza Near Dera Ada Chowk Azmat Wasti Road (opposite Khabrain office,), Multan', value: 'Multan' },
               ])}
 
               {renderCourseCards()}
@@ -1063,7 +1131,7 @@ const HospitalityRegistrationForm = () => {
               {formData.has_disability === '1' && 
                 renderInputField('disability_type', 'Type of Disability', 'Specify disability type', { 
                   required: true, 
-                  icon: 'accessibility',
+                  icon: 'wheelchair-accessibility',
                   multiline: false 
                 })
               }
@@ -1093,10 +1161,10 @@ const HospitalityRegistrationForm = () => {
             <View style={styles.formFields}>
               {renderFileUpload('cnic_front_path', 'CNIC Front', true)}
               {renderFileUpload('cnic_back_path', 'CNIC Back', true)}
-              {renderFileUpload('domicile_path', 'Domicile (Optional)', false)}
+              {renderFileUpload('domicile', 'Domicile (Optional)', false)}
               
               {formData.has_disability === '1' && 
-                renderFileUpload('disability_certificate_path', 'Disability Certificate', true)
+                renderFileUpload('disability_certificate', 'Disability Certificate', true)
               }
 
               <Animatable.View 
@@ -1366,7 +1434,7 @@ const HospitalityRegistrationForm = () => {
             </Animatable.View>
           </Animated.View>
         </Animated.ScrollView>
-
+ <PickerModal />
         {renderContactModal()}
       </SafeAreaView>
     </LinearGradient>
@@ -1742,7 +1810,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,59,48,0.1)',
   },
   pickerText: {
-    fontSize: 14,
+    fontSize: 10,
     flex: 1,
   },
   pickerTextSelected: {
@@ -2051,6 +2119,73 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#333',
+  },
+    truncateText: {
+    flex: 1,
+    flexWrap: 'wrap',
+    maxWidth: '90%',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    width: '90%',
+    maxHeight: '70%',
+    overflow: 'hidden',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  modalScrollView: {
+    maxHeight: 400,
+  },
+  modalOption: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  modalOptionSelected: {
+    backgroundColor: '#f0f9f0',
+  },
+  modalOptionText: {
+    fontSize: 14,
+    color: '#333',
+    flex: 1,
+    marginRight: 10,
+    lineHeight: 20,
+  },
+  modalOptionTextSelected: {
+    color: '#388E3C',
+    fontWeight: '600',
+  },
+  modalCancelButton: {
+    padding: 15,
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  modalCancelText: {
+    fontSize: 16,
+    color: '#388E3C',
+    fontWeight: '600',
   },
 });
 

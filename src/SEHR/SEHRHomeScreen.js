@@ -370,10 +370,10 @@ const SEHRHomeScreen = () => {
                   />
                   <View style={styles.logoTextContainer}>
                     <Text style={styles.logoText}>SEHR</Text>
-                    <Text style={styles.logoSubtext}>Skills for Empowerment & Heritage</Text>
+                    <Text style={styles.logoSubtext}>Skill Enhancement Through Home Reach</Text>
                   </View>
                 </View>
-                <Text style={styles.headerTitle}>Skills for Empowerment & Heritage</Text>
+                <Text style={styles.headerTitle}>Skill Enhancement Through Home Reach</Text>
                 <Text style={styles.headerSubtitle}>
                   Empowering Women Through Skills Development & Economic Independence
                 </Text>

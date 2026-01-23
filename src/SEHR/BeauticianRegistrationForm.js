@@ -889,10 +889,10 @@ const BeauticianRegistrationForm = () => {
               ])}
 
               {renderPicker('preferred_training_place', 'Preferred Training Place', [
-                { label: 'Faisalabad', value: 'Faisalabad' },
-                { label: 'Lahore', value: 'Lahore' },
-                { label: 'Multan', value: 'Multan' },
-                { label: 'Rawalpindi', value: 'Rawalpindi' },
+                { label: 'Faisalabad – Main Sheikhpura Road, near Paradise Pearl Marquee, Faisalabad', value: 'Faisalabad' },
+                { label: 'Lahore – Discount Store Building, 25 Number Metro Station, Yohanabad Stop, Main Ferozepur Road, Lahore', value: 'Lahore' },
+                { label: 'Multan – Address coming soon', value: 'Multan' },
+                { label: 'Rawalpindi – Address coming soon', value: 'Rawalpindi' },
               ])}
 
               {renderRadioGroup('has_disability', 'Do you have any disability?', [
@@ -903,7 +903,7 @@ const BeauticianRegistrationForm = () => {
               {formData.has_disability === '1' && 
                 renderInputField('disability_type', 'Type of Disability', 'Specify disability type', { 
                   required: true, 
-                  icon: 'accessibility',
+                  icon: 'wheelchair-accessibility',
                   multiline: false 
                 })
               }
@@ -1184,8 +1184,9 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 8,
-      marginBottom: 20,
+    shadowRadius: 8, 
+    paddingTop: 20, 
+    
   },
   headerGradient: {
     flexDirection: 'row',
@@ -1207,7 +1208,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-      marginBottom: 40,
+     
   },
   headerText: {
     marginLeft: 12,
@@ -1216,13 +1217,13 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: 'rgba(255,255,255,0.9)',
-    marginBottom: 20,
-    marginTop: 20,
+    marginBottom: 10,
+   
   },
   headerSubtitle: {
     fontSize: 11,
     color: 'rgba(255,255,255,0.9)',
-    marginTop: 20,
+
   },
   stepBadge: {
     backgroundColor: 'rgba(255,255,255,0.2)',
@@ -1514,7 +1515,7 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   pickerItem: {
-    fontSize: 14,
+    fontSize: 8,
     color: '#333',
   },
   fileContainer: {

@@ -40,15 +40,46 @@ const BeauticianTracking = () => {
   const [imageLoading, setImageLoading] = useState(false);
   
   const [trackingSteps, setTrackingSteps] = useState([
-    { id: 1, title: 'Application\nSubmitted', status: 'completed', date: null, icon: 'file-document-check' },
-    { id: 2, title: 'Shortlisted', status: 'pending', date: null, icon: 'account-check' },
-    { id: 3, title: 'Assessment', status: 'pending', date: null, icon: 'clipboard-text' },
-    { id: 4, title: 'Certification', status: 'pending', date: null, icon: 'certificate' },
+    { 
+      id: 1, 
+      title: 'Application\nSubmitted', 
+      count: '260',
+      status: 'completed', 
+      date: null, 
+      icon: 'account-check',
+      description: 'Application submitted successfully'
+    },
+    { 
+      id: 2, 
+      title: 'Shortlisted', 
+      count: '0',
+      status: 'pending', 
+      date: null, 
+      icon: 'account-check',
+      description: 'You\'ll be notified when shortlisted'
+    },
+    { 
+      id: 3, 
+      title: 'Assessments', 
+      count: '0',
+      status: 'pending', 
+      date: null, 
+      icon: 'clipboard-text',
+      description: 'Assessment details will appear here'
+    },
+    { 
+      id: 4, 
+      title: 'Certification', 
+      count: '0',
+      status: 'pending', 
+      date: null, 
+      icon: 'certificate',
+      description: 'Certificate will be available here'
+    },
   ]);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scrollX = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -122,8 +153,9 @@ const BeauticianTracking = () => {
     const updatedSteps = [...trackingSteps];
     updatedSteps[0] = {
       ...updatedSteps[0],
+      count: '1',
       date: moment(data.created_at).format('DD MMM'),
-      description: 'Registration Completed',
+      description: 'Your application has been submitted',
     };
     setTrackingSteps(updatedSteps);
   };
@@ -164,179 +196,164 @@ const BeauticianTracking = () => {
     });
   };
 
-  const renderHorizontalJourney = () => {
-    const inputRange = [0, width, width * 2, width * 3];
-    
+  const renderTrackingBar = () => {
+    const totalSteps = trackingSteps.length;
+    const completedSteps = trackingSteps.filter(step => step.status === 'completed').length;
+    const progressWidth = (completedSteps / totalSteps) * 100;
+
     return (
       <Animatable.View 
         animation="fadeInUp" 
         duration={800}
         delay={200}
-        style={styles.journeyContainer}
+        style={styles.trackingContainer}
       >
         <LinearGradient
-          colors={['rgba(156, 39, 176, 0.15)', 'rgba(103, 58, 183, 0.15)']}
-          style={styles.journeyGradient}
+          colors={['rgba(156, 39, 176, 0.1)', 'rgba(123, 31, 162, 0.1)']}
+          style={styles.trackingGradient}
         >
-          <View style={styles.journeyHeader}>
-            <Icon name="map-marker-path" size={22} color="#9C27B0" />
-            <Text style={styles.journeyTitle}>Application Journey</Text>
-            <View style={styles.journeyStatus}>
+          <View style={styles.trackingHeader}>
+            <Icon name="progress-check" size={22} color="#9C27B0" />
+            <Text style={styles.trackingTitle}>Application Status</Text>
+            <View style={styles.trackingStatus}>
               <View style={[styles.statusDot, { backgroundColor: '#4CAF50' }]} />
-              <Text style={styles.statusText}>In Progress</Text>
+              <Text style={styles.statusText}>Submitted</Text>
             </View>
           </View>
 
-          {/* Progress Bar */}
-          <View style={styles.progressBarContainer}>
-            <View style={styles.progressBarBackground}>
+          {/* Progress Steps with Circles */}
+          <View style={styles.progressStepsContainer}>
+            {trackingSteps.map((step, index) => (
+              <View key={step.id} style={styles.stepWrapper}>
+                {/* Circle Step */}
+                <TouchableOpacity
+                  style={styles.stepCircleTouchable}
+                  onPress={() => {
+                    if (step.status === 'pending') {
+                      Alert.alert(
+                        step.title.replace('\n', ' '),
+                        step.description || 'You will be notified when this step is updated.',
+                        [{ text: 'OK' }]
+                      );
+                    }
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <LinearGradient
+                    colors={
+                      step.status === 'completed'
+                        ? ['#4CAF50', '#2E7D32']
+                        : ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']
+                    }
+                    style={[
+                      styles.stepCircle,
+                      step.status === 'completed' && styles.stepCircleCompleted,
+                    ]}
+                  >
+                    {step.status === 'completed' ? (
+                      <Icon name="check" size={18} color="white" />
+                    ) : (
+                      <Text style={styles.stepNumber}>{step.id}</Text>
+                    )}
+                  </LinearGradient>
+                  
+                  {/* Step Icon */}
+                  <View style={[
+                    styles.stepIconCircle,
+                    step.status === 'completed' && styles.stepIconCircleCompleted,
+                  ]}>
+                    <Icon 
+                      name={step.icon} 
+                      size={16} 
+                      color={step.status === 'completed' ? 'white' : '#9C27B0'} 
+                    />
+                  </View>
+                </TouchableOpacity>
+
+                {/* Step Label */}
+                <View style={styles.stepLabelContainer}>
+                  <Text style={[
+                    styles.stepLabel,
+                    step.status === 'completed' && styles.stepLabelCompleted,
+                  ]}>
+                    {step.title.split('\n')[0]}
+                  </Text>
+                  {step.title.includes('\n') && (
+                    <Text style={[
+                      styles.stepLabel,
+                      step.status === 'completed' && styles.stepLabelCompleted,
+                    ]}>
+                      {step.title.split('\n')[1]}
+                    </Text>
+                  )}
+                </View>
+
+                {/* Step Count */}
+                <Text style={[
+                  styles.stepCount,
+                  step.status === 'completed' && styles.stepCountCompleted,
+                ]}>
+                  {step.count}
+                </Text>
+
+                {/* Status Badge */}
+                <View style={styles.stepStatusBadge}>
+                  <View style={[
+                    styles.statusBadge,
+                    step.status === 'completed' 
+                      ? styles.statusBadgeCompleted 
+                      : styles.statusBadgePending,
+                  ]}>
+                    <Text style={styles.statusBadgeText}>
+                      {step.status === 'completed' ? '✓' : '○'}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Description */}
+                <Text style={styles.stepDescription}>
+                  {step.description}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          {/* Connecting Line */}
+          <View style={styles.connectingLineContainer}>
+            <View style={styles.connectingLineBackground}>
               <Animated.View 
                 style={[
-                  styles.progressBarFill,
+                  styles.connectingLineFill,
                   {
                     width: progressAnim.interpolate({
                       inputRange: [0, 1],
-                      outputRange: ['0%', '100%'],
+                      outputRange: ['0%', `${progressWidth}%`],
                     }),
                   },
                 ]}
               />
             </View>
-            <Text style={styles.progressText}>Step 1 of 4 Completed</Text>
           </View>
 
-          {/* Horizontal Steps */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.stepsScrollContent}
-            decelerationRate="fast"
-            snapToInterval={width * 0.8}
-          >
-            {trackingSteps.map((step, index) => (
-              <Animated.View
-                key={step.id}
-                style={[
-                  styles.stepCard,
-                  {
-                    opacity: scrollX.interpolate({
-                      inputRange: [
-                        (index - 1) * width,
-                        index * width,
-                        (index + 1) * width,
-                      ],
-                      outputRange: [0.3, 1, 0.3],
-                    }),
-                    transform: [
-                      {
-                        scale: scrollX.interpolate({
-                          inputRange: [
-                            (index - 1) * width,
-                            index * width,
-                            (index + 1) * width,
-                          ],
-                          outputRange: [0.8, 1, 0.8],
-                        }),
-                      },
-                    ],
-                  },
-                ]}
-              >
-                <LinearGradient
-                  colors={
-                    step.status === 'completed'
-                      ? ['#4CAF50', '#2E7D32']
-                      : ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']
-                  }
-                  style={[
-                    styles.stepCardGradient,
-                    step.status === 'completed' && styles.stepCardCompleted,
-                  ]}
-                >
-                  <View style={styles.stepCardHeader}>
-                    <View style={[
-                      styles.stepNumberContainer,
-                      step.status === 'completed' && styles.stepNumberCompleted,
-                    ]}>
-                      {step.status === 'completed' ? (
-                        <Icon name="check" size={20} color="white" />
-                      ) : (
-                        <Text style={styles.stepNumber}>{step.id}</Text>
-                      )}
-                    </View>
-                    <Icon 
-                      name={step.icon} 
-                      size={28} 
-                      color={step.status === 'completed' ? 'white' : '#9C27B0'} 
-                      style={styles.stepIcon}
-                    />
-                  </View>
-                  
-                  <Text style={[
-                    styles.stepCardTitle,
-                    step.status === 'completed' && styles.stepCardTitleCompleted,
-                  ]}>
-                    {step.title}
-                  </Text>
-                  
-                  <View style={styles.stepCardBody}>
-                    <View style={styles.statusIndicator}>
-                      <View style={[
-                        styles.statusBadge,
-                        step.status === 'completed' 
-                          ? styles.statusBadgeCompleted 
-                          : styles.statusBadgePending,
-                      ]}>
-                        <Text style={styles.statusBadgeText}>
-                          {step.status === 'completed' ? '✓ Completed' : '○ Pending'}
-                        </Text>
-                      </View>
-                    </View>
-                    
-                    {step.date && (
-                      <View style={styles.stepDateInfo}>
-                        <Icon name="calendar" size={14} color="rgba(255,255,255,0.7)" />
-                        <Text style={styles.stepDateText}>{step.date}</Text>
-                      </View>
-                    )}
-                    
-                    {step.description && (
-                      <Text style={styles.stepDescription}>{step.description}</Text>
-                    )}
-                    
-                    {step.status === 'pending' && (
-                      <View style={styles.expectedInfo}>
-                        <Icon name="clock-fast" size={12} color="rgba(255,255,255,0.5)" />
-                        <Text style={styles.expectedText}>To be updated soon</Text>
-                      </View>
-                    )}
-                  </View>
-                </LinearGradient>
-              </Animated.View>
-            ))}
-          </ScrollView>
-
-          {/* Step Indicators */}
-          <View style={styles.stepIndicators}>
-            {trackingSteps.map((step, index) => (
-              <Animated.View
-                key={step.id}
-                style={[
-                  styles.stepIndicator,
-                  step.status === 'completed' && styles.stepIndicatorCompleted,
-                  {
-                    opacity: scrollX.interpolate({
-                      inputRange: [
-                        (index - 1) * width,
-                        index * width,
-                        (index + 1) * width,
-                      ],
-                      outputRange: [0.3, 1, 0.3],
-                    }),
-                  },
-                ]}
-              />
-            ))}
+          {/* Progress Info */}
+          <View style={styles.progressInfoContainer}>
+            <View style={styles.progressInfo}>
+              <Text style={styles.progressInfoText}>
+                {completedSteps} of {totalSteps} steps completed
+              </Text>
+              <Text style={styles.progressInfoPercent}>
+                {Math.round(progressWidth)}%
+              </Text>
+            </View>
+            <View style={styles.progressNote}>
+              <Icon name="information-outline" size={14} color="#9C27B0" />
+              <Text style={styles.progressNoteText}>
+                {completedSteps === totalSteps 
+                  ? 'All steps completed! Your application is finalized.'
+                  : 'Click on any step to see more details about your application status.'
+                }
+              </Text>
+            </View>
           </View>
         </LinearGradient>
       </Animatable.View>
@@ -365,8 +382,8 @@ const BeauticianTracking = () => {
       { label: 'Other Education', value: registrationData.other_education_name || 'N/A', icon: 'pencil' },
       { label: 'Preferred Training Place', value: registrationData.preferred_training_place, icon: 'map-marker-radius' },
       { label: 'Preferred Session Timing', value: registrationData.preferred_session_timing, icon: 'clock' },
-      { label: 'Has Disability', value: registrationData.has_disability ? 'Yes' : 'No', icon: 'universal-access' },
-      { label: 'Disability Type', value: registrationData.disability_type || 'N/A', icon: 'universal-access' },
+      { label: 'Has Disability', value: registrationData.has_disability ? 'Yes' : 'No', icon: 'wheelchair-accessibility' },
+      { label: 'Disability Type', value: registrationData.disability_type || 'N/A', icon: 'account-wrench' },
       { label: 'Special Condition', value: registrationData.special_condition || 'None', icon: 'alert-circle', multiline: true },
     ];
 
@@ -737,7 +754,7 @@ const BeauticianTracking = () => {
           }
         >
           <Animated.View style={{ opacity: fadeAnim }}>
-            {renderHorizontalJourney()}
+            {renderTrackingBar()}
             {renderPersonalInformation()}
           </Animated.View>
         </Animated.ScrollView>
@@ -839,31 +856,35 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 30,
   },
-  journeyContainer: {
+  // New Tracking Bar Styles
+  trackingContainer: {
     marginHorizontal: 15,
     marginBottom: 20,
-    borderRadius: 25,
+    borderRadius: 20,
     overflow: 'hidden',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(156, 39, 176, 0.2)',
   },
-  journeyGradient: {
+  trackingGradient: {
     padding: 20,
   },
-  journeyHeader: {
+  trackingHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 25,
   },
-  journeyTitle: {
-    fontSize: 18,
+  trackingTitle: {
+    fontSize: 16,
     fontWeight: 'bold',
     color: 'white',
     marginLeft: 10,
     flex: 1,
   },
-  journeyStatus: {
+  trackingStatus: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(156, 39, 176, 0.3)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 15,
@@ -879,90 +900,92 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: 'white',
   },
-  progressBarContainer: {
-    marginBottom: 25,
-  },
-  progressBarBackground: {
-    height: 6,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 3,
-    overflow: 'hidden',
-    marginBottom: 8,
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: '#9C27B0',
-    borderRadius: 3,
-  },
-  progressText: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.7)',
-    textAlign: 'center',
-  },
-  stepsScrollContent: {
-    paddingHorizontal: 10,
-  },
-  stepCard: {
-    width: width * 0.75,
-    marginHorizontal: 8,
-  },
-  stepCardGradient: {
-    borderRadius: 20,
-    padding: 20,
-    minHeight: 200,
-  },
-  stepCardCompleted: {
-    shadowColor: '#4CAF50',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  stepCardHeader: {
+  progressStepsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: 15,
+    position: 'relative',
+    zIndex: 1,
   },
-  stepNumberContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+  stepWrapper: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 5,
+  },
+  stepCircleTouchable: {
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  stepCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
-  stepNumberCompleted: {
-    backgroundColor: 'rgba(255,255,255,0.3)',
+  stepCircleCompleted: {
+    borderColor: '#4CAF50',
+    shadowColor: '#4CAF50',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   stepNumber: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  stepIcon: {
-    opacity: 0.9,
-  },
-  stepCardTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: 'rgba(255,255,255,0.9)',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  stepCardTitleCompleted: {
     color: 'white',
   },
-  stepCardBody: {
+  stepIconCircle: {
+    position: 'absolute',
+    bottom: -8,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(156, 39, 176, 0.3)',
+    justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(156, 39, 176, 0.5)',
   },
-  statusIndicator: {
-    marginBottom: 12,
+  stepIconCircleCompleted: {
+    backgroundColor: 'rgba(76, 175, 80, 0.5)',
+    borderColor: '#4CAF50',
+  },
+  stepLabelContainer: {
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  stepLabel: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: 'rgba(255,255,255,0.7)',
+    textAlign: 'center',
+    lineHeight: 12,
+  },
+  stepLabelCompleted: {
+    color: 'white',
+  },
+  stepCount: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: 'rgba(255,255,255,0.5)',
+    marginBottom: 5,
+  },
+  stepCountCompleted: {
+    color: '#4CAF50',
+  },
+  stepStatusBadge: {
+    marginBottom: 6,
   },
   statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 15,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   statusBadgeCompleted: {
     backgroundColor: 'rgba(76, 175, 80, 0.3)',
@@ -971,52 +994,71 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 152, 0, 0.3)',
   },
   statusBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 10,
+    fontWeight: 'bold',
     color: 'white',
   },
-  stepDateInfo: {
+  stepDescription: {
+    fontSize: 9,
+    color: 'rgba(255,255,255,0.6)',
+    textAlign: 'center',
+    lineHeight: 11,
+  },
+  connectingLineContainer: {
+    position: 'absolute',
+    top: 80, // Adjust this based on your circle position
+    left: 30,
+    right: 30,
+    height: 2,
+    zIndex: 0,
+  },
+  connectingLineBackground: {
+    height: '100%',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 1,
+  },
+  connectingLineFill: {
+    height: '100%',
+    backgroundColor: '#4CAF50',
+    borderRadius: 1,
+  },
+  progressInfoContainer: {
+    marginTop: 30,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+  },
+  progressInfo: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 10,
   },
-  stepDateText: {
+  progressInfoText: {
     fontSize: 12,
     color: 'rgba(255,255,255,0.8)',
-    marginLeft: 5,
   },
-  stepDescription: {
+  progressInfoPercent: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#4CAF50',
+  },
+  progressNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(156, 39, 176, 0.15)',
+    padding: 10,
+    borderRadius: 8,
+  },
+  progressNoteText: {
     fontSize: 11,
     color: 'rgba(255,255,255,0.7)',
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  expectedInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 5,
-  },
-  expectedText: {
-    fontSize: 10,
-    color: 'rgba(255,255,255,0.5)',
-    marginLeft: 5,
+    marginLeft: 8,
+    flex: 1,
     fontStyle: 'italic',
+    lineHeight: 14,
   },
-  stepIndicators: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 20,
-  },
-  stepIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    marginHorizontal: 4,
-  },
-  stepIndicatorCompleted: {
-    backgroundColor: '#4CAF50',
-  },
+  // Keep existing styles for other sections
   infoContainer: {
     marginHorizontal: 15,
     marginBottom: 20,
