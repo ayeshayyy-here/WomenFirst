@@ -121,6 +121,7 @@ const SEHRHomeScreen = () => {
   const handleRegisterNow = () => {
     setModalVisible(false);
     if (selectedCourse === 'digital') {
+     // navigation.navigate('DigitalSkillsTracking');
       navigation.navigate('DigitalSkillsRegistrationForm');
     } else if (selectedCourse === 'beautician') {
       navigation.navigate('BeauticianRegistrationForm');

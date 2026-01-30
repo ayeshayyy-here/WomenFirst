@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react'; 
 import {
   View,
   Text,
@@ -6,35 +6,45 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  Platform,
   Alert,
   Modal,
   ActivityIndicator,
-  Platform,
   Dimensions,
-  Linking,
-  ToastAndroid,
-  Image,
+  SafeAreaView,
+  StatusBar,
+  Animated,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
-import Icon from 'react-native-vector-icons/FontAwesome';
-import FontAwesomeIcon from 'react-native-vector-icons/FontAwesome5';
-import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
-import AntDesign from 'react-native-vector-icons/AntDesign';
-import * as Animatable from 'react-native-animatable';
-import Collapsible from 'react-native-collapsible';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import moment from 'moment';
+import { Picker } from '@react-native-picker/picker';
 import DocumentPicker from 'react-native-document-picker';
-import ImagePicker from 'react-native-image-picker';
+import axios from 'axios';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import syncStorage from 'react-native-sync-storage';
+import { useNavigation } from '@react-navigation/native';
+import LinearGradient from 'react-native-linear-gradient';
+import * as Animatable from 'react-native-animatable';
+import DigitalSkillsTracking from './DigitalSkillsTracking';
 
 const { width, height } = Dimensions.get('window');
+const API_URL = 'https://sehr-wdd.punjab.gov.pk/api/digital-skills-registrations';
 
 const DigitalSkillsRegistrationForm = () => {
+  const navigation = useNavigation();
   const [currentStep, setCurrentStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [checkingExisting, setCheckingExisting] = useState(true);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [existingData, setExistingData] = useState(null);
+  
+  // Animation values
+  const slideAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  
   const [formData, setFormData] = useState({
     full_name: '',
     father_name: '',
-    dob: '',
+    date_of_birth: '',
     age: '',
     marital_status: '',
     cnic_no: '',
@@ -59,1358 +69,1012 @@ const DigitalSkillsRegistrationForm = () => {
     disability_certificate: null,
   });
 
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
-  const [showOtherNetwork, setShowOtherNetwork] = useState(false);
-  const [showOtherEducation, setShowOtherEducation] = useState(false);
-  const [showDisabilityDetails, setShowDisabilityDetails] = useState(false);
-  const [isPersonalExpanded, setIsPersonalExpanded] = useState(true);
-  const [isAcademicExpanded, setIsAcademicExpanded] = useState(false);
-  const [isDocumentsExpanded, setIsDocumentsExpanded] = useState(false);
+  const scrollViewRef = useRef();
 
-  const mobileNetworks = [
-    { value: 'Jazz', label: 'Jazz', icon: 'signal' },
-    { value: 'Zong', label: 'Zong', icon: 'signal' },
-    { value: 'Telenor', label: 'Telenor', icon: 'signal' },
-    { value: 'Ufone', label: 'Ufone', icon: 'signal' },
-    { value: 'Any Other', label: 'Any Other', icon: 'signal' },
-  ];
+  // Fetch existing data on component mount
+  useEffect(() => {
+    checkExistingData();
+  }, []);
 
-  const maritalStatuses = [
-    { value: 'Single', label: 'Single', icon: 'user' },
-    { value: 'Married', label: 'Married', icon: 'heart' },
-    { value: 'Widow', label: 'Widow', icon: 'user-circle' },
-    { value: 'Divorcee', label: 'Divorcee', icon: 'user-times' },
-  ];
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true,
+    }).start();
+  }, []);
 
-  const employmentStatuses = [
-    { value: 'Unemployed', label: 'Unemployed', icon: 'briefcase' },
-    { value: 'Student', label: 'Student', icon: 'graduation-cap' },
-    { value: 'Self-employment / Small Business', label: 'Self-employment / Small Business', icon: 'store' },
-    { value: 'Job', label: 'Job', icon: 'briefcase' },
-  ];
+  const checkExistingData = async () => {
+    try {
+      setCheckingExisting(true);
+      
+      // Check syncStorage first
+      const userProfile = syncStorage.get('user_profile');
+      let syncStorageData = null;
+      
+      if (userProfile) {
+        try {
+          syncStorageData = typeof userProfile === 'string' ? JSON.parse(userProfile) : userProfile;
+        } catch (e) {
+          console.log('Error parsing syncStorage data:', e);
+        }
+      }
 
-  const educationLevels = [
-    { value: 'BS Honors (16 Years Edu)', label: 'BS Honors (16 Years)', icon: 'graduation-cap' },
-    { value: 'BA/BSC (14 Years Edu)', label: 'BA/BSC (14 Years)', icon: 'university' },
-    { value: 'FA/FSC', label: 'FA/FSC', icon: 'book' },
-    { value: 'Matric', label: 'Matric', icon: 'certificate' },
-    { value: 'Middle', label: 'Middle', icon: 'school' },
-    { value: 'Primary', label: 'Primary', icon: 'child' },
-    { value: 'Illiterate', label: 'Illiterate', icon: 'user' },
-    { value: 'Others', label: 'Others', icon: 'ellipsis-h' },
-  ];
-
-  const showToast = (message) => {
-    if (Platform.OS === 'android') {
-      ToastAndroid.show(message, ToastAndroid.SHORT);
-    } else {
-      Alert.alert('Info', message);
+      if (syncStorageData?.cnic) {
+        const cnic = syncStorageData.cnic.replace(/-/g, '');
+        
+        try {
+          const response = await axios.get(`https://sehr-wdd.punjab.gov.pk/api/check-registration-digital/${cnic}`, {
+            timeout: 10000,
+          });
+          
+          if (response.data.success && response.data.data) {
+            setExistingData(response.data.data);
+            // Navigate directly to tracking screen if data exists
+            setTimeout(() => {
+              navigation.replace('DigitalSkillsTracking', { 
+                registrationData: response.data.data,
+                isExisting: true 
+              });
+            }, 1500);
+            return;
+          } else {
+            prefillFormFromSyncStorage(syncStorageData);
+          }
+        } catch (error) {
+          console.log('No existing data from backend:', error);
+          if (syncStorageData) {
+            prefillFormFromSyncStorage(syncStorageData);
+          }
+        }
+      } else if (syncStorageData) {
+        prefillFormFromSyncStorage(syncStorageData);
+      }
+    } catch (error) {
+      console.error('Error checking existing data:', error);
+    } finally {
+      setTimeout(() => setCheckingExisting(false), 1500);
     }
   };
 
-  const validateField = (field, value) => {
-    let error = '';
-    let isValid = true;
-
-    switch (field) {
-      case 'full_name':
-      case 'father_name':
-      case 'present_address':
-        if (!value.trim()) {
-          error = 'This field is required';
-          isValid = false;
-        }
-        break;
-      
-      case 'dob':
-        if (!value) {
-          error = 'Date of birth is required';
-          isValid = false;
-        } else {
-          const dob = new Date(value);
-          const today = new Date();
-          const age = today.getFullYear() - dob.getFullYear();
-          if (age < 16) {
-            error = 'Must be at least 16 years old';
-            isValid = false;
-          }
-          if (age > 60) {
-            error = 'Must not exceed 60 years';
-            isValid = false;
-          }
-        }
-        break;
-      
-      case 'age':
-        if (!value || isNaN(value)) {
-          error = 'Age is required';
-          isValid = false;
-        } else {
-          const age = parseInt(value);
-          if (age < 16 || age > 60) {
-            error = 'Age must be between 16 and 60 years';
-            isValid = false;
-          }
-        }
-        break;
-      
-      case 'cnic_no':
-        const cnicRegex = /^\d{13}$/;
-        const cleanedCnic = value.replace(/\D/g, '');
-        if (!cnicRegex.test(cleanedCnic)) {
-          error = 'CNIC must be 13 digits';
-          isValid = false;
-        } else if (cleanedCnic.length === 13) {
-          const lastDigit = parseInt(cleanedCnic[cleanedCnic.length - 1]);
-          if (lastDigit % 2 !== 0) {
-            error = 'Last digit must be even for females';
-            isValid = false;
-          }
-        }
-        break;
-      
-      case 'email':
-        if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-          error = 'Invalid email format';
-          isValid = false;
-        }
-        break;
-      
-      case 'cell_no':
-        const phoneRegex = /^03\d{9}$/;
-        if (!phoneRegex.test(value)) {
-          error = 'Must be in format 03001234567';
-          isValid = false;
-        }
-        break;
-    }
-
-    setErrors(prev => ({ ...prev, [field]: error }));
-    return isValid;
+  const prefillFormFromSyncStorage = (data) => {
+    setFormData(prev => ({
+      ...prev,
+      full_name: data.name || '',
+      cnic_no: data.cnic ? data.cnic.replace(/-/g, '') : '',
+      date_of_birth: data.dob || '',
+      cell_no: data.contact || '',
+      email: data.email || '',
+      present_address: data.address || '',
+    }));
   };
 
   const validateStep = (step) => {
-    let isValid = true;
     const newErrors = {};
-
+    
     if (step === 1) {
-      const requiredFields = ['full_name', 'father_name', 'dob', 'age', 'cnic_no', 'present_address', 'cell_no'];
-      requiredFields.forEach(field => {
-        if (!formData[field]) {
-          newErrors[field] = 'This field is required';
-          isValid = false;
-        }
-      });
-
-      if (!formData.marital_status) {
-        newErrors.marital_status = 'Please select marital status';
-        isValid = false;
+      if (!formData.full_name.trim()) newErrors.full_name = 'Full name is required';
+      if (!formData.father_name.trim()) newErrors.father_name = "Father's name is required";
+      if (!formData.date_of_birth) newErrors.date_of_birth = 'Date of birth is required';
+      if (!formData.age) newErrors.age = 'Age is required';
+      if (!formData.marital_status) newErrors.marital_status = 'Marital status is required';
+      
+      if (!formData.cnic_no) newErrors.cnic_no = 'CNIC is required';
+      else if (!/^\d{13}$/.test(formData.cnic_no)) newErrors.cnic_no = 'CNIC must be exactly 13 digits';
+      else if (parseInt(formData.cnic_no.charAt(12)) % 2 !== 0) newErrors.cnic_no = 'Last digit must be even';
+      
+      if (!formData.mobile_network) newErrors.mobile_network = 'Mobile network is required';
+      if (formData.mobile_network === 'Any Other' && !formData.other_network_name.trim()) {
+        newErrors.other_network_name = 'Please specify network';
       }
-
-      if (!formData.mobile_network) {
-        newErrors.mobile_network = 'Please select mobile network';
-        isValid = false;
+      
+      if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        newErrors.email = 'Please enter a valid email';
       }
-
-      if (formData.mobile_network === 'Any Other' && !formData.other_network_name) {
-        newErrors.other_network_name = 'Please specify network name';
-        isValid = false;
-      }
-
-      if (formData.has_disability === '1' && !formData.disability_type) {
-        newErrors.disability_type = 'Please specify disability type';
-        isValid = false;
-      }
-    }
-
-    if (step === 2) {
-      if (!formData.employment_status) {
-        newErrors.employment_status = 'Please select employment status';
-        isValid = false;
-      }
-
-      if (!formData.educational_level) {
-        newErrors.educational_level = 'Please select education level';
-        isValid = false;
-      }
-
-      if (formData.educational_level === 'Others' && !formData.other_education_name) {
+      
+      if (!formData.present_address.trim()) newErrors.present_address = 'Present address is required';
+      
+      if (!formData.cell_no) newErrors.cell_no = 'Phone number is required';
+      else if (!/^03\d{9}$/.test(formData.cell_no)) newErrors.cell_no = 'Mobile must be in format 03001234567';
+      
+    } else if (step === 2) {
+      if (!formData.employment_status) newErrors.employment_status = 'Employment status is required';
+      if (!formData.educational_level) newErrors.educational_level = 'Educational level is required';
+      if (formData.educational_level === 'Others' && !formData.other_education_name.trim()) {
         newErrors.other_education_name = 'Please specify education level';
-        isValid = false;
       }
-    }
-
-    if (step === 3) {
-      if (!formData.cnic_front) {
-        newErrors.cnic_front = 'CNIC front is required';
-        isValid = false;
+      if (formData.has_disability === '1' && !formData.disability_type.trim()) {
+        newErrors.disability_type = 'Disability type is required';
       }
-
-      if (!formData.cnic_back) {
-        newErrors.cnic_back = 'CNIC back is required';
-        isValid = false;
-      }
-
+    } else if (step === 3) {
+      if (!formData.cnic_front) newErrors.cnic_front = 'CNIC Front is required';
+      if (!formData.cnic_back) newErrors.cnic_back = 'CNIC Back is required';
+      if (!formData.educational_documents) newErrors.educational_documents = 'Educational documents are required';
       if (formData.has_disability === '1' && !formData.disability_certificate) {
         newErrors.disability_certificate = 'Disability certificate is required';
-        isValid = false;
       }
     }
 
-    setErrors(prev => ({ ...prev, ...newErrors }));
-    return isValid;
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleNextStep = () => {
     if (validateStep(currentStep)) {
-      setCurrentStep(prev => Math.min(prev + 1, 3));
-    } else {
-      showToast('Please fill all required fields');
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: width,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setCurrentStep(prev => prev + 1);
+        slideAnim.setValue(-width);
+        Animated.parallel([
+          Animated.spring(slideAnim, {
+            toValue: 0,
+            friction: 8,
+            tension: 40,
+            useNativeDriver: true,
+          }),
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      });
+      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
     }
   };
 
   const handlePrevStep = () => {
-    setCurrentStep(prev => Math.max(prev - 1, 1));
+    if (currentStep > 1) {
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: -width,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setCurrentStep(prev => prev - 1);
+        slideAnim.setValue(width);
+        Animated.parallel([
+          Animated.spring(slideAnim, {
+            toValue: 0,
+            friction: 8,
+            tension: 40,
+            useNativeDriver: true,
+          }),
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      });
+      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+    }
   };
 
-  const handleDOBChange = (event, selectedDate) => {
+  const handleDateChange = (event, selectedDate) => {
     setShowDatePicker(false);
     if (selectedDate) {
-      const dateStr = selectedDate.toISOString().split('T')[0];
-      const age = calculateAge(selectedDate);
+      const formattedDate = selectedDate.toISOString().split('T')[0];
+      setFormData(prev => ({ ...prev, date_of_birth: formattedDate }));
       
-      setFormData(prev => ({
-        ...prev,
-        dob: dateStr,
-        age: age.toString(),
-      }));
-      
-      validateField('dob', dateStr);
-      validateField('age', age.toString());
+      const today = new Date();
+      const birthDate = new Date(selectedDate);
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      setFormData(prev => ({ ...prev, age: age.toString() }));
     }
   };
 
-  const calculateAge = (birthDate) => {
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    
-    return age;
-  };
-
-  const handleCnicChange = (value) => {
-    let cleaned = value.replace(/\D/g, '');
-    
-    if (cleaned.length > 13) {
-      cleaned = cleaned.slice(0, 13);
-    }
-    
-    // Format with dashes
-    let formatted = cleaned;
-    if (cleaned.length > 5) {
-      formatted = cleaned.slice(0, 5) + '-' + cleaned.slice(5);
-    }
-    if (cleaned.length > 12) {
-      formatted = cleaned.slice(0, 5) + '-' + cleaned.slice(5, 12) + '-' + cleaned.slice(12);
-    }
-    
-    setFormData(prev => ({ ...prev, cnic_no: formatted }));
-    validateField('cnic_no', cleaned);
-  };
-
-  const handleMobileNetworkChange = (value) => {
-    setFormData(prev => ({ 
-      ...prev, 
-      mobile_network: value,
-      other_network_name: value === 'Any Other' ? prev.other_network_name : ''
-    }));
-    setShowOtherNetwork(value === 'Any Other');
-    setErrors(prev => ({ ...prev, mobile_network: '', other_network_name: '' }));
-  };
-
-  const handleEducationLevelChange = (value) => {
-    setFormData(prev => ({ 
-      ...prev, 
-      educational_level: value,
-      other_education_name: value === 'Others' ? prev.other_education_name : ''
-    }));
-    setShowOtherEducation(value === 'Others');
-    setErrors(prev => ({ ...prev, educational_level: '', other_education_name: '' }));
-  };
-
-  const handleDisabilityChange = (value) => {
-    setFormData(prev => ({ 
-      ...prev, 
-      has_disability: value,
-      disability_type: value === '0' ? '' : prev.disability_type,
-      disability_certificate: value === '0' ? null : prev.disability_certificate
-    }));
-    setShowDisabilityDetails(value === '1');
-    setErrors(prev => ({ 
-      ...prev, 
-      disability_type: '',
-      disability_certificate: ''
-    }));
-  };
-
-  const pickFile = async (fieldName) => {
-    try {
-      Alert.alert(
-        'Select Document',
-        'Choose document type',
-        [
-          { text: 'Gallery', onPress: () => pickImage(fieldName) },
-          { text: 'Files', onPress: () => pickDocument(fieldName) },
-          { text: 'Cancel', style: 'cancel' }
-        ]
-      );
-    } catch (error) {
-      console.error('Error picking file:', error);
-      showToast('Failed to pick document');
-    }
-  };
-
-  const pickImage = async (fieldName) => {
-    try {
-      const options = {
-        title: 'Select Image',
-        storageOptions: {
-          skipBackup: true,
-          path: 'images',
-        },
-      };
-
-      ImagePicker.launchImageLibrary(options, (response) => {
-        if (response.didCancel) {
-          console.log('User cancelled image picker');
-        } else if (response.error) {
-          console.error('ImagePicker Error: ', response.error);
-          showToast('Error picking image');
-        } else {
-          const source = response.assets?.[0] || response;
-          if (source.uri) {
-            setFormData(prev => ({
-              ...prev,
-              [fieldName]: {
-                uri: source.uri,
-                name: source.fileName || `image_${Date.now()}.jpg`,
-                type: source.type || 'image/jpeg',
-              },
-            }));
-            setErrors(prev => ({ ...prev, [fieldName]: '' }));
-          }
-        }
-      });
-    } catch (error) {
-      console.error('Error picking image:', error);
-      showToast('Failed to pick image');
-    }
-  };
-
-  const pickDocument = async (fieldName) => {
+  const handleFilePick = async (field) => {
     try {
       const result = await DocumentPicker.pick({
         type: [DocumentPicker.types.images, DocumentPicker.types.pdf],
       });
-
-      setFormData(prev => ({
-        ...prev,
-        [fieldName]: {
-          uri: result.uri,
-          name: result.name,
-          type: result.type,
-        },
-      }));
-      setErrors(prev => ({ ...prev, [fieldName]: '' }));
+      
+      const file = {
+        uri: result[0].uri,
+        type: result[0].type,
+        name: result[0].name,
+        size: result[0].size,
+      };
+      
+      // Check file size (2MB max)
+      if (file.size > 2 * 1024 * 1024) {
+        Alert.alert('File too large', 'File size must be less than 2MB');
+        return;
+      }
+      
+      setFormData(prev => ({ ...prev, [field]: file }));
+      setErrors(prev => ({ ...prev, [field]: '' }));
     } catch (error) {
       if (!DocumentPicker.isCancel(error)) {
-        console.error('Error picking document:', error);
-        showToast('Failed to pick document');
+        Alert.alert('Error', 'Failed to pick file');
       }
     }
   };
 
+  const formatFileSize = (bytes) => {
+    if (!bytes) return '0 B';
+    if (bytes < 1024) return bytes + ' B';
+    else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    else return (bytes / 1048576).toFixed(1) + ' MB';
+  };
+
   const handleSubmit = async () => {
     if (!validateStep(3)) {
-      showToast('Please fix all errors before submitting');
       return;
     }
 
     setLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false);
-      showToast('Registration submitted successfully');
+    try {
+      const formDataToSend = new FormData();
       
-      // Reset form
-      setFormData({
-        full_name: '',
-        father_name: '',
-        dob: '',
-        age: '',
-        marital_status: '',
-        cnic_no: '',
-        mobile_network: '',
-        other_network_name: '',
-        email: '',
-        present_address: '',
-        cell_no: '',
-        has_disability: '0',
-        disability_type: '',
-        employment_status: '',
-        educational_level: '',
-        other_education_name: '',
-        last_degree_institute: '',
-        discipline: '',
-        specialization: '',
-        special_condition: '',
-        cnic_front: null,
-        cnic_back: null,
-        domicile: null,
-        educational_documents: null,
-        disability_certificate: null,
+      Object.keys(formData).forEach(key => {
+        if (['cnic_front', 'cnic_back', 'domicile', 'educational_documents', 'disability_certificate'].includes(key)) {
+          if (formData[key]) {
+            const file = formData[key];
+            formDataToSend.append(key, {
+              uri: file.uri,
+              type: file.type || 'image/jpeg',
+              name: file.name || 'document.jpg',
+            });
+          }
+        } else {
+          formDataToSend.append(key, formData[key] || '');
+        }
       });
-      
-      setCurrentStep(1);
-      setErrors({});
-      setShowOtherNetwork(false);
-      setShowOtherEducation(false);
-      setShowDisabilityDetails(false);
-    }, 2000);
+
+      const response = await axios.post(API_URL, formDataToSend, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Accept': 'application/json',
+        },
+        timeout: 30000,
+      });
+
+      if (response.data.success) {
+        const userProfile = {
+          name: formData.full_name,
+          cnic: formData.cnic_no,
+          dob: formData.date_of_birth,
+          contact: formData.cell_no,
+          email: formData.email,
+          address: formData.present_address,
+          lastUpdated: new Date().toISOString(),
+        };
+        
+        syncStorage.set('user_profile', JSON.stringify(userProfile));
+        
+        Alert.alert(
+          'Success! 🎉',
+          'Registration submitted successfully!',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                navigation.replace('DigitalSkillsTracking', { 
+                  registrationData: response.data.data,
+                  isExisting: true 
+                });
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert('Error', response.data.message || 'Submission failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Submission error:', error);
+      Alert.alert('Submission Failed', 'There was an error submitting your registration. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const renderStep1 = () => (
-    <Animatable.View 
-      animation="fadeIn"
-      duration={500}
-      style={styles.stepContainer}
-    >
-      <TouchableOpacity
-        style={styles.collapsibleHeader}
-        onPress={() => setIsPersonalExpanded(!isPersonalExpanded)}
+  const renderStepIndicator = () => (
+    <Animatable.View animation="fadeInDown" duration={800} style={styles.stepperContainer}>
+      <LinearGradient
+        colors={['#0a040b', '#121213', '#6A1B9A']}
+        style={styles.stepperBackground}
       >
-        <LinearGradient
-          colors={['#f8f9fa', '#e9ecef']}
-          style={styles.sectionHeader}
-        >
-          <FontAwesomeIcon name="user-circle" size={20} color="#004d40" />
-          <Text style={styles.sectionTitle}>Personal Information</Text>
-          <Icon 
-            name={isPersonalExpanded ? 'chevron-up' : 'chevron-down'} 
-            size={20} 
-            color="#004d40" 
-          />
-        </LinearGradient>
-      </TouchableOpacity>
-      
-      <Collapsible collapsed={!isPersonalExpanded}>
-        <View style={styles.collapsibleContent}>
-          <View style={styles.formGrid}>
-            <View style={styles.formRow}>
-              <View style={styles.formGroup}>
-                <View style={styles.labelContainer}>
-                  <Icon name="user" size={14} color="#666" />
-                  <Text style={styles.label}>Full Name</Text>
-                  <Text style={styles.requiredStar}> *</Text>
-                </View>
-                <TextInput
-                  style={[
-                    styles.input,
-                    errors.full_name && styles.inputError,
-                  ]}
-                  value={formData.full_name}
-                  onChangeText={(value) => {
-                    setFormData(prev => ({ ...prev, full_name: value }));
-                    validateField('full_name', value);
-                  }}
-                  placeholder="Enter Full Name"
-                />
-                {errors.full_name && (
-                  <Text style={styles.errorText}>
-                    <Icon name="exclamation-circle" size={12} /> {errors.full_name}
-                  </Text>
-                )}
-              </View>
-
-              <View style={styles.formGroup}>
-                <View style={styles.labelContainer}>
-                  <Icon name="male" size={14} color="#666" />
-                  <Text style={styles.label}>Father's Name</Text>
-                  <Text style={styles.requiredStar}> *</Text>
-                </View>
-                <TextInput
-                  style={[
-                    styles.input,
-                    errors.father_name && styles.inputError,
-                  ]}
-                  value={formData.father_name}
-                  onChangeText={(value) => {
-                    setFormData(prev => ({ ...prev, father_name: value }));
-                    validateField('father_name', value);
-                  }}
-                  placeholder="Enter Father's Name"
-                />
-                {errors.father_name && (
-                  <Text style={styles.errorText}>
-                    <Icon name="exclamation-circle" size={12} /> {errors.father_name}
-                  </Text>
-                )}
-              </View>
-            </View>
-
-            <View style={styles.formRow}>
-              <View style={styles.formGroup}>
-                <View style={styles.labelContainer}>
-                  <Icon name="calendar" size={14} color="#666" />
-                  <Text style={styles.label}>Date of Birth</Text>
-                  <Text style={styles.requiredStar}> *</Text>
-                </View>
-                <TouchableOpacity
-                  style={[
-                    styles.input,
-                    styles.dateInput,
-                    errors.dob && styles.inputError,
-                  ]}
-                  onPress={() => setShowDatePicker(true)}
-                >
-                  <Text style={formData.dob ? styles.inputText : styles.placeholder}>
-                    {formData.dob ? moment(formData.dob).format('DD/MM/YYYY') : 'Select Date'}
-                  </Text>
-                  <Icon name="calendar" size={18} color="#666" />
-                </TouchableOpacity>
-                {errors.dob && (
-                  <Text style={styles.errorText}>
-                    <Icon name="exclamation-circle" size={12} /> {errors.dob}
-                  </Text>
-                )}
-              </View>
-
-              <View style={styles.formGroup}>
-                <View style={styles.labelContainer}>
-                  <Icon name="birthday-cake" size={14} color="#666" />
-                  <Text style={styles.label}>Age</Text>
-                  <Text style={styles.requiredStar}> *</Text>
-                </View>
-                <TextInput
-                  style={[
-                    styles.input,
-                    errors.age && styles.inputError,
-                  ]}
-                  value={formData.age}
-                  onChangeText={(value) => {
-                    setFormData(prev => ({ ...prev, age: value }));
-                    validateField('age', value);
-                  }}
-                  placeholder="Enter Age"
-                  keyboardType="numeric"
-                  editable={false}
-                />
-                {errors.age && (
-                  <Text style={styles.errorText}>
-                    <Icon name="exclamation-circle" size={12} /> {errors.age}
-                  </Text>
-                )}
-                <Text style={styles.helperText}>
-                  <Icon name="info-circle" size={12} /> Must be 16-60 years
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.formGroup}>
-              <View style={styles.labelContainer}>
-                <Icon name="heart" size={14} color="#666" />
-                <Text style={styles.label}>Marital Status</Text>
-                <Text style={styles.requiredStar}> *</Text>
-              </View>
-              <View style={styles.optionsGrid}>
-                {maritalStatuses.map((status) => (
-                  <TouchableOpacity
-                    key={status.value}
-                    style={[
-                      styles.optionCard,
-                      formData.marital_status === status.value && styles.optionCardSelected,
-                    ]}
-                    onPress={() => {
-                      setFormData(prev => ({ ...prev, marital_status: status.value }));
-                      setErrors(prev => ({ ...prev, marital_status: '' }));
-                    }}
-                  >
-                    <Icon 
-                      name={status.icon} 
-                      size={16} 
-                      color={formData.marital_status === status.value ? '#fff' : '#004d40'} 
-                    />
-                    <Text style={[
-                      styles.optionText,
-                      formData.marital_status === status.value && styles.optionTextSelected,
-                    ]}>
-                      {status.label}
-                    </Text>
-                    {formData.marital_status === status.value && (
-                      <View style={styles.selectedIndicator}>
-                        <Icon name="check" size={12} color="#fff" />
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
-              {errors.marital_status && (
-                <Text style={styles.errorText}>
-                  <Icon name="exclamation-circle" size={12} /> {errors.marital_status}
-                </Text>
-              )}
-            </View>
-
-            <View style={styles.formGroup}>
-              <View style={styles.labelContainer}>
-                <Icon name="id-card" size={14} color="#666" />
-                <Text style={styles.label}>CNIC No</Text>
-                <Text style={styles.requiredStar}> *</Text>
-              </View>
-              <TextInput
+        <View style={styles.stepperCircles}>
+          {[1, 2, 3].map((step) => (
+            <React.Fragment key={step}>
+              <TouchableOpacity
                 style={[
-                  styles.input,
-                  errors.cnic_no && styles.inputError,
+                  styles.stepperCircle,
+                  currentStep === step && styles.stepperCircleActive,
+                  currentStep > step && styles.stepperCircleCompleted,
                 ]}
-                value={formData.cnic_no}
-                onChangeText={handleCnicChange}
-                placeholder="12345-1234567-1"
-                keyboardType="numeric"
-                maxLength={15}
-              />
-              {errors.cnic_no && (
-                <Text style={styles.errorText}>
-                  <Icon name="exclamation-circle" size={12} /> {errors.cnic_no}
-                </Text>
-              )}
-              <Text style={styles.helperText}>
-                <Icon name="info-circle" size={12} /> Last digit must be even for females
-              </Text>
-            </View>
-
-            <View style={styles.formGroup}>
-              <View style={styles.labelContainer}>
-                <Icon name="signal" size={14} color="#666" />
-                <Text style={styles.label}>Mobile Network</Text>
-                <Text style={styles.requiredStar}> *</Text>
-              </View>
-              <View style={styles.optionsGrid}>
-                {mobileNetworks.map((network) => (
-                  <TouchableOpacity
-                    key={network.value}
-                    style={[
-                      styles.optionCard,
-                      formData.mobile_network === network.value && styles.optionCardSelected,
-                    ]}
-                    onPress={() => handleMobileNetworkChange(network.value)}
-                  >
-                    <Icon 
-                      name={network.icon} 
-                      size={16} 
-                      color={formData.mobile_network === network.value ? '#fff' : '#004d40'} 
-                    />
+                disabled={step > currentStep}
+              >
+                <View style={styles.stepperCircleInner}>
+                  {currentStep > step ? (
+                    <Icon name="check" size={14} color="white" />
+                  ) : (
                     <Text style={[
-                      styles.optionText,
-                      formData.mobile_network === network.value && styles.optionTextSelected,
+                      styles.stepperNumber,
+                      (currentStep === step || currentStep > step) && styles.stepperNumberActive
                     ]}>
-                      {network.label}
-                    </Text>
-                    {formData.mobile_network === network.value && (
-                      <View style={styles.selectedIndicator}>
-                        <Icon name="check" size={12} color="#fff" />
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
-              {errors.mobile_network && (
-                <Text style={styles.errorText}>
-                  <Icon name="exclamation-circle" size={12} /> {errors.mobile_network}
-                </Text>
-              )}
-              
-              {showOtherNetwork && (
-                <View style={{ marginTop: 10 }}>
-                  <View style={styles.labelContainer}>
-                    <Icon name="edit" size={14} color="#666" />
-                    <Text style={styles.label}>Specify Network</Text>
-                    <Text style={styles.requiredStar}> *</Text>
-                  </View>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      errors.other_network_name && styles.inputError,
-                    ]}
-                    value={formData.other_network_name}
-                    onChangeText={(value) => {
-                      setFormData(prev => ({ ...prev, other_network_name: value }));
-                      setErrors(prev => ({ ...prev, other_network_name: '' }));
-                    }}
-                    placeholder="Enter network name"
-                  />
-                  {errors.other_network_name && (
-                    <Text style={styles.errorText}>
-                      <Icon name="exclamation-circle" size={12} /> {errors.other_network_name}
+                      {step}
                     </Text>
                   )}
                 </View>
+              </TouchableOpacity>
+              {step < 3 && (
+                <View style={[
+                  styles.stepperLine,
+                  currentStep > step && styles.stepperLineActive
+                ]} />
               )}
-            </View>
-
-            <View style={styles.formGroup}>
-              <View style={styles.labelContainer}>
-                <Icon name="envelope" size={14} color="#666" />
-                <Text style={styles.label}>Email</Text>
-              </View>
-              <TextInput
-                style={[
-                  styles.input,
-                  errors.email && styles.inputError,
-                ]}
-                value={formData.email}
-                onChangeText={(value) => {
-                  setFormData(prev => ({ ...prev, email: value }));
-                  validateField('email', value);
-                }}
-                placeholder="email@example.com"
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-              {errors.email && (
-                <Text style={styles.errorText}>
-                  <Icon name="exclamation-circle" size={12} /> {errors.email}
-                </Text>
-              )}
-            </View>
-
-            <View style={styles.formGroup}>
-              <View style={styles.labelContainer}>
-                <Icon name="home" size={14} color="#666" />
-                <Text style={styles.label}>Present Address</Text>
-                <Text style={styles.requiredStar}> *</Text>
-              </View>
-              <TextInput
-                style={[
-                  styles.textArea,
-                  errors.present_address && styles.inputError,
-                ]}
-                value={formData.present_address}
-                onChangeText={(value) => {
-                  setFormData(prev => ({ ...prev, present_address: value }));
-                  validateField('present_address', value);
-                }}
-                placeholder="Enter your complete address"
-                multiline
-                numberOfLines={3}
-              />
-              {errors.present_address && (
-                <Text style={styles.errorText}>
-                  <Icon name="exclamation-circle" size={12} /> {errors.present_address}
-                </Text>
-              )}
-            </View>
-
-            <View style={styles.formGroup}>
-              <View style={styles.labelContainer}>
-                <Icon name="phone" size={14} color="#666" />
-                <Text style={styles.label}>Cell No</Text>
-                <Text style={styles.requiredStar}> *</Text>
-              </View>
-              <TextInput
-                style={[
-                  styles.input,
-                  errors.cell_no && styles.inputError,
-                ]}
-                value={formData.cell_no}
-                onChangeText={(value) => {
-                  setFormData(prev => ({ ...prev, cell_no: value }));
-                  validateField('cell_no', value);
-                }}
-                placeholder="03001234567"
-                keyboardType="phone-pad"
-              />
-              {errors.cell_no && (
-                <Text style={styles.errorText}>
-                  <Icon name="exclamation-circle" size={12} /> {errors.cell_no}
-                </Text>
-              )}
-            </View>
-
-            <View style={styles.formGroup}>
-              <View style={styles.labelContainer}>
-                <Icon name="wheelchair" size={14} color="#666" />
-                <Text style={styles.label}>Disability Status</Text>
-                <Text style={styles.requiredStar}> *</Text>
-              </View>
-              <View style={styles.radioGroup}>
-                <TouchableOpacity
-                  style={styles.radioOption}
-                  onPress={() => handleDisabilityChange('1')}
-                >
-                  <View style={[
-                    styles.radioCircle,
-                    formData.has_disability === '1' && styles.radioCircleSelected,
-                  ]}>
-                    {formData.has_disability === '1' && (
-                      <View style={styles.radioInnerCircle} />
-                    )}
-                  </View>
-                  <Text style={styles.radioLabel}>Yes</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.radioOption}
-                  onPress={() => handleDisabilityChange('0')}
-                >
-                  <View style={[
-                    styles.radioCircle,
-                    formData.has_disability === '0' && styles.radioCircleSelected,
-                  ]}>
-                    {formData.has_disability === '0' && (
-                      <View style={styles.radioInnerCircle} />
-                    )}
-                  </View>
-                  <Text style={styles.radioLabel}>No</Text>
-                </TouchableOpacity>
-              </View>
-              
-              {showDisabilityDetails && (
-                <View style={{ marginTop: 10 }}>
-                  <View style={styles.labelContainer}>
-                    <Icon name="edit" size={14} color="#666" />
-                    <Text style={styles.label}>Type of Disability</Text>
-                    <Text style={styles.requiredStar}> *</Text>
-                  </View>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      errors.disability_type && styles.inputError,
-                    ]}
-                    value={formData.disability_type}
-                    onChangeText={(value) => {
-                      setFormData(prev => ({ ...prev, disability_type: value }));
-                      setErrors(prev => ({ ...prev, disability_type: '' }));
-                    }}
-                    placeholder="Describe disability"
-                  />
-                  {errors.disability_type && (
-                    <Text style={styles.errorText}>
-                      <Icon name="exclamation-circle" size={12} /> {errors.disability_type}
-                    </Text>
-                  )}
-                </View>
-              )}
-            </View>
-          </View>
+            </React.Fragment>
+          ))}
         </View>
-      </Collapsible>
+        <View style={styles.stepperLabels}>
+          <Text style={styles.stepperLabel}>Personal Info</Text>
+          <Text style={styles.stepperLabel}>Academic Info</Text>
+          <Text style={styles.stepperLabel}>Documents</Text>
+        </View>
+      </LinearGradient>
     </Animatable.View>
   );
 
-  const renderStep2 = () => (
+  const renderInputField = (field, label, placeholder, options = {}) => (
     <Animatable.View 
-      animation="fadeIn"
-      duration={500}
-      style={styles.stepContainer}
+      animation="fadeInUp" 
+      delay={100}
+      duration={600}
+      style={styles.inputContainer}
     >
-      <TouchableOpacity
-        style={styles.collapsibleHeader}
-        onPress={() => setIsAcademicExpanded(!isAcademicExpanded)}
-      >
-        <LinearGradient
-          colors={['#f8f9fa', '#e9ecef']}
-          style={styles.sectionHeader}
-        >
-          <FontAwesomeIcon name="graduation-cap" size={20} color="#004d40" />
-          <Text style={styles.sectionTitle}>Academic Information</Text>
+      <View style={styles.inputHeader}>
+        <View style={styles.labelContainer}>
           <Icon 
-            name={isAcademicExpanded ? 'chevron-up' : 'chevron-down'} 
-            size={20} 
-            color="#004d40" 
+            name={options.icon || 'form-textbox'} 
+            size={14} 
+            color={errors[field] ? '#FF3B30' : '#6A1B9A'} 
+            style={styles.labelIcon}
           />
-        </LinearGradient>
-      </TouchableOpacity>
-      
-      <Collapsible collapsed={!isAcademicExpanded}>
-        <View style={styles.collapsibleContent}>
-          <View style={styles.formGrid}>
-            <View style={styles.formGroup}>
-              <View style={styles.labelContainer}>
-                <Icon name="briefcase" size={14} color="#666" />
-                <Text style={styles.label}>Employment Status</Text>
-                <Text style={styles.requiredStar}> *</Text>
-              </View>
-              <View style={styles.optionsGrid}>
-                {employmentStatuses.map((status) => (
-                  <TouchableOpacity
-                    key={status.value}
-                    style={[
-                      styles.optionCard,
-                      formData.employment_status === status.value && styles.optionCardSelected,
-                    ]}
-                    onPress={() => {
-                      setFormData(prev => ({ ...prev, employment_status: status.value }));
-                      setErrors(prev => ({ ...prev, employment_status: '' }));
-                    }}
-                  >
-                    <Icon 
-                      name={status.icon} 
-                      size={16} 
-                      color={formData.employment_status === status.value ? '#fff' : '#004d40'} 
-                    />
-                    <Text style={[
-                      styles.optionText,
-                      formData.employment_status === status.value && styles.optionTextSelected,
-                    ]}>
-                      {status.label}
-                    </Text>
-                    {formData.employment_status === status.value && (
-                      <View style={styles.selectedIndicator}>
-                        <Icon name="check" size={12} color="#fff" />
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
-              {errors.employment_status && (
-                <Text style={styles.errorText}>
-                  <Icon name="exclamation-circle" size={12} /> {errors.employment_status}
-                </Text>
-              )}
-            </View>
-
-            <View style={styles.formGroup}>
-              <View style={styles.labelContainer}>
-                <Icon name="book" size={14} color="#666" />
-                <Text style={styles.label}>Educational Level</Text>
-                <Text style={styles.requiredStar}> *</Text>
-              </View>
-              <View style={styles.educationGrid}>
-                {educationLevels.map((level) => (
-                  <TouchableOpacity
-                    key={level.value}
-                    style={[
-                      styles.educationCard,
-                      formData.educational_level === level.value && styles.educationCardSelected,
-                    ]}
-                    onPress={() => handleEducationLevelChange(level.value)}
-                  >
-                    <View style={styles.educationIcon}>
-                      <Icon 
-                        name={level.icon} 
-                        size={20} 
-                        color={formData.educational_level === level.value ? '#fff' : '#004d40'} 
-                      />
-                    </View>
-                    <Text style={[
-                      styles.educationText,
-                      formData.educational_level === level.value && styles.educationTextSelected,
-                    ]}>
-                      {level.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-              {errors.educational_level && (
-                <Text style={styles.errorText}>
-                  <Icon name="exclamation-circle" size={12} /> {errors.educational_level}
-                </Text>
-              )}
-              
-              {showOtherEducation && (
-                <View style={{ marginTop: 10 }}>
-                  <View style={styles.labelContainer}>
-                    <Icon name="edit" size={14} color="#666" />
-                    <Text style={styles.label}>Specify Education Level</Text>
-                    <Text style={styles.requiredStar}> *</Text>
-                  </View>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      errors.other_education_name && styles.inputError,
-                    ]}
-                    value={formData.other_education_name}
-                    onChangeText={(value) => {
-                      setFormData(prev => ({ ...prev, other_education_name: value }));
-                      setErrors(prev => ({ ...prev, other_education_name: '' }));
-                    }}
-                    placeholder="Enter education level"
-                  />
-                  {errors.other_education_name && (
-                    <Text style={styles.errorText}>
-                      <Icon name="exclamation-circle" size={12} /> {errors.other_education_name}
-                    </Text>
-                  )}
-                </View>
-              )}
-            </View>
-
-            <View style={styles.formRow}>
-              <View style={styles.formGroup}>
-                <View style={styles.labelContainer}>
-                  <Icon name="university" size={14} color="#666" />
-                  <Text style={styles.label}>Last Degree Institute</Text>
-                </View>
-                <TextInput
-                  style={styles.input}
-                  value={formData.last_degree_institute}
-                  onChangeText={(value) => setFormData(prev => ({ ...prev, last_degree_institute: value }))}
-                  placeholder="Institute name"
-                />
-              </View>
-
-              <View style={styles.formGroup}>
-                <View style={styles.labelContainer}>
-                  <Icon name="book-open" size={14} color="#666" />
-                  <Text style={styles.label}>Discipline</Text>
-                </View>
-                <TextInput
-                  style={styles.input}
-                  value={formData.discipline}
-                  onChangeText={(value) => setFormData(prev => ({ ...prev, discipline: value }))}
-                  placeholder="Field of study"
-                />
-              </View>
-            </View>
-
-            <View style={styles.formGroup}>
-              <View style={styles.labelContainer}>
-                <Icon name="star" size={14} color="#666" />
-                <Text style={styles.label}>Specialization</Text>
-              </View>
-              <TextInput
-                style={styles.input}
-                value={formData.specialization}
-                onChangeText={(value) => setFormData(prev => ({ ...prev, specialization: value }))}
-                placeholder="Area of expertise"
-              />
-            </View>
-
-            <View style={styles.formGroup}>
-              <View style={styles.labelContainer}>
-                <Icon name="info-circle" size={14} color="#666" />
-                <Text style={styles.label}>Special Conditions</Text>
-              </View>
-              <TextInput
-                style={styles.textArea}
-                value={formData.special_condition}
-                onChangeText={(value) => setFormData(prev => ({ ...prev, special_condition: value }))}
-                placeholder="Describe any special conditions or requirements"
-                multiline
-                numberOfLines={3}
-              />
-            </View>
-          </View>
+          <Text style={[styles.label, errors[field] && styles.labelError]}>
+            {label}
+            {options.required && <Text style={styles.requiredStar}> *</Text>}
+          </Text>
         </View>
-      </Collapsible>
+        {errors[field] && (
+          <Animatable.View 
+            animation="shake" 
+            iterationCount={2}
+            style={styles.errorIndicator}
+          >
+            <Icon name="alert-circle" size={12} color="#FF3B30" />
+          </Animatable.View>
+        )}
+      </View>
+      <TextInput
+        style={[
+          styles.input,
+          errors[field] && styles.inputError,
+          options.multiline && styles.textArea,
+        ]}
+        value={formData[field]}
+        onChangeText={(text) => {
+          let processedText = text;
+          if (options.numeric) {
+            processedText = text.replace(/[^0-9]/g, '');
+            if (options.maxLength) {
+              processedText = processedText.slice(0, options.maxLength);
+            }
+          }
+          setFormData(prev => ({ ...prev, [field]: processedText }));
+          if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
+        }}
+        placeholder={placeholder}
+        placeholderTextColor="rgba(255,255,255,0.5)"
+        multiline={options.multiline}
+        numberOfLines={options.multiline ? 3 : 1}
+        keyboardType={options.keyboardType || 'default'}
+        maxLength={options.maxLength}
+      />
+      {errors[field] && (
+        <Animatable.Text 
+          animation="fadeIn" 
+          duration={300}
+          style={styles.errorText}
+        >
+          <Icon name="alert-circle-outline" size={10} color="#FF3B30" /> {errors[field]}
+        </Animatable.Text>
+      )}
     </Animatable.View>
   );
 
-  const renderStep3 = () => (
+  const renderRadioGroup = (field, label, options) => (
     <Animatable.View 
-      animation="fadeIn"
-      duration={500}
-      style={styles.stepContainer}
+      animation="fadeInUp" 
+      delay={150}
+      duration={600}
+      style={styles.radioGroupContainer}
     >
-      <TouchableOpacity
-        style={styles.collapsibleHeader}
-        onPress={() => setIsDocumentsExpanded(!isDocumentsExpanded)}
-      >
-        <LinearGradient
-          colors={['#f8f9fa', '#e9ecef']}
-          style={styles.sectionHeader}
-        >
-          <FontAwesomeIcon name="file-upload" size={20} color="#004d40" />
-          <Text style={styles.sectionTitle}>Required Documents</Text>
-          <Icon 
-            name={isDocumentsExpanded ? 'chevron-up' : 'chevron-down'} 
-            size={20} 
-            color="#004d40" 
-          />
-        </LinearGradient>
-      </TouchableOpacity>
-      
-      <Collapsible collapsed={!isDocumentsExpanded}>
-        <View style={styles.collapsibleContent}>
-          <View style={styles.documentGrid}>
-            <DocumentUpload
-              title="CNIC Front"
-              icon="id-card"
-              value={formData.cnic_front}
-              onPress={() => pickFile('cnic_front')}
-              error={errors.cnic_front}
-              required
-            />
-            
-            <DocumentUpload
-              title="CNIC Back"
-              icon="id-card"
-              value={formData.cnic_back}
-              onPress={() => pickFile('cnic_back')}
-              error={errors.cnic_back}
-              required
-            />
-            
-            <DocumentUpload
-              title="Domicile"
-              icon="file-contract"
-              value={formData.domicile}
-              onPress={() => pickFile('domicile')}
-              optional
-            />
-            
-            <DocumentUpload
-              title="Educational Documents"
-              icon="graduation-cap"
-              value={formData.educational_documents}
-              onPress={() => pickFile('educational_documents')}
-            />
-            
-            {showDisabilityDetails && (
-              <DocumentUpload
-                title="Disability Certificate"
-                icon="wheelchair"
-                value={formData.disability_certificate}
-                onPress={() => pickFile('disability_certificate')}
-                error={errors.disability_certificate}
-                required
-              />
-            )}
-          </View>
-
-          <View style={styles.noteCard}>
-            <Icon name="info-circle" size={20} color="#004d40" />
-            <View style={styles.noteContent}>
-              <Text style={styles.noteTitle}>Important Notes</Text>
-              <Text style={styles.noteText}>
-                • All documents must be clear and legible
-              </Text>
-              <Text style={styles.noteText}>
-                • Maximum file size: 5MB per document
-              </Text>
-              <Text style={styles.noteText}>
-                • Accepted formats: JPG, PNG, PDF
-              </Text>
-              <Text style={styles.noteText}>
-                • Required documents are marked with *
-              </Text>
-            </View>
-          </View>
-        </View>
-      </Collapsible>
-    </Animatable.View>
-  );
-
-  const DocumentUpload = ({ title, icon, value, onPress, error, required, optional }) => (
-    <View style={styles.documentCard}>
-      <View style={styles.documentHeader}>
-        <Icon name={icon} size={16} color="#004d40" />
-        <Text style={styles.documentTitle}>
-          {title}
-          {required && <Text style={styles.requiredStar}> *</Text>}
-          {optional && <Text style={styles.optionalText}> (Optional)</Text>}
+      <View style={styles.radioHeader}>
+        <Icon name="radiobox-marked" size={14} color="#6A1B9A" style={styles.radioIcon} />
+        <Text style={[styles.radioGroupLabel, errors[field] && styles.labelError]}>
+          {label}{label.includes('required') ? '' : <Text style={styles.requiredStar}> *</Text>}
         </Text>
       </View>
-      
-      <TouchableOpacity
-        style={[
-          styles.documentUpload,
-          error && styles.inputError,
-          value && styles.documentUploadFilled,
-        ]}
-        onPress={onPress}
-      >
-        {value ? (
-          <View style={styles.documentInfo}>
-            <Icon name="check-circle" size={20} color="#4caf50" />
-            <Text style={styles.documentName} numberOfLines={1}>
-              {value.name}
-            </Text>
-            <TouchableOpacity
-              onPress={() => {
-                const field = Object.keys(formData).find(key => formData[key] === value);
-                if (field) {
-                  setFormData(prev => ({ ...prev, [field]: null }));
-                  setErrors(prev => ({ ...prev, [field]: '' }));
-                }
-              }}
-              style={styles.removeButton}
-            >
-              <Icon name="times" size={16} color="#f44336" />
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View style={styles.documentPlaceholder}>
-            <Icon name="cloud-upload" size={24} color="#666" />
-            <Text style={styles.uploadText}>Upload Document</Text>
-            <Text style={styles.uploadSubtext}>JPG, PNG, PDF up to 5MB</Text>
-          </View>
-        )}
-      </TouchableOpacity>
-      
-      {error && (
-        <Text style={styles.errorText}>
-          <Icon name="exclamation-circle" size={12} /> {error}
-        </Text>
-      )}
-    </View>
-  );
-
-  const renderStepper = () => (
-    <View style={styles.stepperContainer}>
-      {[1, 2, 3].map((step) => (
-        <React.Fragment key={step}>
+      <View style={styles.radioOptions}>
+        {options.map((option) => (
           <TouchableOpacity
-            style={styles.stepperItem}
-            onPress={() => currentStep >= step && setCurrentStep(step)}
+            key={option.value}
+            style={[
+              styles.radioOption,
+              formData[field] === option.value && styles.radioOptionSelected,
+            ]}
+            onPress={() => {
+              setFormData(prev => ({ ...prev, [field]: option.value }));
+              if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
+            }}
           >
             <LinearGradient
-              colors={
-                currentStep === step 
-                  ? ['#004d40', '#00695c']
-                  : currentStep > step
-                  ? ['#4caf50', '#2e7d32']
-                  : ['#e0e0e0', '#bdbdbd']
-              }
-              style={styles.stepperCircle}
+              colors={formData[field] === option.value ? ['#6A1B9A', '#0a040b'] : ['transparent', 'transparent']}
+              style={styles.radioGradient}
             >
-              {currentStep > step ? (
-                <Icon name="check" size={18} color="#fff" />
-              ) : (
-                <Text style={styles.stepperNumber}>{step}</Text>
-              )}
+              <View style={styles.radioCircle}>
+                {formData[field] === option.value && (
+                  <View style={styles.radioInnerCircle} />
+                )}
+              </View>
+              <Text style={[
+                styles.radioLabel,
+                formData[field] === option.value && styles.radioLabelSelected,
+              ]}>
+                {option.label}
+              </Text>
             </LinearGradient>
-            <Text style={[
-              styles.stepperLabel,
-              currentStep === step && styles.stepperLabelActive,
-              currentStep > step && styles.stepperLabelCompleted,
-            ]}>
-              {step === 1 ? 'Personal' : step === 2 ? 'Academic' : 'Documents'}
-            </Text>
           </TouchableOpacity>
-          {step < 3 && (
-            <View style={[
-              styles.stepperLine,
-              currentStep > step && styles.stepperLineCompleted,
-            ]} />
-          )}
-        </React.Fragment>
-      ))}
-    </View>
+        ))}
+      </View>
+      {errors[field] && (
+        <Animatable.Text 
+          animation="fadeIn" 
+          duration={300}
+          style={styles.errorText}
+        >
+          <Icon name="alert-circle-outline" size={10} color="#FF3B30" /> {errors[field]}
+        </Animatable.Text>
+      )}
+    </Animatable.View>
   );
+
+  const renderPicker = (field, label, items, required = true) => (
+    <Animatable.View 
+      animation="fadeInUp" 
+      delay={200}
+      duration={600}
+      style={styles.pickerContainer}
+    >
+      <View style={styles.pickerHeader}>
+        <Icon name="menu-down" size={14} color="#6A1B9A" style={styles.pickerIcon} />
+        <Text style={[styles.pickerLabel, errors[field] && styles.labelError]}>
+          {label}{required && <Text style={styles.requiredStar}> *</Text>}
+        </Text>
+      </View>
+      <View style={[styles.pickerWrapper, errors[field] && styles.pickerError]}>
+        <Picker
+          selectedValue={formData[field]}
+          onValueChange={(value) => {
+            setFormData(prev => ({ ...prev, [field]: value }));
+            if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
+          }}
+          style={styles.picker}
+          dropdownIconColor="#6A1B9A"
+        >
+          <Picker.Item 
+            label={`Select ${label.toLowerCase()}`} 
+            value="" 
+            style={styles.pickerItem}
+          />
+          {items.map((item, index) => (
+            <Picker.Item 
+              key={index} 
+              label={item.label} 
+              value={item.value} 
+              style={styles.pickerItem}
+            />
+          ))}
+        </Picker>
+      </View>
+      {errors[field] && (
+        <Animatable.Text 
+          animation="fadeIn" 
+          duration={300}
+          style={styles.errorText}
+        >
+          <Icon name="alert-circle-outline" size={10} color="#FF3B30" /> {errors[field]}
+        </Animatable.Text>
+      )}
+    </Animatable.View>
+  );
+
+  const renderFileUpload = (field, label, required = false) => (
+    <Animatable.View 
+      animation="fadeInUp" 
+      delay={250}
+      duration={600}
+      style={styles.fileContainer}
+    >
+      <View style={styles.fileHeader}>
+        <Icon name="file-upload" size={14} color="#6A1B9A" style={styles.fileIcon} />
+        <Text style={[styles.fileLabel, errors[field] && styles.labelError]}>
+          {label}
+          {required && <Text style={styles.requiredStar}> *</Text>}
+        </Text>
+      </View>
+      <TouchableOpacity
+        style={[styles.fileButton, errors[field] && styles.fileButtonError]}
+        onPress={() => handleFilePick(field)}
+        activeOpacity={0.8}
+      >
+        <LinearGradient
+          colors={formData[field] ? ['#4CAF50', '#2E7D32'] : ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
+          style={styles.fileGradient}
+        >
+          <Icon 
+            name={formData[field] ? 'check-circle' : 'upload'} 
+            size={20} 
+            color="white" 
+            style={styles.fileButtonIcon}
+          />
+          <Text style={styles.fileButtonText}>
+            {formData[field] ? 'File Uploaded ✓' : `Upload ${label}`}
+          </Text>
+          {formData[field] && (
+            <Text style={styles.fileSizeText}>
+              {formatFileSize(formData[field].size)}
+            </Text>
+          )}
+        </LinearGradient>
+      </TouchableOpacity>
+      {errors[field] && (
+        <Animatable.Text 
+          animation="fadeIn" 
+          duration={300}
+          style={styles.errorText}
+        >
+          <Icon name="alert-circle-outline" size={10} color="#FF3B30" /> {errors[field]}
+        </Animatable.Text>
+      )}
+    </Animatable.View>
+  );
+
+  const renderDatePicker = () => (
+    <Animatable.View 
+      animation="fadeInUp" 
+      delay={100}
+      duration={600}
+      style={styles.inputContainer}
+    >
+      <View style={styles.inputHeader}>
+        <View style={styles.labelContainer}>
+          <Icon name="calendar" size={14} color="#6A1B9A" style={styles.labelIcon} />
+          <Text style={[styles.label, errors.date_of_birth && styles.labelError]}>
+            Date of Birth<Text style={styles.requiredStar}> *</Text>
+          </Text>
+        </View>
+      </View>
+      <TouchableOpacity
+        style={[styles.input, styles.dateInput, errors.date_of_birth && styles.inputError]}
+        onPress={() => setShowDatePicker(true)}
+        activeOpacity={0.7}
+      >
+        <LinearGradient
+          colors={['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
+          style={styles.dateGradient}
+        >
+          <Text style={formData.date_of_birth ? styles.inputText : styles.placeholder}>
+            {formData.date_of_birth || 'Select Date of Birth'}
+          </Text>
+          <Icon name="calendar-blank" size={18} color="#6A1B9A" />
+        </LinearGradient>
+      </TouchableOpacity>
+      {showDatePicker && (
+        <DateTimePicker
+          value={formData.date_of_birth ? new Date(formData.date_of_birth) : new Date()}
+          mode="date"
+          display="default"
+          onChange={handleDateChange}
+          maximumDate={new Date()}
+          minimumDate={new Date(1950, 0, 1)}
+        />
+      )}
+      {errors.date_of_birth && (
+        <Animatable.Text 
+          animation="fadeIn" 
+          duration={300}
+          style={styles.errorText}
+        >
+          <Icon name="alert-circle-outline" size={10} color="#FF3B30" /> {errors.date_of_birth}
+        </Animatable.Text>
+      )}
+    </Animatable.View>
+  );
+
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <Animated.View style={[styles.stepContent, { transform: [{ translateX: slideAnim }], opacity: fadeAnim }]}>
+            <Animatable.View animation="fadeInDown" duration={800} style={styles.stepHeader}>
+              <LinearGradient
+                colors={['rgba(106, 27, 154, 0.2)', 'rgba(74, 20, 140, 0.2)']}
+                style={styles.stepHeaderGradient}
+              >
+                <Icon name="account-circle" size={24} color="white" />
+                <Text style={styles.stepTitle}>Personal Information</Text>
+              </LinearGradient>
+            </Animatable.View>
+
+            <View style={styles.formFields}>
+              {renderInputField('full_name', 'Full Name', 'Enter Full Name', { 
+                required: true, 
+                icon: 'account',
+              })}
+              
+              {renderInputField('father_name', "Father's Name", "Enter Father's Name", { 
+                required: true, 
+                icon: 'account-group',
+              })}
+
+              <View style={styles.row}>
+                <View style={styles.col}>
+                  {renderDatePicker()}
+                </View>
+                <View style={styles.col}>
+                  {renderInputField('age', 'Age', 'Enter Age', { 
+                    required: true, 
+                    icon: 'numeric',
+                    numeric: true,
+                    maxLength: 2 
+                  })}
+                </View>
+              </View>
+
+              {renderPicker('marital_status', 'Marital Status', [
+                { label: 'Single', value: 'Single' },
+                { label: 'Married', value: 'Married' },
+                { label: 'Widow', value: 'Widow' },
+                { label: 'Divorcee', value: 'Divorcee' },
+              ])}
+
+              {renderInputField('cnic_no', 'CNIC No.', 'Enter CNIC (13 digits)', { 
+                required: true, 
+                icon: 'card-account-details',
+                numeric: true,
+                maxLength: 13 
+              })}
+
+              {renderPicker('mobile_network', 'Mobile Network', [
+                { label: 'Jazz', value: 'Jazz' },
+                { label: 'Zong', value: 'Zong' },
+                { label: 'Telenor', value: 'Telenor' },
+                { label: 'Ufone', value: 'Ufone' },
+                { label: 'Any Other', value: 'Any Other' },
+              ])}
+
+              {formData.mobile_network === 'Any Other' && 
+                renderInputField('other_network_name', 'Specify Network', 'Specify Network', { 
+                  required: true, 
+                  icon: 'network',
+                })
+              }
+
+              {renderInputField('email', 'Email', 'Enter Email Address (optional)', { 
+                icon: 'email',
+                keyboardType: 'email-address' 
+              })}
+
+              {renderInputField('present_address', 'Present Address', 'Enter Present Address', { 
+                required: true, 
+                icon: 'map-marker',
+                multiline: true 
+              })}
+
+              {renderInputField('cell_no', 'Cell No.', '03001234567', { 
+                required: true, 
+                icon: 'phone',
+                numeric: true,
+                maxLength: 11 
+              })}
+
+              {renderRadioGroup('has_disability', 'Do you have any disability?', [
+                { label: 'Yes', value: '1' },
+                { label: 'No', value: '0' },
+              ])}
+
+              {formData.has_disability === '1' && 
+                renderInputField('disability_type', 'Type of Disability', 'Specify disability type', { 
+                  required: true, 
+                  icon: 'wheelchair-accessibility',
+                })
+              }
+            </View>
+          </Animated.View>
+        );
+
+      case 2:
+        return (
+          <Animated.View style={[styles.stepContent, { transform: [{ translateX: slideAnim }], opacity: fadeAnim }]}>
+            <Animatable.View animation="fadeInDown" duration={800} style={styles.stepHeader}>
+              <LinearGradient
+                colors={['rgba(76, 175, 80, 0.2)', 'rgba(46, 125, 50, 0.2)']}
+                style={styles.stepHeaderGradient}
+              >
+                <Icon name="school" size={24} color="white" />
+                <Text style={styles.stepTitle}>Academic Information</Text>
+              </LinearGradient>
+            </Animatable.View>
+
+            <View style={styles.formFields}>
+              {renderPicker('employment_status', 'Employment Status', [
+                { label: 'Unemployed', value: 'Unemployed' },
+                { label: 'Student', value: 'Student' },
+                { label: 'Self-employment / Small Business', value: 'Self-employment / Small Business' },
+                { label: 'Job', value: 'Job' },
+              ])}
+
+              {renderPicker('educational_level', 'Educational Level', [
+                { label: 'BS Honors (16 Years Edu)', value: 'BS Honors (16 Years Edu)' },
+                { label: 'Mphil', value: 'Mphil' },
+                { label: 'Phd', value: 'Phd' },
+                { label: 'Others', value: 'Others' },
+              ])}
+
+              {formData.educational_level === 'Others' && 
+                renderInputField('other_education_name', 'Specify Education', 'Specify Education Level', { 
+                  required: true, 
+                  icon: 'pencil',
+                })
+              }
+
+              {renderInputField('last_degree_institute', 'Last Degree Institute', 'Enter Institute Name', { 
+                icon: 'office-building',
+              })}
+
+              {renderInputField('discipline', 'Discipline', 'Enter Discipline', { 
+                icon: 'book-open-variant',
+              })}
+
+              {renderInputField('specialization', 'Specialization', 'Enter Specialization', { 
+                icon: 'certificate',
+              })}
+
+              {renderInputField('special_condition', 'Any Special Condition', 'Describe any special condition', { 
+                icon: 'alert-circle',
+                multiline: true 
+              })}
+            </View>
+          </Animated.View>
+        );
+
+      case 3:
+        return (
+          <Animated.View style={[styles.stepContent, { transform: [{ translateX: slideAnim }], opacity: fadeAnim }]}>
+            <Animatable.View animation="fadeInDown" duration={800} style={styles.stepHeader}>
+              <LinearGradient
+                colors={['rgba(33, 150, 243, 0.2)', 'rgba(13, 71, 161, 0.2)']}
+                style={styles.stepHeaderGradient}
+              >
+                <Icon name="file-document" size={24} color="white" />
+                <Text style={styles.stepTitle}>Required Documents</Text>
+                <Text style={styles.stepSubtitle}>(Max 2MB each - PDF, JPG, PNG)</Text>
+              </LinearGradient>
+            </Animatable.View>
+
+            <View style={styles.formFields}>
+              {renderFileUpload('cnic_front', 'CNIC (Front)', true)}
+              {renderFileUpload('cnic_back', 'CNIC (Back)', true)}
+              {renderFileUpload('domicile', 'Domicile (Optional)', false)}
+              {renderFileUpload('educational_documents', 'Educational Documents', true)}
+              
+              {formData.has_disability === '1' && 
+                renderFileUpload('disability_certificate', 'Disability Certificate', true)
+              }
+
+              <Animatable.View 
+                animation="fadeInUp" 
+                delay={300}
+                duration={600}
+                style={styles.disclaimerContainer}
+              >
+                <LinearGradient
+                  colors={['rgba(255, 193, 7, 0.2)', 'rgba(255, 152, 0, 0.2)']}
+                  style={styles.disclaimerGradient}
+                >
+                  <Icon name="shield-check" size={20} color="#FFC107" style={styles.disclaimerIcon} />
+                  <View style={styles.disclaimerContent}>
+                    <Text style={styles.disclaimerTitle}>Important Notice</Text>
+                    <Text style={styles.disclaimerText}>
+                      • All personal information remains confidential{'\n'}
+                      • All files must be clear and readable{'\n'}
+                      • Submission doesn't guarantee enrollment{'\n'}
+                      • You'll be notified about selection
+                    </Text>
+                  </View>
+                </LinearGradient>
+              </Animatable.View>
+            </View>
+          </Animated.View>
+        );
+    }
+  };
+
+  if (checkingExisting) {
+    return (
+      <LinearGradient
+        colors={['#0a040b', '#121213', '#6A1B9A']}
+        style={styles.loadingContainer}
+      >
+        <StatusBar barStyle="light-content" backgroundColor="#6A1B9A" />
+        <Animatable.View 
+          animation="pulse" 
+          iterationCount="infinite" 
+          style={styles.loadingContent}
+        >
+          <Icon name="database-search" size={60} color="white" />
+          <Text style={styles.loadingTitle}>Checking Registration</Text>
+          <Text style={styles.loadingSubtitle}>Looking for existing data...</Text>
+          <ActivityIndicator size="large" color="white" style={styles.loadingSpinner} />
+          <Text style={styles.loadingText}>If data exists, you'll be redirected to tracking screen</Text>
+        </Animatable.View>
+      </LinearGradient>
+    );
+  }
 
   return (
     <LinearGradient
-      colors={['#f5f7fa', '#e4e8f0']}
+      colors={['#0a040b', '#121213', '#6A1B9A']}
       style={styles.container}
     >
-      <ScrollView 
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-      >
-        <Animatable.View 
-          animation="zoomIn"
-          duration={800}
-          style={styles.header}
-        >
+      <StatusBar barStyle="light-content" backgroundColor="#6A1B9A" />
+      <SafeAreaView style={styles.safeArea}>
+        {/* Header */}
+        <Animatable.View animation="fadeInDown" duration={1000} style={styles.header}>
           <LinearGradient
-            colors={['#004d40', '#00695c']}
+            colors={['rgba(10, 4, 11, 0.9)', 'rgba(18, 18, 19, 0.9)', 'rgba(106, 27, 154, 0.9)']}
             style={styles.headerGradient}
           >
-            <FontAwesomeIcon name="laptop-code" size={32} color="#fff" />
-            <Text style={styles.mainTitle}>
-              Digital Skills Training
-            </Text>
-            <Text style={styles.subTitle}>
-              Economic Empowerment of Rural Females
-            </Text>
+            <TouchableOpacity 
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+              activeOpacity={0.7}
+            >
+              <Icon name="arrow-left" size={14} color="white" />
+            </TouchableOpacity>
+            <View style={styles.headerContent}>
+              <Icon name="account-tie-hat" size={28} color="white" />
+              <View style={styles.headerText}>
+                <Text style={styles.headerTitle}>SHE Threads Registration</Text>
+                <Text style={styles.headerSubtitle}>Digital Skill Training - Economic Empowerment</Text>
+              </View>
+            </View>
+            <View style={styles.stepBadge}>
+              <Text style={styles.stepBadgeText}>Step {currentStep}/3</Text>
+            </View>
           </LinearGradient>
         </Animatable.View>
 
-        <View style={styles.formContainer}>
-          <View style={styles.stepperWrapper}>
-            {renderStepper()}
-          </View>
+        <Animated.ScrollView
+          ref={scrollViewRef}
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Animated.View style={{ opacity: fadeAnim }}>
+            {renderStepIndicator()}
+            
+            {renderStepContent()}
 
-          {currentStep === 1 && renderStep1()}
-          {currentStep === 2 && renderStep2()}
-          {currentStep === 3 && renderStep3()}
-        </View>
-      </ScrollView>
+            {/* Navigation Buttons */}
+            <Animatable.View 
+              animation="fadeInUp" 
+              duration={800}
+              delay={400}
+              style={styles.buttonContainer}
+            >
+              <View style={styles.buttonRow}>
+                {currentStep > 1 && (
+                  <TouchableOpacity 
+                    style={styles.backButtonLarge}
+                    onPress={handlePrevStep}
+                    activeOpacity={0.8}
+                  >
+                    <LinearGradient
+                      colors={['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
+                      style={styles.backButtonGradient}
+                    >
+                      <Icon name="arrow-left" size={18} color="white" />
+                      <Text style={styles.backButtonText}>Previous</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
+                
+                {currentStep < 3 ? (
+                  <TouchableOpacity 
+                    style={styles.nextButton}
+                    onPress={handleNextStep}
+                    activeOpacity={0.8}
+                  >
+                    <LinearGradient
+                      colors={['#6A1B9A', '#4A148C']}
+                      style={styles.nextButtonGradient}
+                    >
+                      <Text style={styles.nextButtonText}>Next</Text>
+                      <Icon name="arrow-right" size={18} color="white" />
+                    </LinearGradient>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity 
+                    style={styles.submitButton}
+                    onPress={handleSubmit}
+                    disabled={loading}
+                    activeOpacity={0.8}
+                  >
+                    <LinearGradient
+                      colors={loading ? ['#9E9E9E', '#757575'] : ['#6A1B9A', '#8E24AA']}
+                      style={styles.submitButtonGradient}
+                    >
+                      {loading ? (
+                        <ActivityIndicator color="white" size="small" />
+                      ) : (
+                        <>
+                          <Icon name="check-circle" size={18} color="white" />
+                          <Text style={styles.submitButtonText}>Submit Registration</Text>
+                        </>
+                      )}
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </Animatable.View>
 
-      <LinearGradient
-        colors={['rgba(255,255,255,0.9)', 'rgba(255,255,255,1)']}
-        style={styles.footer}
-      >
-        <View style={[
-          styles.buttonContainer,
-          currentStep === 1 && styles.buttonContainerFirstStep
-        ]}>
-          {currentStep > 1 && (
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={handlePrevStep}
+            {/* Footer */}
+            <Animatable.View 
+              animation="fadeIn" 
+              duration={1000}
+              delay={500}
+              style={styles.footer}
             >
-              <Icon name="arrow-left" size={16} color="#004d40" />
-              <Text style={styles.backButtonText}>Previous</Text>
-            </TouchableOpacity>
-          )}
-          
-          {currentStep < 3 ? (
-            <TouchableOpacity
-              style={styles.nextButton}
-              onPress={handleNextStep}
-            >
-              <Text style={styles.nextButtonText}>Next</Text>
-              <Icon name="arrow-right" size={16} color="#fff" />
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={[styles.submitButton, loading && styles.buttonDisabled]}
-              onPress={handleSubmit}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <>
-                  <Icon name="paper-plane" size={16} color="#fff" />
-                  <Text style={styles.submitButtonText}>Submit Registration</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          )}
-        </View>
-        
-        <View style={styles.progressContainer}>
-          <View style={styles.progressBar}>
-            <LinearGradient
-              colors={['#004d40', '#00695c']}
-              style={[styles.progressFill, { width: `${(currentStep / 3) * 100}%` }]}
-            />
-          </View>
-          <Text style={styles.progressText}>
-            Step {currentStep} of 3 • {Math.round((currentStep / 3) * 100)}% Complete
-          </Text>
-        </View>
-      </LinearGradient>
-
-      {showDatePicker && (
-        <DateTimePicker
-          value={formData.dob ? new Date(formData.dob) : new Date()}
-          mode="date"
-          display="spinner"
-          onChange={handleDOBChange}
-          maximumDate={new Date(new Date().getFullYear() - 16, 11, 31)}
-          minimumDate={new Date(new Date().getFullYear() - 60, 0, 1)}
-        />
-      )}
+              <LinearGradient
+                colors={['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
+                style={styles.footerGradient}
+              >
+                <Icon name="shield-lock" size={14} color="rgba(255,255,255,0.8)" />
+                <Text style={styles.footerText}>
+                  Your data is secured with 256-bit encryption
+                </Text>
+              </LinearGradient>
+            </Animatable.View>
+          </Animated.View>
+        </Animated.ScrollView>
+      </SafeAreaView>
     </LinearGradient>
   );
 };
@@ -1419,506 +1083,524 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollView: {
+  safeArea: {
     flex: 1,
   },
-  header: {
-    marginBottom: 20,
-  },
-  headerGradient: {
-    padding: 25,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 8,
   },
-  mainTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#fff',
-    marginTop: 10,
-    textAlign: 'center',
+  loadingContent: {
+    alignItems: 'center',
+    padding: 30,
   },
-  subTitle: {
+  loadingTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: 'white',
+    marginTop: 20,
+    marginBottom: 8,
+  },
+  loadingSubtitle: {
     fontSize: 14,
     color: 'rgba(255,255,255,0.9)',
-    marginTop: 5,
-    textAlign: 'center',
+    marginBottom: 30,
   },
-  stepperWrapper: {
-    backgroundColor: '#fff',
-    borderRadius: 15,
-    padding: 20,
+  loadingSpinner: {
+    marginTop: 30,
     marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
   },
-  stepperContainer: {
+  loadingText: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.7)',
+    textAlign: 'center',
+    marginTop: 10,
+  },
+  header: {
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
+    overflow: 'hidden',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8, 
+  },
+  headerGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    paddingTop: 45,
   },
-  stepperItem: {
-    alignItems: 'center',
-    zIndex: 1,
-  },
-  stepperCircle: {
+  backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
-  stepperNumber: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  stepperLabel: {
-    marginTop: 8,
-    fontSize: 12,
-    color: '#666',
-    fontWeight: '500',
-  },
-  stepperLabelActive: {
-    color: '#004d40',
-    fontWeight: '600',
-  },
-  stepperLabelCompleted: {
-    color: '#2e7d32',
-  },
-  stepperLine: {
+  headerContent: {
     flex: 1,
-    height: 2,
-    backgroundColor: '#e0e0e0',
-    marginHorizontal: 10,
-  },
-  stepperLineCompleted: {
-    backgroundColor: '#4caf50',
-  },
-  formContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 120,
-  },
-  stepContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 15,
-    padding: 0,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
-    overflow: 'hidden',
-  },
-  collapsibleHeader: {
-    marginBottom: 0,
-  },
-  sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    justifyContent: 'center',
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#004d40',
-    marginLeft: 10,
+  headerText: {
+    marginLeft: 12,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.8)',
+  },
+  stepBadge: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  stepBadgeText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  scrollView: {
     flex: 1,
   },
-  collapsibleContent: {
-    padding: 15,
+  scrollContent: {
+    paddingBottom: 30,
   },
-  formGrid: {
-    padding: 0,
+  stepperContainer: {
+    marginHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 10,
   },
-  formRow: {
+  stepperBackground: {
+    borderRadius: 20,
+    padding: 20,
+  },
+  stepperCircles: {
     flexDirection: 'row',
-    marginHorizontal: -8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepperCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepperCircleInner: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepperCircleActive: {
+    backgroundColor: '#6A1B9A',
+  },
+  stepperCircleCompleted: {
+    backgroundColor: '#4CAF50',
+  },
+  stepperNumber: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: 'rgba(255,255,255,0.7)',
+  },
+  stepperNumberActive: {
+    color: 'white',
+  },
+  stepperLine: {
+    width: 40,
+    height: 2,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    marginHorizontal: 5,
+  },
+  stepperLineActive: {
+    backgroundColor: '#4CAF50',
+  },
+  stepperLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+    paddingHorizontal: 10,
+  },
+  stepperLabel: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '600',
+  },
+  stepContent: {
+    marginHorizontal: 20,
+  },
+  stepHeader: {
+    borderRadius: 15,
+    overflow: 'hidden',
+    marginBottom: 20,
+  },
+  stepHeaderGradient: {
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  stepTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: 'white',
+    marginLeft: 10,
+  },
+  stepSubtitle: {
+    fontSize: 8,
+    color: 'rgba(176, 164, 164, 0.8)',
+    marginLeft: 'auto',
+  },
+  formFields: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 15,
+    padding: 15,
+  },
+  inputContainer: {
     marginBottom: 15,
   },
-  formGroup: {
-    flex: 1,
-    marginHorizontal: 8,
-    marginBottom: 15,
+  inputHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   labelContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+  },
+  labelIcon: {
+    marginRight: 6,
   },
   label: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#333',
-    marginLeft: 6,
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.9)',
+  },
+  labelError: {
+    color: '#FF3B30',
   },
   requiredStar: {
-    color: '#f44336',
+    color: '#FF3B30',
+  },
+  errorIndicator: {
+    backgroundColor: 'rgba(255,59,48,0.2)',
+    padding: 4,
+    borderRadius: 10,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: 'rgba(255,255,255,0.2)',
     borderRadius: 10,
-    padding: 12,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
     fontSize: 14,
-    backgroundColor: '#fff',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  dateInput: {
-    padding: 12,
-  },
-  inputText: {
-    fontSize: 14,
-    color: '#333',
-    flex: 1,
-  },
-  placeholder: {
-    fontSize: 14,
-    color: '#999',
-    flex: 1,
+    color: 'white',
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
   inputError: {
-    borderColor: '#f44336',
-    backgroundColor: '#fff',
+    borderColor: '#FF3B30',
+    backgroundColor: 'rgba(255,59,48,0.1)',
   },
   textArea: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    padding: 12,
-    fontSize: 14,
-    backgroundColor: '#fff',
-    minHeight: 100,
+    minHeight: 80,
     textAlignVertical: 'top',
   },
-  helperText: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 5,
-    flexDirection: 'row',
-    alignItems: 'center',
+  placeholder: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 14,
+  },
+  inputText: {
+    color: 'white',
+    fontSize: 14,
   },
   errorText: {
-    fontSize: 12,
-    color: '#f44336',
-    marginTop: 5,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  optionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -5,
-  },
-  optionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    margin: 5,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    minWidth: '45%',
-  },
-  optionCardSelected: {
-    backgroundColor: '#004d40',
-    borderColor: '#004d40',
-  },
-  optionText: {
-    fontSize: 13,
-    color: '#333',
-    marginLeft: 8,
-    flex: 1,
-  },
-  optionTextSelected: {
-    color: '#fff',
-  },
-  selectedIndicator: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#4caf50',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
-  educationGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -5,
-  },
-  educationCard: {
-    alignItems: 'center',
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-    padding: 12,
-    margin: 5,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    width: '30%',
-    minWidth: 100,
-  },
-  educationCardSelected: {
-    backgroundColor: '#004d40',
-    borderColor: '#004d40',
-  },
-  educationIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#e0f2f1',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  educationText: {
-    fontSize: 12,
-    color: '#333',
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  educationTextSelected: {
-    color: '#fff',
-  },
-  radioGroup: {
-    flexDirection: 'row',
-    marginTop: 5,
-  },
-  radioOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 20,
-    marginVertical: 5,
-  },
-  radioCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#004d40',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  radioCircleSelected: {
-    borderColor: '#004d40',
-  },
-  radioInnerCircle: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#004d40',
-  },
-  radioLabel: {
-    fontSize: 14,
-    color: '#555',
-  },
-  documentGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -8,
-  },
-  documentCard: {
-    width: '48%',
-    marginHorizontal: 8,
-    marginBottom: 16,
-  },
-  documentHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  documentTitle: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#333',
-    marginLeft: 6,
-    flex: 1,
-  },
-  optionalText: {
-    color: '#666',
-    fontSize: 11,
-  },
-  documentUpload: {
-    borderWidth: 2,
-    borderColor: '#ddd',
-    borderStyle: 'dashed',
-    borderRadius: 10,
-    padding: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fafafa',
-    minHeight: 120,
-  },
-  documentUploadFilled: {
-    borderStyle: 'solid',
-    borderColor: '#4caf50',
-    backgroundColor: '#e8f5e8',
-  },
-  documentPlaceholder: {
-    alignItems: 'center',
-  },
-  uploadText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#666',
-    marginTop: 8,
-  },
-  uploadSubtext: {
+    color: '#FF3B30',
     fontSize: 10,
-    color: '#999',
-    marginTop: 2,
+    marginTop: 4,
+    marginLeft: 4,
   },
-  documentInfo: {
+  row: {
     flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
+    marginHorizontal: -5,
   },
-  documentName: {
-    fontSize: 12,
-    color: '#333',
+  col: {
     flex: 1,
-    marginHorizontal: 8,
+    paddingHorizontal: 5,
   },
-  removeButton: {
-    padding: 4,
+  dateInput: {
+    padding: 0,
+    overflow: 'hidden',
   },
-  noteCard: {
-    flexDirection: 'row',
-    backgroundColor: '#e8f5e8',
-    borderRadius: 10,
-    padding: 15,
-    marginTop: 20,
-    alignItems: 'flex-start',
-  },
-  noteContent: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  noteTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#004d40',
-    marginBottom: 8,
-  },
-  noteText: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 4,
-  },
-  footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-  },
-  buttonContainer: {
+  dateGradient: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 15,
-  },
-  buttonContainerFirstStep: {
-    justifyContent: 'flex-end',
-  },
-  backButton: {
-    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: '#004d40',
-    borderRadius: 25,
-    paddingHorizontal: 25,
+    paddingHorizontal: 15,
     paddingVertical: 12,
   },
-  backButtonText: {
-    color: '#004d40',
+  radioGroupContainer: {
+    marginBottom: 15,
+  },
+  radioHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  radioIcon: {
+    marginRight: 6,
+  },
+  radioGroupLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.9)',
+  },
+  radioOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  radioOption: {
+    marginRight: 10,
+    marginBottom: 8,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  radioOptionSelected: {
+    shadowColor: '#6A1B9A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  radioGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  radioCircle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
+    marginRight: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  radioInnerCircle: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'white',
+  },
+  radioLabel: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
+  },
+  radioLabelSelected: {
+    color: 'white',
+    fontWeight: '600',
+  },
+  pickerContainer: {
+    marginBottom: 15,
+  },
+  pickerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  pickerIcon: {
+    marginRight: 6,
+  },
+  pickerLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.9)',
+  },
+  pickerWrapper: {
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  pickerError: {
+    borderColor: '#FF3B30',
+    backgroundColor: 'rgba(255,59,48,0.1)',
+  },
+  picker: {
+    height: 45,
+    color: 'white',
+  },
+  pickerItem: {
+    fontSize: 8,
+    color: '#333',
+  },
+  fileContainer: {
+    marginBottom: 15,
+  },
+  fileHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  fileIcon: {
+    marginRight: 6,
+  },
+  fileLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.9)',
+  },
+  fileButton: {
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  fileButtonError: {
+    borderWidth: 1,
+    borderColor: '#FF3B30',
+  },
+  fileGradient: {
+    padding: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fileButtonIcon: {
+    marginRight: 8,
+  },
+  fileButtonText: {
     fontSize: 14,
     fontWeight: '600',
+    color: 'white',
+  },
+  fileSizeText: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.8)',
+    marginLeft: 8,
+  },
+  disclaimerContainer: {
+    marginTop: 10,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  disclaimerGradient: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 15,
+  },
+  disclaimerIcon: {
+    marginTop: 2,
+    marginRight: 10,
+  },
+  disclaimerContent: {
+    flex: 1,
+  },
+  disclaimerTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FFC107',
+    marginBottom: 8,
+  },
+  disclaimerText: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.9)',
+    lineHeight: 16,
+  },
+  buttonContainer: {
+    marginHorizontal: 20,
+    marginTop: 20,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  backButtonLarge: {
+    flex: 1,
+    marginRight: 10,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  backButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 15,
+  },
+  backButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'white',
     marginLeft: 8,
   },
   nextButton: {
+    flex: 1,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  nextButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#004d40',
-    borderRadius: 25,
-    paddingHorizontal: 30,
-    paddingVertical: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    justifyContent: 'center',
+    padding: 15,
   },
   nextButtonText: {
-    color: '#fff',
     fontSize: 14,
     fontWeight: '600',
+    color: 'white',
     marginRight: 8,
   },
   submitButton: {
+    flex: 1,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  submitButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2e7d32',
-    borderRadius: 25,
-    paddingHorizontal: 30,
-    paddingVertical: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    justifyContent: 'center',
+    padding: 15,
   },
   submitButtonText: {
-    color: '#fff',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: 'bold',
+    color: 'white',
     marginLeft: 8,
   },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
-  progressContainer: {
-    alignItems: 'center',
-  },
-  progressBar: {
-    width: '100%',
-    height: 4,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 2,
+  footer: {
+    marginHorizontal: 20,
+    marginTop: 20,
+    borderRadius: 10,
     overflow: 'hidden',
-    marginBottom: 8,
   },
-  progressFill: {
-    height: '100%',
-    borderRadius: 2,
+  footerGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
   },
-  progressText: {
-    fontSize: 12,
-    color: '#666',
+  footerText: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.8)',
+    marginLeft: 8,
   },
 });
 

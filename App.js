@@ -106,6 +106,7 @@ import HospitalityRegistrationForm from './src/SEHR/HospitalityRegistrationForm'
 import DigitalSkillsRegistrationForm from './src/SEHR/DigitalSkillsRegistrationForm';
 import BeauticianTracking from './src/SEHR/BeauticianTracking';
 import HospitalityTracking from './src/SEHR/HospitalityTracking';
+import DigitalSkillsTracking from './src/SEHR/DigitalSkillsTracking';
 
 import { fetchAndShowNotifications } from './src/utils/notificationHandler';
 import NotificationsScreen from './src/components/NotificationsScreen'
@@ -237,6 +238,7 @@ const App = () => {
       <Stack.Screen name="DigitalSkillsRegistrationForm" component={DigitalSkillsRegistrationForm} />
       <Stack.Screen name="BeauticianTracking" component={BeauticianTracking} />
       <Stack.Screen name="HospitalityTracking" component={HospitalityTracking} />
+      <Stack.Screen name="DigitalSkillsTracking" component={DigitalSkillsTracking} />
 
 
 

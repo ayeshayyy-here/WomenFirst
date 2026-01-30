@@ -30,8 +30,8 @@ android {
         applicationId "com.womenfirst"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 27
-        versionName "16.0"
+        versionCode 28
+        versionName "17.0"
         resConfigs "en", "us"
     }
     signingConfigs {
