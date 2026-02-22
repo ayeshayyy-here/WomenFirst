@@ -14,12 +14,16 @@ import {
   PermissionsAndroid,
   Modal,
   ActionSheetIOS,
+  StatusBar,
+  TouchableWithoutFeedback,
+
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import axios from 'axios';
+import Icon from 'react-native-vector-icons/FontAwesome';
 import DocumentPicker from 'react-native-document-picker';
-import { launchCamera, openGallery } from 'react-native-image-picker';
+import { launchCamera } from 'react-native-image-picker';
 import SyncStorage from 'react-native-sync-storage';
+import LinearGradient from 'react-native-linear-gradient';
 
 // ============ API CONFIGURATION ============
 const API_BASE_URL = 'https://regions-jade-beatles-sessions.trycloudflare.com/api';
@@ -29,16 +33,34 @@ const COLORS = {
   primary: '#940775',
   primaryLight: '#b32b9e',
   primaryDark: '#6d0557',
+  primarySoft: '#f9e6f5',
   secondary: '#f3e5f5',
   background: '#faf5fb',
   surface: '#ffffff',
   text: '#1a1a1a',
   textLight: '#666666',
+  textLighter: '#999999',
   border: '#e0d0e8',
   success: '#10b981',
+  successLight: '#d1fae5',
   warning: '#f59e0b',
   error: '#ef4444',
+  errorLight: '#fee2e2',
   info: '#3b82f6',
+  infoLight: '#dbeafe',
+  white: '#ffffff',
+  black: '#000000',
+  overlay: 'rgba(0,0,0,0.5)',
+  shadow: '#940775',
+};
+
+// ============ GRADIENT COLORS ============
+const GRADIENTS = {
+  header: ['#940775', '#b32b9e', '#d44bb7'],
+  card: ['#ffffff', '#fdf2fa'],
+  button: ['#940775', '#b32b9e'],
+  success: ['#10b981', '#34d399'],
+  accent: ['#f9e6f5', '#f3e5f5'],
 };
 
 // ============ DaycareBookingScreen Component ============
@@ -50,8 +72,10 @@ const DaycareBookingScreen = ({ route, navigation }) => {
   const [showHealthFields, setShowHealthFields] = useState(false);
   const [activeImagePicker, setActiveImagePicker] = useState(null);
   const [showImagePickerModal, setShowImagePickerModal] = useState(false);
-  const [authToken, setAuthToken] = useState(null);
   const [capturedImage, setCapturedImage] = useState(null);
+  const [stateFunctions, setStateFunctions] = useState({});
+  const [selectedAttachment, setSelectedAttachment] = useState('');
+  const [modalVisible, setModalVisible] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
     parent: true,
     auth: false,
@@ -121,15 +145,6 @@ const DaycareBookingScreen = ({ route, navigation }) => {
     }
   };
 
-  const loadAuthToken = async () => {
-    try {
-      const token = await AsyncStorage.getItem('auth_token');
-      setAuthToken(token);
-    } catch (error) {
-      console.log('Error loading token:', error);
-    }
-  };
-
   const loadBookingData = () => {
     if (booking) {
       setFormData({
@@ -145,283 +160,142 @@ const DaycareBookingScreen = ({ route, navigation }) => {
   };
 
   // ============ FIXED CAMERA AND GALLERY FUNCTIONS ============
-// ============ FIXED CAMERA AND GALLERY FUNCTIONS ============
-const openCamera = async () => {
-  setShowImagePickerModal(false);
-  
-  try {
-    // Request camera permission for Android
+  const requestCameraPermission = async () => {
     if (Platform.OS === 'android') {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.CAMERA,
-        {
-          title: 'Camera Permission',
-          message: 'App needs camera access to take photos',
-          buttonNeutral: 'Ask Me Later',
-          buttonNegative: 'Cancel',
-          buttonPositive: 'OK',
-        }
-      );
-
-      if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-        Alert.alert('Permission Denied', 'Camera permission is required to take photos');
-        return;
-      }
-    }
-
-    const options = {
-      mediaType: 'photo',
-      includeBase64: false,
-      maxHeight: 2000,
-      maxWidth: 2000,
-      quality: 0.8,
-      saveToPhotos: false,
-    };
-
-    launchCamera(options, (response) => {
-      if (response.didCancel) {
-        console.log('User cancelled camera');
-      } else if (response.error) {
-        console.log('Camera Error: ', response.error);
-        Alert.alert('Error', 'Failed to capture image. Please try again.');
-      } else if (response.assets && response.assets[0]) {
-        const asset = response.assets[0];
-        
-        // Validate file size (max 10MB)
-        if (asset.fileSize > 10 * 1024 * 1024) {
-          Alert.alert('Error', 'Image size should be less than 10MB');
-          return;
-        }
-
-        const imageFile = {
-          uri: asset.uri,
-          type: asset.type || 'image/jpeg',
-          name: asset.fileName || `camera_${Date.now()}.jpg`,
-          fileSize: asset.fileSize,
-        };
-
-        setCapturedImage(imageFile.uri);
-        handleInputChange(activeImagePicker, imageFile);
-      }
-    });
-  } catch (err) {
-    console.warn(err);
-    Alert.alert('Error', 'Failed to access camera');
-  }
-};
-
-// FIXED: Use launchImageLibrary for gallery
-const openGallery = async () => {
-  setShowImagePickerModal(false);
-  
-  try {
-    // Request storage permission for Android
-    if (Platform.OS === 'android') {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
-        {
-          title: 'Storage Permission',
-          message: 'App needs storage access to pick photos',
-          buttonNeutral: 'Ask Me Later',
-          buttonNegative: 'Cancel',
-          buttonPositive: 'OK',
-        }
-      );
-
-      if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-        Alert.alert('Permission Denied', 'Storage permission is required to pick photos');
-        return;
-      }
-    }
-
-    const options = {
-      mediaType: 'photo',
-      includeBase64: false,
-      maxHeight: 2000,
-      maxWidth: 2000,
-      quality: 0.8,
-      selectionLimit: 1,
-    };
-
-    launchImageLibrary(options, (response) => {
-      if (response.didCancel) {
-        console.log('User cancelled gallery');
-      } else if (response.error) {
-        console.log('Gallery Error: ', response.error);
-        Alert.alert('Error', 'Failed to pick image. Please try again.');
-      } else if (response.assets && response.assets[0]) {
-        const asset = response.assets[0];
-        
-        // Validate file size (max 10MB)
-        if (asset.fileSize > 10 * 1024 * 1024) {
-          Alert.alert('Error', 'Image size should be less than 10MB');
-          return;
-        }
-
-        // Validate file type
-        if (!asset.type || !['image/jpeg', 'image/png', 'image/jpg'].includes(asset.type)) {
-          Alert.alert('Error', 'Only PNG, JPG, and JPEG files are allowed.');
-          return;
-        }
-
-        const imageFile = {
-          uri: asset.uri,
-          type: asset.type || 'image/jpeg',
-          name: asset.fileName || `gallery_${Date.now()}.jpg`,
-          fileSize: asset.fileSize,
-        };
-
-        setCapturedImage(imageFile.uri);
-        handleInputChange(activeImagePicker, imageFile);
-      }
-    });
-  } catch (error) {
-    console.error('Gallery error:', error);
-    Alert.alert('Error', 'Failed to open gallery. Please try again.');
-  }
-};
-
-// REMOVED loadAuthToken function completely
-
-// ============ SUBMIT HANDLER (Simplified - no auth token) ============
-const submitBookingToAPI = async (formData) => {
-  try {
-    // Create FormData object for multipart/form-data
-    const apiFormData = new FormData();
-    
-    // Helper function to append form fields
-    const appendField = (key, value) => {
-      if (value !== null && value !== undefined && value !== '') {
-        apiFormData.append(key, value.toString());
-      }
-    };
-
-    // Append all text fields
-    appendField('parent_name', formData.parent_name);
-    appendField('parent_cnic', formData.parent_cnic);
-    appendField('parent_contact', formData.parent_contact);
-    appendField('parent_address', formData.parent_address);
-    
-    appendField('auth_name', formData.auth_name);
-    appendField('auth_cnic', formData.auth_cnic);
-    appendField('auth_contact', formData.auth_contact);
-    appendField('relationship', formData.relationship);
-    
-    appendField('child_name', formData.child_name);
-    appendField('child_gender', formData.child_gender);
-    appendField('child_years', formData.child_years);
-    appendField('child_months', formData.child_months || '0');
-    
-    appendField('has_helper', formData.has_helper);
-    if (formData.has_helper === 'yes') {
-      appendField('helper_name', formData.helper_name);
-      appendField('helper_cnic', formData.helper_cnic);
-      appendField('helper_contact', formData.helper_contact);
-    }
-    
-    appendField('has_allergies', formData.has_allergies);
-    if (formData.has_allergies === 'yes') {
-      appendField('health_details', formData.health_details);
-    }
-    
-    appendField('hours_required', formData.hours_required);
-    appendField('require_services', formData.require_services);
-    appendField('consent', formData.consent ? '1' : '0');
-
-    // Append image files
-    const imageFields = [
-      { key: 'parent_cnic_pic', value: formData.parent_cnic_pic },
-      { key: 'auth_cnic_pic', value: formData.auth_cnic_pic },
-      { key: 'child_pic', value: formData.child_pic },
-      { key: 'helper_pic', value: formData.helper_pic }
-    ];
-
-    imageFields.forEach(({ key, value }) => {
-      if (value && value.uri) {
-        // Get file extension from URI or name
-        const fileName = value.name || value.uri.split('/').pop() || `${key}.jpg`;
-        const fileType = value.type || 'image/jpeg';
-        
-        apiFormData.append(key, {
-          uri: value.uri,
-          type: fileType,
-          name: fileName,
-        });
-      }
-    });
-
-    // Make API request - NO AUTH TOKEN NEEDED
-    const response = await fetch('https://regions-jade-beatles-sessions.trycloudflare.com/api/daycare-booking', {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        // No Authorization header
-      },
-      body: apiFormData,
-    });
-
-    const responseData = await response.json();
-
-    if (!response.ok) {
-      throw new Error(responseData.message || 'Failed to submit booking');
-    }
-
-    return responseData;
-  } catch (error) {
-    console.error('API Error:', error);
-    throw error;
-  }
-};
-
-// REMOVED getApiClient function completely
-
-// Update handleSubmit to use the simplified submit function
-const handleSubmit = async () => {
-  if (!validateForm()) return;
-
-  setSubmitting(true);
-  try {
-    const response = await submitBookingToAPI(formData);
-    
-    Alert.alert(
-      'Success',
-      response.message || 'Booking submitted successfully',
-      [{ text: 'OK', onPress: () => navigation.goBack() }]
-    );
-  } catch (error) {
-    console.log('Submit error:', error);
-    Alert.alert(
-      'Error',
-      error.message || 'Failed to submit booking. Please try again.'
-    );
-  } finally {
-    setSubmitting(false);
-  }
-};
-
-// REMOVED handleDelete function since it uses auth token
-
-  const handleImagePick = (field) => {
-    setActiveImagePicker(field);
-    
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options: ['Cancel', 'Take Photo', 'Choose from Gallery'],
-          cancelButtonIndex: 0,
-        },
-        (buttonIndex) => {
-          if (buttonIndex === 1) {
-            openCamera();
-          } else if (buttonIndex === 2) {
-            openGallery();
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.CAMERA,
+          {
+            title: 'Camera Permission',
+            message: 'App needs camera access to take photos',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
           }
+        );
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+      } catch (err) {
+        console.warn(err);
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const requestStoragePermission = async () => {
+    if (Platform.OS === 'android') {
+      try {
+        if (Platform.Version >= 33) {
+          // Android 13+ - use new permissions
+          const granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES
+          );
+          return granted === PermissionsAndroid.RESULTS.GRANTED;
+        } else {
+          // Android 12 and below
+          const granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE
+          );
+          return granted === PermissionsAndroid.RESULTS.GRANTED;
         }
-      );
-    } else {
-      setShowImagePickerModal(true);
+      } catch (err) {
+        console.warn(err);
+        return false;
+      }
+    }
+    return true;
+  };
+
+
+  const openCamera = async () => {
+    setModalVisible(false);
+    const granted = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.CAMERA,
+    );
+    if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+      const options = {
+        mediaType: 'photo',
+        includeBase64: true,
+        maxHeight: 2000,
+        maxWidth: 2000,
+      };
+
+      launchCamera(options, response => {
+        if (response.didCancel) {
+          console.log('User cancelled camera');
+        } else if (response.error) {
+          console.log('Camera Error: ', response.error);
+        } else {
+          const fileName = response.assets[0].fileName;
+          const imageUri = response.assets[0].uri;
+
+          setCapturedImage(imageUri);
+          setStateFunctions(prev => ({
+            ...prev,
+            [selectedAttachment]: {
+              Name: fileName,
+              URI: imageUri,
+              Type: 'image',
+            },
+          }));
+        }
+      });
     }
   };
+
+  const openGallery = async () => {
+    try {
+      const response = await DocumentPicker.pick({
+        allowMultiSelection: false,
+        type: [DocumentPicker.types.images], // This filters to only allow images (PNG, JPG, JPEG)
+      });
+
+      const fileType = response[0].type;
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+
+      if (allowedTypes.includes(fileType)) {
+        setStateFunctions(prev => ({
+          ...prev,
+          [selectedAttachment]: {
+            Name: response[0].name,
+            URI: response[0].uri,
+            Type: fileType,
+          },
+        }));
+      } else {
+        alert('Only PNG, JPG, and JPEG files are allowed.');
+      }
+
+      setModalVisible(false);
+    } catch (error) {
+      if (DocumentPicker.isCancel(error)) {
+        console.log('User canceled the file selection');
+      } else {
+        console.error('Document picking error:', error);
+      }
+    }
+  };
+const handleImagePick = (field) => {
+  setActiveImagePicker(field);
+  
+  if (Platform.OS === 'ios') {
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        options: ['Cancel', 'Take Photo', 'Choose from Gallery'],
+        cancelButtonIndex: 0,
+      },
+      (buttonIndex) => {
+        if (buttonIndex === 1) {
+          openCamera();
+        } else if (buttonIndex === 2) {
+          openGallery();
+        }
+      }
+    );
+  } else {
+    setShowImagePickerModal(true);
+  }
+};
 
   // ============ FORM HANDLERS ============
   const handleInputChange = (field, value) => {
@@ -447,138 +321,193 @@ const handleSubmit = async () => {
   };
 
   // ============ FORM VALIDATION ============
- // ============ FORM VALIDATION (FIXED) ============
-const validateForm = () => {
-  const required = [
-    'parent_name', 'parent_cnic', 'parent_contact', 'parent_address',
-    'auth_name', 'auth_cnic', 'auth_contact', 'relationship',
-    'child_name', 'child_gender', 'child_years',
-    'hours_required', 'require_services'
-  ];
-
-  for (const field of required) {
-    if (!formData[field]) {
-      Alert.alert('Validation Error', `${field.replace(/_/g, ' ')} is required`);
-      return false;
-    }
-  }
-
-  if (!/^\d{13}$/.test(formData.parent_cnic)) {
-    Alert.alert('Validation Error', 'Parent CNIC must be exactly 13 digits');
-    return false;
-  }
-
-  if (!/^\d{13}$/.test(formData.auth_cnic)) {
-    Alert.alert('Validation Error', 'Authorized Person CNIC must be exactly 13 digits');
-    return false;
-  }
-
-  // FIXED: Contact validation - Pakistani mobile numbers
-  // Format: 03XXXXXXXXX (11 digits starting with 03)
-  if (!/^03\d{9}$/.test(formData.parent_contact)) {
-    Alert.alert('Validation Error', 'Parent contact must be a valid Pakistani mobile number (03XXXXXXXXX)');
-    return false;
-  }
-
-  if (!/^03\d{9}$/.test(formData.auth_contact)) {
-    Alert.alert('Validation Error', 'Authorized Person contact must be a valid Pakistani mobile number (03XXXXXXXXX)');
-    return false;
-  }
-
-  // Optional: Helper contact validation if helper exists
-  if (formData.has_helper === 'yes' && formData.helper_contact) {
-    if (!/^03\d{9}$/.test(formData.helper_contact)) {
-      Alert.alert('Validation Error', 'Helper contact must be a valid Pakistani mobile number (03XXXXXXXXX)');
-      return false;
-    }
-  }
-
-  if (!isEditMode) {
-    if (!formData.parent_cnic_pic) {
-      Alert.alert('Validation Error', 'Parent CNIC picture is required');
-      return false;
-    }
-    if (!formData.auth_cnic_pic) {
-      Alert.alert('Validation Error', 'Authorized Person CNIC picture is required');
-      return false;
-    }
-    if (!formData.child_pic) {
-      Alert.alert('Validation Error', 'Child picture is required');
-      return false;
-    }
-  }
-
-  if (formData.has_helper === 'yes') {
-    if (!formData.helper_name || !formData.helper_cnic || !formData.helper_contact) {
-      Alert.alert('Validation Error', 'All helper fields are required when helper is selected');
-      return false;
-    }
-    
-    // Validate helper CNIC if provided
-    if (formData.helper_cnic && !/^\d{13}$/.test(formData.helper_cnic)) {
-      Alert.alert('Validation Error', 'Helper CNIC must be exactly 13 digits');
-      return false;
-    }
-  }
-
-  if (formData.has_allergies === 'yes' && !formData.health_details) {
-    Alert.alert('Validation Error', 'Please specify medical details');
-    return false;
-  }
-
-  if (!formData.consent) {
-    Alert.alert('Validation Error', 'You must agree to the terms and conditions');
-    return false;
-  }
-
-  return true;
-};
-  // ============ PREPARE FORM DATA ============
-  const prepareFormData = () => {
-    const data = new FormData();
-
-    const textFields = [
+  const validateForm = () => {
+    const required = [
       'parent_name', 'parent_cnic', 'parent_contact', 'parent_address',
       'auth_name', 'auth_cnic', 'auth_contact', 'relationship',
-      'child_name', 'child_gender', 'child_years', 'child_months',
-      'has_helper', 'helper_name', 'helper_cnic', 'helper_contact',
-      'has_allergies', 'health_details',
+      'child_name', 'child_gender', 'child_years',
       'hours_required', 'require_services'
     ];
 
-    textFields.forEach(key => {
-      if (formData[key] && formData[key].toString().trim()) {
-        data.append(key, formData[key].toString());
+    for (const field of required) {
+      if (!formData[field]) {
+        Alert.alert('Validation Error', `${field.replace(/_/g, ' ')} is required`);
+        return false;
       }
-    });
+    }
 
-    data.append('consent', formData.consent ? '1' : '0');
+    if (!/^\d{13}$/.test(formData.parent_cnic)) {
+      Alert.alert('Validation Error', 'Parent CNIC must be exactly 13 digits');
+      return false;
+    }
 
-    const imageFields = [
-      { key: 'parent_cnic_pic', name: 'parent_cnic' },
-      { key: 'auth_cnic_pic', name: 'auth_cnic' },
-      { key: 'child_pic', name: 'child' },
-      { key: 'helper_pic', name: 'helper' }
-    ];
+    if (!/^\d{13}$/.test(formData.auth_cnic)) {
+      Alert.alert('Validation Error', 'Authorized Person CNIC must be exactly 13 digits');
+      return false;
+    }
 
-    imageFields.forEach(({ key, name }) => {
-      if (formData[key] && formData[key].uri) {
-        data.append(key, {
-          uri: formData[key].uri,
-          type: formData[key].type || 'image/jpeg',
-          name: formData[key].name || `${name}_${Date.now()}.jpg`,
-        });
+    if (!/^03\d{9}$/.test(formData.parent_contact)) {
+      Alert.alert('Validation Error', 'Parent contact must be a valid Pakistani mobile number (03XXXXXXXXX)');
+      return false;
+    }
+
+    if (!/^03\d{9}$/.test(formData.auth_contact)) {
+      Alert.alert('Validation Error', 'Authorized Person contact must be a valid Pakistani mobile number (03XXXXXXXXX)');
+      return false;
+    }
+
+    if (formData.has_helper === 'yes' && formData.helper_contact) {
+      if (!/^03\d{9}$/.test(formData.helper_contact)) {
+        Alert.alert('Validation Error', 'Helper contact must be a valid Pakistani mobile number (03XXXXXXXXX)');
+        return false;
       }
-    });
+    }
 
-    return data;
+    if (!isEditMode) {
+      if (!formData.parent_cnic_pic) {
+        Alert.alert('Validation Error', 'Parent CNIC picture is required');
+        return false;
+      }
+      if (!formData.auth_cnic_pic) {
+        Alert.alert('Validation Error', 'Authorized Person CNIC picture is required');
+        return false;
+      }
+      if (!formData.child_pic) {
+        Alert.alert('Validation Error', 'Child picture is required');
+        return false;
+      }
+    }
+
+    if (formData.has_helper === 'yes') {
+      if (!formData.helper_name || !formData.helper_cnic || !formData.helper_contact) {
+        Alert.alert('Validation Error', 'All helper fields are required when helper is selected');
+        return false;
+      }
+      
+      if (formData.helper_cnic && !/^\d{13}$/.test(formData.helper_cnic)) {
+        Alert.alert('Validation Error', 'Helper CNIC must be exactly 13 digits');
+        return false;
+      }
+    }
+
+    if (formData.has_allergies === 'yes' && !formData.health_details) {
+      Alert.alert('Validation Error', 'Please specify medical details');
+      return false;
+    }
+
+    if (!formData.consent) {
+      Alert.alert('Validation Error', 'You must agree to the terms and conditions');
+      return false;
+    }
+
+    return true;
   };
 
+  // ============ SUBMIT HANDLER ============
+  const submitBookingToAPI = async (formData) => {
+    try {
+      const apiFormData = new FormData();
+      
+      const appendField = (key, value) => {
+        if (value !== null && value !== undefined && value !== '') {
+          apiFormData.append(key, value.toString());
+        }
+      };
 
+      appendField('parent_name', formData.parent_name);
+      appendField('parent_cnic', formData.parent_cnic);
+      appendField('parent_contact', formData.parent_contact);
+      appendField('parent_address', formData.parent_address);
+      
+      appendField('auth_name', formData.auth_name);
+      appendField('auth_cnic', formData.auth_cnic);
+      appendField('auth_contact', formData.auth_contact);
+      appendField('relationship', formData.relationship);
+      
+      appendField('child_name', formData.child_name);
+      appendField('child_gender', formData.child_gender);
+      appendField('child_years', formData.child_years);
+      appendField('child_months', formData.child_months || '0');
+      
+      appendField('has_helper', formData.has_helper);
+      if (formData.has_helper === 'yes') {
+        appendField('helper_name', formData.helper_name);
+        appendField('helper_cnic', formData.helper_cnic);
+        appendField('helper_contact', formData.helper_contact);
+      }
+      
+      appendField('has_allergies', formData.has_allergies);
+      if (formData.has_allergies === 'yes') {
+        appendField('health_details', formData.health_details);
+      }
+      
+      appendField('hours_required', formData.hours_required);
+      appendField('require_services', formData.require_services);
+      appendField('consent', formData.consent ? '1' : '0');
 
+      const imageFields = [
+        { key: 'parent_cnic_pic', value: formData.parent_cnic_pic },
+        { key: 'auth_cnic_pic', value: formData.auth_cnic_pic },
+        { key: 'child_pic', value: formData.child_pic },
+        { key: 'helper_pic', value: formData.helper_pic }
+      ];
 
+      imageFields.forEach(({ key, value }) => {
+        if (value && value.uri) {
+          const fileName = value.name || value.uri.split('/').pop() || `${key}.jpg`;
+          const fileType = value.type || 'image/jpeg';
+          
+          apiFormData.append(key, {
+            uri: value.uri,
+            type: fileType,
+            name: fileName,
+          });
+        }
+      });
 
+      const response = await fetch(`${API_BASE_URL}/daycare-booking`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+        },
+        body: apiFormData,
+      });
 
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(responseData.message || 'Failed to submit booking');
+      }
+
+      return responseData;
+    } catch (error) {
+      console.error('API Error:', error);
+      throw error;
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
+
+    setSubmitting(true);
+    try {
+      const response = await submitBookingToAPI(formData);
+      
+      Alert.alert(
+        'Success',
+        response.message || 'Booking submitted successfully',
+        [{ text: 'OK', onPress: () => navigation.goBack() }]
+      );
+    } catch (error) {
+      console.log('Submit error:', error);
+      Alert.alert(
+        'Error',
+        error.message || 'Failed to submit booking. Please try again.'
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (!booking) return;
@@ -594,8 +523,7 @@ const validateForm = () => {
           onPress: async () => {
             setLoading(true);
             try {
-              const api = await getApiClient();
-              await api.delete(`/daycare/bookings/${booking.id}`);
+              // Implement delete functionality
               Alert.alert('Success', 'Booking deleted successfully', [
                 { text: 'OK', onPress: () => navigation.goBack() }
               ]);
@@ -617,13 +545,24 @@ const validateForm = () => {
       onPress={() => toggleSection(section)}
       activeOpacity={0.7}
     >
-      <View style={styles.sectionHeaderLeft}>
-        <Text style={styles.sectionIcon}>{icon}</Text>
-        <Text style={styles.sectionTitle}>{title}</Text>
-      </View>
-      <Text style={styles.sectionToggle}>
-        {expandedSections[section] ? '−' : '+'}
-      </Text>
+      <LinearGradient
+        colors={GRADIENTS.accent}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.sectionHeaderGradient}
+      >
+        <View style={styles.sectionHeaderLeft}>
+          <View style={styles.sectionIconContainer}>
+            <Text style={styles.sectionIcon}>{icon}</Text>
+          </View>
+          <Text style={styles.sectionTitle}>{title}</Text>
+        </View>
+        <View style={styles.sectionToggleContainer}>
+          <Text style={styles.sectionToggle}>
+            {expandedSections[section] ? '−' : '+'}
+          </Text>
+        </View>
+      </LinearGradient>
     </TouchableOpacity>
   );
 
@@ -640,58 +579,77 @@ const validateForm = () => {
         {formData[field] ? (
           <Image source={{ uri: formData[field].uri }} style={styles.previewImage} />
         ) : (
-          <View style={styles.placeholderImage}>
-            <Text style={styles.placeholderIcon}>📸</Text>
+          <LinearGradient
+            colors={['#f9e6f5', '#f3e5f5']}
+            style={styles.placeholderImage}
+          >
+            <View style={styles.placeholderIconContainer}>
+              <Text style={styles.placeholderIcon}>📸</Text>
+            </View>
             <Text style={styles.placeholderText}>Tap to upload {label}</Text>
             <Text style={styles.placeholderSubtext}>JPG, PNG • Max 10MB</Text>
-          </View>
+          </LinearGradient>
         )}
       </TouchableOpacity>
     </View>
   );
 
   const renderInput = (placeholder, field, options = {}) => (
-    <TextInput
-      style={[styles.input, options.multiline && styles.textArea]}
-      placeholder={placeholder}
-      placeholderTextColor={COLORS.textLight}
-      value={formData[field]}
-      onChangeText={(text) => handleInputChange(field, text)}
-      keyboardType={options.keyboardType || 'default'}
-      maxLength={options.maxLength}
-      multiline={options.multiline}
-      numberOfLines={options.numberOfLines}
-      secureTextEntry={options.secureTextEntry}
-    />
+    <View style={styles.inputWrapper}>
+      <TextInput
+        style={[styles.input, options.multiline && styles.textArea]}
+        placeholder={placeholder}
+        placeholderTextColor={COLORS.textLighter}
+        value={formData[field]}
+        onChangeText={(text) => handleInputChange(field, text)}
+        keyboardType={options.keyboardType || 'default'}
+        maxLength={options.maxLength}
+        multiline={options.multiline}
+        numberOfLines={options.numberOfLines}
+        secureTextEntry={options.secureTextEntry}
+      />
+    </View>
   );
 
   // ============ MAIN RENDER ============
   return (
     <SafeAreaView style={styles.container}>
-      {/* Custom Header */}
-      <View style={styles.header}>
-        <View style={styles.headerGradient}>
+      <StatusBar backgroundColor={COLORS.primaryDark} barStyle="light-content" />
+      
+      {/* Custom Header with Gradient */}
+      <LinearGradient
+        colors={GRADIENTS.header}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <View style={styles.headerContent}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
+          
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>
               {isEditMode ? 'Update Booking' : 'Day Care Registration'}
             </Text>
             <Text style={styles.headerSubtitle}>Complete all required fields</Text>
           </View>
+          
           {isEditMode && (
             <TouchableOpacity onPress={handleDelete} style={styles.deleteButton}>
               <Text style={styles.deleteIcon}>🗑️</Text>
             </TouchableOpacity>
           )}
         </View>
-      </View>
 
-      {/* Progress Indicator */}
-      <View style={styles.progressBar}>
-        <View style={[styles.progressFill, { width: '35%' }]} />
-      </View>
+        {/* Progress Indicator */}
+        <View style={styles.progressContainer}>
+          <View style={styles.progressBar}>
+            <View style={[styles.progressFill, { width: '35%' }]} />
+          </View>
+          <Text style={styles.progressText}>Step 1 of 3 • Parent Information</Text>
+        </View>
+      </LinearGradient>
 
       {/* Info Cards */}
       <ScrollView 
@@ -701,18 +659,24 @@ const validateForm = () => {
         contentContainerStyle={styles.infoCardsContent}
       >
         {[
-          { icon: '🕘', text: '9AM-5PM', subtext: 'Operating Hours' },
-          { icon: '⏱️', text: '30min slots', subtext: 'Flexible Timing' },
-          { icon: '📅', text: 'Multi-slot', subtext: 'Book Multiple' },
-          { icon: '📍', text: 'On-site', subtext: 'Facility Based' },
+          { icon: '🕘', text: '9AM-5PM', subtext: 'Operating Hours', color: '#940775' },
+          { icon: '⏱️', text: '30min slots', subtext: 'Flexible Timing', color: '#b32b9e' },
+          { icon: '📅', text: 'Multi-slot', subtext: 'Book Multiple', color: '#d44bb7' },
+          { icon: '📍', text: 'On-site', subtext: 'Facility Based', color: '#940775' },
         ].map((item, index) => (
-          <View key={index} style={styles.infoCard}>
-            <Text style={styles.infoIcon}>{item.icon}</Text>
+          <LinearGradient
+            key={index}
+            colors={['#ffffff', '#fdf2fa']}
+            style={styles.infoCard}
+          >
+            <View style={[styles.infoIconContainer, { backgroundColor: `${item.color}15` }]}>
+              <Text style={styles.infoIcon}>{item.icon}</Text>
+            </View>
             <View>
               <Text style={styles.infoText}>{item.text}</Text>
               <Text style={styles.infoSubtext}>{item.subtext}</Text>
             </View>
-          </View>
+          </LinearGradient>
         ))}
       </ScrollView>
 
@@ -725,13 +689,16 @@ const validateForm = () => {
           {renderSectionHeader('Parent Information', '👤', 'parent')}
           
           {expandedSections.parent && (
-            <View style={styles.sectionContent}>
+            <LinearGradient
+              colors={GRADIENTS.card}
+              style={styles.sectionContent}
+            >
               {renderInput('Full Name *', 'parent_name')}
               {renderInput('CNIC Number (13 digits) *', 'parent_cnic', { keyboardType: 'numeric', maxLength: 13 })}
-              {renderInput('Contact Number (03XX-XXXXXXX) *', 'parent_contact', { keyboardType: 'phone-pad' })}
+              {renderInput('Contact Number (03XX-XXXXXXX) *', 'parent_contact', { keyboardType: 'phone-pad', maxLength: 11   })}
               {renderInput('Residential Address *', 'parent_address', { multiline: true, numberOfLines: 2 })}
               {renderImagePicker('parent_cnic_pic', 'CNIC Picture', !isEditMode)}
-            </View>
+            </LinearGradient>
           )}
         </View>
 
@@ -740,10 +707,13 @@ const validateForm = () => {
           {renderSectionHeader('Authorized Person', '✓', 'auth')}
           
           {expandedSections.auth && (
-            <View style={styles.sectionContent}>
+            <LinearGradient
+              colors={GRADIENTS.card}
+              style={styles.sectionContent}
+            >
               {renderInput('Authorized Person Name *', 'auth_name')}
               {renderInput('CNIC Number (13 digits) *', 'auth_cnic', { keyboardType: 'numeric', maxLength: 13 })}
-              {renderInput('Contact Number *', 'auth_contact', { keyboardType: 'phone-pad' })}
+              {renderInput('Contact Number *', 'auth_contact', { keyboardType: 'phone-pad', maxLength: 11  })}
               
               <View style={styles.pickerWrapper}>
                 <Picker
@@ -761,7 +731,7 @@ const validateForm = () => {
               </View>
 
               {renderImagePicker('auth_cnic_pic', 'CNIC Picture', !isEditMode)}
-            </View>
+            </LinearGradient>
           )}
         </View>
 
@@ -770,7 +740,10 @@ const validateForm = () => {
           {renderSectionHeader('Child Information', '🧒', 'child')}
           
           {expandedSections.child && (
-            <View style={styles.sectionContent}>
+            <LinearGradient
+              colors={GRADIENTS.card}
+              style={styles.sectionContent}
+            >
               {renderInput("Child's Full Name *", 'child_name')}
               
               <Text style={styles.label}>Gender *</Text>
@@ -808,7 +781,7 @@ const validateForm = () => {
               </View>
 
               {renderImagePicker('child_pic', 'Child Photo', !isEditMode)}
-            </View>
+            </LinearGradient>
           )}
         </View>
 
@@ -817,7 +790,10 @@ const validateForm = () => {
           {renderSectionHeader('Helper Information', '👥', 'helper')}
           
           {expandedSections.helper && (
-            <View style={styles.sectionContent}>
+            <LinearGradient
+              colors={GRADIENTS.card}
+              style={styles.sectionContent}
+            >
               <Text style={styles.label}>Will a helper accompany the child? *</Text>
               <View style={styles.radioGroup}>
                 <TouchableOpacity
@@ -841,17 +817,20 @@ const validateForm = () => {
                 </TouchableOpacity>
               </View>
               
-              <Text style={styles.helperNote}>Only female helpers are permitted.</Text>
+              <View style={styles.helperNoteContainer}>
+                <Text style={styles.helperNoteIcon}>ℹ️</Text>
+                <Text style={styles.helperNote}>Only female helpers are permitted.</Text>
+              </View>
 
               {showHelperFields && (
                 <View style={styles.conditionalFields}>
                   {renderInput('Helper Name', 'helper_name')}
                   {renderInput('CNIC or B-Form', 'helper_cnic', { keyboardType: 'numeric', maxLength: 13 })}
-                  {renderInput('Contact Number', 'helper_contact', { keyboardType: 'phone-pad' })}
+                  {renderInput('Contact Number', 'helper_contact', { keyboardType: 'phone-pad', maxLength: 11   })}
                   {renderImagePicker('helper_pic', 'Helper Photo')}
                 </View>
               )}
-            </View>
+            </LinearGradient>
           )}
         </View>
 
@@ -860,7 +839,10 @@ const validateForm = () => {
           {renderSectionHeader('Health Information', '❤️', 'health')}
           
           {expandedSections.health && (
-            <View style={styles.sectionContent}>
+            <LinearGradient
+              colors={GRADIENTS.card}
+              style={styles.sectionContent}
+            >
               <Text style={styles.label}>Does the child have allergies or medical conditions?</Text>
               <View style={styles.radioGroup}>
                 <TouchableOpacity
@@ -892,7 +874,7 @@ const validateForm = () => {
                   })}
                 </View>
               )}
-            </View>
+            </LinearGradient>
           )}
         </View>
 
@@ -901,7 +883,10 @@ const validateForm = () => {
           {renderSectionHeader('Booking Details', '📅', 'booking')}
           
           {expandedSections.booking && (
-            <View style={styles.sectionContent}>
+            <LinearGradient
+              colors={GRADIENTS.card}
+              style={styles.sectionContent}
+            >
               <View style={styles.pickerWrapper}>
                 <Picker
                   selectedValue={formData.hours_required}
@@ -945,13 +930,18 @@ const validateForm = () => {
                   <Text style={styles.radioText}>No</Text>
                 </TouchableOpacity>
               </View>
-            </View>
+            </LinearGradient>
           )}
         </View>
 
         {/* GUIDELINES */}
-        <View style={styles.guidelinesContainer}>
-          <Text style={styles.guidelinesTitle}>📋 Important Guidelines</Text>
+        <LinearGradient
+          colors={['#f9e6f5', '#f3e5f5']}
+          style={styles.guidelinesContainer}
+        >
+          <View style={styles.guidelinesHeader}>
+            <Text style={styles.guidelinesTitle}>📋 Important Guidelines</Text>
+          </View>
           {[
             'MNWC does not provide meals. Please arrange meals for your child.',
             'Only caretaking services are available at the facility.',
@@ -959,209 +949,260 @@ const validateForm = () => {
             'Child will be released only to the authorized person listed above.',
           ].map((text, index) => (
             <View key={index} style={styles.guidelineItem}>
-              <Text style={styles.guidelineBullet}>•</Text>
+              <View style={styles.guidelineBulletContainer}>
+                <Text style={styles.guidelineBullet}>•</Text>
+              </View>
               <Text style={styles.guidelineText}>{text}</Text>
             </View>
           ))}
-        </View>
+        </LinearGradient>
 
         {/* CONSENT */}
         <TouchableOpacity
-          style={styles.consentContainer}
+          style={[styles.consentContainer, formData.consent && styles.consentContainerChecked]}
           onPress={() => handleInputChange('consent', !formData.consent)}
           activeOpacity={0.8}
         >
           <View style={[styles.checkbox, formData.consent && styles.checkboxChecked]}>
             {formData.consent && <Text style={styles.checkmark}>✓</Text>}
           </View>
-          <Text style={styles.consentText}>
+          <Text style={[styles.consentText, formData.consent && styles.consentTextChecked]}>
             I confirm that all information provided is accurate. I agree to comply with the rules and SOPs.
           </Text>
         </TouchableOpacity>
       </ScrollView>
 
       {/* SUBMIT BUTTON */}
-      <View style={styles.footer}>
+      <LinearGradient
+        colors={['#ffffff', '#fdf2fa']}
+        style={styles.footer}
+      >
         <TouchableOpacity
           style={[styles.submitButton, submitting && styles.disabledButton]}
           onPress={handleSubmit}
           disabled={submitting}
           activeOpacity={0.8}
         >
-          {submitting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <>
-              <Text style={styles.submitButtonText}>
-                {isEditMode ? 'Update Booking' : 'Submit Booking Request'}
-              </Text>
-              <Text style={styles.submitButtonSubtext}>
-                {isEditMode ? 'Update your booking details' : 'Create new daycare booking'}
-              </Text>
-            </>
-          )}
+          <LinearGradient
+            colors={submitting ? ['#999999', '#777777'] : GRADIENTS.button}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.submitButtonGradient}
+          >
+            {submitting ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <>
+                <Text style={styles.submitButtonText}>
+                  {isEditMode ? 'Update Booking' : 'Submit Booking Request'}
+                </Text>
+                <Text style={styles.submitButtonSubtext}>
+                  {isEditMode ? 'Update your booking details' : 'Create new daycare booking'}
+                </Text>
+              </>
+            )}
+          </LinearGradient>
         </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
       {/* IMAGE PICKER MODAL */}
-      <Modal
-        visible={showImagePickerModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowImagePickerModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select Image Source</Text>
-            
-            <TouchableOpacity 
-              style={styles.modalOption} 
+    {/* IMAGE PICKER MODAL - Updated to match working screen */}
+<Modal
+  visible={showImagePickerModal}
+  transparent={true}
+  animationType="fade"
+  onRequestClose={() => setShowImagePickerModal(false)}
+>
+  <TouchableWithoutFeedback onPress={() => setShowImagePickerModal(false)}>
+    <View style={styles.modalOverlay}>
+      <TouchableWithoutFeedback>
+        <LinearGradient
+          colors={['#ffffff', '#fdf2fa']}
+          style={styles.modalContent}
+        >
+          <Text style={styles.modalTitle}>Choose an option</Text>
+          <View style={styles.modalOptionsRow}>
+            <TouchableOpacity
+              style={styles.modalButton}
               onPress={openCamera}
               activeOpacity={0.7}
             >
-              <View style={styles.modalOptionIconContainer}>
-                <Text style={styles.modalOptionIcon}>📷</Text>
-              </View>
-              <View style={styles.modalOptionTextContainer}>
-                <Text style={styles.modalOptionTitle}>Take Photo</Text>
-                <Text style={styles.modalOptionDescription}>Use camera to capture new photo</Text>
-              </View>
+              <LinearGradient
+                colors={['#f9e6f5', '#f3e5f5']}
+                style={styles.modalButtonGradient}
+              >
+                <Icon name="camera" size={30} color="#940775" />
+              </LinearGradient>
+              <Text style={styles.modalButtonText}>Capture Image</Text>
             </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.modalOption} 
+            
+            <TouchableOpacity
+              style={styles.modalButton}
               onPress={openGallery}
               activeOpacity={0.7}
             >
-              <View style={styles.modalOptionIconContainer}>
-                <Text style={styles.modalOptionIcon}>🖼️</Text>
-              </View>
-              <View style={styles.modalOptionTextContainer}>
-                <Text style={styles.modalOptionTitle}>Choose from Gallery</Text>
-                <Text style={styles.modalOptionDescription}>Select existing photo from gallery</Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.modalCancel}
-              onPress={() => setShowImagePickerModal(false)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.modalCancelText}>Cancel</Text>
+              <LinearGradient
+                colors={['#f9e6f5', '#f3e5f5']}
+                style={styles.modalButtonGradient}
+              >
+                <Icon name="file" size={30} color="#940775" />
+              </LinearGradient>
+              <Text style={styles.modalButtonText}>Upload File</Text>
             </TouchableOpacity>
           </View>
-        </View>
-      </Modal>
+          
+          <TouchableOpacity
+            style={styles.modalCancel}
+            onPress={() => setShowImagePickerModal(false)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.modalCancelText}>Cancel</Text>
+          </TouchableOpacity>
+        </LinearGradient>
+      </TouchableWithoutFeedback>
+    </View>
+  </TouchableWithoutFeedback>
+</Modal>
     </SafeAreaView>
   );
 };
 
-// ============ STYLES ============
+// ============ UPDATED STYLES ============
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
   },
   header: {
-    backgroundColor: COLORS.primary,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    overflow: 'hidden',
+    paddingTop: Platform.OS === 'ios' ? 20 : 20,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    elevation: 8,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
   },
-  headerGradient: {
+  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
-    paddingTop: Platform.OS === 'ios' ? 16 : 16,
-    backgroundColor: COLORS.primary,
+    paddingHorizontal: 20,
+    paddingTop: 10,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
   },
   backIcon: {
-    fontSize: 20,
+    fontSize: 24,
     color: '#fff',
     fontWeight: '600',
   },
   headerCenter: {
     flex: 1,
     alignItems: 'center',
+    paddingHorizontal: 12,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: '#fff',
     letterSpacing: 0.5,
+    textShadowColor: 'rgba(0,0,0,0.2)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   headerSubtitle: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: 2,
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.9)',
+    marginTop: 4,
+    fontWeight: '500',
   },
   deleteButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
   },
   deleteIcon: {
-    fontSize: 18,
+    fontSize: 20,
     color: '#fff',
   },
+  progressContainer: {
+    paddingHorizontal: 20,
+    marginTop: 16,
+  },
   progressBar: {
-    height: 4,
-    backgroundColor: COLORS.secondary,
-    width: '100%',
+    height: 6,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 3,
+    overflow: 'hidden',
   },
   progressFill: {
-    height: 4,
-    backgroundColor: COLORS.primary,
-    borderTopRightRadius: 4,
-    borderBottomRightRadius: 4,
+    height: 6,
+    backgroundColor: '#fff',
+    borderRadius: 3,
+  },
+  progressText: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 11,
+    marginTop: 8,
+    fontWeight: '500',
   },
   infoCardsScroll: {
-    maxHeight: 80,
-    marginTop: 12,
+    maxHeight: 90,
+    marginTop: 16,
   },
   infoCardsContent: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
   },
   infoCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginHorizontal: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginHorizontal: 6,
     borderRadius: 20,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowRadius: 6,
+    elevation: 3,
     borderWidth: 1,
     borderColor: 'rgba(148, 7, 117, 0.1)',
   },
+  infoIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
   infoIcon: {
-    fontSize: 18,
-    marginRight: 8,
+    fontSize: 20,
   },
   infoText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
     color: COLORS.primary,
   },
   infoSubtext: {
-    fontSize: 9,
+    fontSize: 10,
     color: COLORS.textLight,
+    marginTop: 2,
   },
   scrollContent: {
     padding: 16,
@@ -1169,61 +1210,85 @@ const styles = StyleSheet.create({
   },
   section: {
     backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    marginBottom: 12,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    borderRadius: 20,
+    marginBottom: 16,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 3,
+    elevation: 4,
     borderWidth: 1,
     borderColor: 'rgba(148, 7, 117, 0.1)',
     overflow: 'hidden',
   },
   sectionHeader: {
+    overflow: 'hidden',
+  },
+  sectionHeaderGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
-    backgroundColor: 'rgba(148, 7, 117, 0.02)',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(148, 7, 117, 0.1)',
+    padding: 18,
   },
   sectionHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
+  },
+  sectionIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(148, 7, 117, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
   sectionIcon: {
     fontSize: 18,
-    marginRight: 10,
   },
   sectionTitle: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '600',
     color: COLORS.primary,
     letterSpacing: 0.3,
   },
+  sectionToggleContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(148, 7, 117, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   sectionToggle: {
-    fontSize: 20,
+    fontSize: 18,
     color: COLORS.primary,
-    fontWeight: '300',
+    fontWeight: '600',
   },
   sectionContent: {
-    padding: 16,
+    padding: 18,
+  },
+  inputWrapper: {
+    marginBottom: 14,
   },
   input: {
     borderWidth: 1,
     borderColor: 'rgba(148, 7, 117, 0.2)',
-    borderRadius: 12,
-    padding: 12,
-    fontSize: 12,
-    marginBottom: 12,
+    borderRadius: 16,
+    padding: 14,
+    fontSize: 14,
     backgroundColor: '#fff',
     fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
     color: COLORS.text,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   textArea: {
-    minHeight: 80,
+    minHeight: 100,
     textAlignVertical: 'top',
   },
   row: {
@@ -1235,270 +1300,385 @@ const styles = StyleSheet.create({
     width: '48%',
   },
   label: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: COLORS.textLight,
-    marginBottom: 6,
-    marginLeft: 4,
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.primary,
+    marginBottom: 8,
+    marginLeft: 6,
   },
   required: {
     color: COLORS.error,
   },
   radioGroup: {
     flexDirection: 'row',
-    marginBottom: 8,
+    marginBottom: 16,
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 7, 117, 0.1)',
   },
   radioItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 24,
+    marginRight: 28,
   },
   radioCircle: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     borderWidth: 2,
     borderColor: COLORS.primary,
-    marginRight: 6,
+    marginRight: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
   radioSelected: {
     borderColor: COLORS.primary,
+    backgroundColor: COLORS.primary,
   },
   radioInner: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: COLORS.primary,
+    backgroundColor: '#fff',
   },
   radioText: {
-    fontSize: 12,
+    fontSize: 14,
     color: COLORS.text,
+    fontWeight: '500',
+  },
+  helperNoteContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(148, 7, 117, 0.05)',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  helperNoteIcon: {
+    fontSize: 14,
+    marginRight: 8,
   },
   helperNote: {
-    fontSize: 10,
+    fontSize: 12,
     color: COLORS.primary,
-    marginTop: -4,
-    marginBottom: 8,
     fontStyle: 'italic',
+    flex: 1,
   },
   pickerWrapper: {
     borderWidth: 1,
     borderColor: 'rgba(148, 7, 117, 0.2)',
-    borderRadius: 12,
-    marginBottom: 12,
+    borderRadius: 16,
+    marginBottom: 14,
     backgroundColor: '#fff',
     overflow: 'hidden',
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   picker: {
-    height: 45,
+    height: 52,
     color: COLORS.text,
   },
   conditionalFields: {
-    marginTop: 8,
-    paddingTop: 12,
+    marginTop: 12,
+    paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: 'rgba(148, 7, 117, 0.1)',
   },
   imagePickerContainer: {
-    marginBottom: 12,
+    marginBottom: 16,
   },
   imagePicker: {
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: 'rgba(148, 7, 117, 0.2)',
     borderStyle: 'dashed',
-    borderRadius: 12,
+    borderRadius: 20,
     backgroundColor: 'rgba(148, 7, 117, 0.02)',
-    minHeight: 120,
+    minHeight: 140,
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   placeholderImage: {
     alignItems: 'center',
-    padding: 16,
+    padding: 20,
+    width: '100%',
+  },
+  placeholderIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   placeholderIcon: {
     fontSize: 24,
-    marginBottom: 4,
-    color: COLORS.primary,
   },
   placeholderText: {
-    fontSize: 11,
-    color: COLORS.textLight,
-    marginBottom: 2,
+    fontSize: 13,
+    color: COLORS.primary,
+    fontWeight: '500',
+    marginBottom: 4,
   },
   placeholderSubtext: {
-    fontSize: 9,
+    fontSize: 11,
     color: COLORS.textLight,
   },
   previewImage: {
     width: '100%',
-    height: 140,
+    height: 160,
     resizeMode: 'cover',
   },
   guidelinesContainer: {
-    backgroundColor: 'rgba(148, 7, 117, 0.03)',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderLeftWidth: 3,
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 20,
+    borderLeftWidth: 4,
     borderLeftColor: COLORS.primary,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  guidelinesHeader: {
+    marginBottom: 12,
   },
   guidelinesTitle: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
     color: COLORS.primary,
-    marginBottom: 10,
   },
   guidelineItem: {
     flexDirection: 'row',
-    marginBottom: 6,
+    marginBottom: 8,
+    alignItems: 'flex-start',
+  },
+  guidelineBulletContainer: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(148, 7, 117, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+    marginTop: 2,
   },
   guidelineBullet: {
-    fontSize: 11,
+    fontSize: 12,
     color: COLORS.primary,
-    marginRight: 8,
-    width: 10,
+    fontWeight: '600',
   },
   guidelineText: {
     flex: 1,
-    fontSize: 10,
+    fontSize: 12,
     color: COLORS.text,
-    lineHeight: 14,
+    lineHeight: 18,
   },
   consentContainer: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(16, 185, 129, 0.05)',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-    borderWidth: 1,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 24,
+    borderWidth: 2,
     borderColor: 'rgba(16, 185, 129, 0.2)',
     alignItems: 'center',
+    shadowColor: COLORS.success,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  consentContainerChecked: {
+    backgroundColor: COLORS.successLight,
+    borderColor: COLORS.success,
   },
   checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
+    width: 26,
+    height: 26,
+    borderRadius: 8,
     borderWidth: 2,
     borderColor: COLORS.success,
-    marginRight: 12,
+    marginRight: 14,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#fff',
   },
   checkboxChecked: {
     backgroundColor: COLORS.success,
   },
   checkmark: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 'bold',
   },
   consentText: {
     flex: 1,
-    fontSize: 11,
+    fontSize: 12,
+    color: COLORS.text,
+    lineHeight: 18,
+    fontWeight: '500',
+  },
+  consentTextChecked: {
     color: '#065f46',
-    lineHeight: 16,
   },
   footer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#fff',
-    padding: 16,
+    padding: 20,
+    paddingBottom: Platform.OS === 'ios' ? 30 : 20,
     borderTopWidth: 1,
     borderTopColor: 'rgba(148, 7, 117, 0.1)',
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 10,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 15,
   },
   submitButton: {
-    backgroundColor: COLORS.primary,
-    padding: 14,
-    borderRadius: 12,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  submitButtonGradient: {
+    padding: 18,
     alignItems: 'center',
   },
   disabledButton: {
-    opacity: 0.6,
+    opacity: 0.7,
   },
   submitButtonText: {
     color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     letterSpacing: 0.5,
   },
   submitButtonSubtext: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 10,
-    marginTop: 2,
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 11,
+    marginTop: 4,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    padding: 24,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
   },
   modalTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
     color: COLORS.primary,
-    marginBottom: 20,
+    marginBottom: 24,
     textAlign: 'center',
   },
   modalOption: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(148, 7, 117, 0.1)',
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 7, 117, 0.1)',
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   modalOptionIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(148, 7, 117, 0.1)',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
   },
   modalOptionIcon: {
-    fontSize: 24,
+    fontSize: 28,
   },
   modalOptionTextContainer: {
     flex: 1,
   },
   modalOptionTitle: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 16,
+    fontWeight: '600',
     color: COLORS.text,
-    marginBottom: 2,
+    marginBottom: 4,
   },
   modalOptionDescription: {
-    fontSize: 11,
+    fontSize: 12,
     color: COLORS.textLight,
   },
   modalCancel: {
-    marginTop: 16,
-    padding: 14,
-    backgroundColor: 'rgba(148, 7, 117, 0.05)',
-    borderRadius: 12,
+    marginTop: 8,
+    padding: 16,
+    backgroundColor: COLORS.errorLight,
+    borderRadius: 16,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.error,
   },
   modalCancelText: {
-    fontSize: 14,
-    color: COLORS.primary,
-    fontWeight: '500',
+    fontSize: 16,
+    color: COLORS.error,
+    fontWeight: '600',
   },
+  // Add these to your StyleSheet
+modalOptionsRow: {
+  flexDirection: 'row',
+  justifyContent: 'space-around',
+  width: '100%',
+  marginVertical: 20,
+},
+modalButton: {
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: 10,
+},
+modalButtonGradient: {
+  width: 70,
+  height: 70,
+  borderRadius: 35,
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginBottom: 10,
+  borderWidth: 1,
+  borderColor: 'rgba(148, 7, 117, 0.2)',
+},
+modalButtonText: {
+  color: '#940775',
+  fontSize: 14,
+  fontWeight: '500',
+},
 });
 
 export default DaycareBookingScreen;
