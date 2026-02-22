@@ -50,7 +50,7 @@ import {
   faParking,
   faAccessibleIcon
 } from '@fortawesome/free-solid-svg-icons';
-
+import AutoRegistrationMNWC from './components/AutoRegistrationMNWC';
 const { width, height } = Dimensions.get('window');
 
 const DashboardMNWC = ({ navigation }) => {
@@ -103,8 +103,8 @@ const DashboardMNWC = ({ navigation }) => {
       title: 'Gym Facility',
       description: 'Sign up for membership and book workout sessions or classes.',
       badge: 'Registration & Booking',
-      gradient: ['#ecfdf5', '#a7f3d0'],
-      titleColor: '#059669',
+      gradient: ['#f9faeb', '#ddf176'],
+      titleColor: '#ae6c09',
       icon: faDumbbell,
       stats: { bookings: 0, available: 0 },
       modalData: {
@@ -131,8 +131,8 @@ const DashboardMNWC = ({ navigation }) => {
       title: 'Library Access',
       description: 'Apply for access and reserve reading rooms or resources.',
       badge: 'Registration & Booking',
-      gradient: ['#cffafe', '#67e8f9'],
-      titleColor: '#0891b2',
+      gradient: ['#f3e8ff', '#ddd6fe'],
+      titleColor: '#51217b',
       icon: faBook,
       stats: { bookings: 0, available: 0 },
       modalData: {
@@ -159,8 +159,8 @@ const DashboardMNWC = ({ navigation }) => {
       title: 'Office Space',
       description: 'Book shared desks or private rooms for focused work.',
       badge: 'Registration & Booking',
-      gradient: ['#fef3c7', '#fcd34d'],
-      titleColor: '#6a3f1e',
+      gradient: ['#f1f7f0', '#e9f1eb'],
+      titleColor: '#0f551c',
       icon: faChair,
       stats: { bookings: 0, available: 0 },
       modalData: {
@@ -184,8 +184,8 @@ const DashboardMNWC = ({ navigation }) => {
       title: 'Training Room',
       description: 'Schedule workshops and capacity-building sessions.',
       badge: 'Capacity: 30',
-      gradient: ['#f3e8ff', '#ddd6fe'],
-      titleColor: '#51217b',
+       gradient: ['#fdf7f7', '#dedada'],
+      titleColor: '#6b0606',
       icon: faChalkboardTeacher,
       stats: { bookings: 0, available: 0 },
       modalData: {
@@ -209,8 +209,8 @@ const DashboardMNWC = ({ navigation }) => {
       title: 'Seminar Room',
       description: 'Host seminars and talks with mid-size audiences.',
       badge: 'Capacity: 70',
-      gradient: ['#dbeafe', '#7dd3fc'],
-      titleColor: '#122558',
+       gradient: ['#cffafe', '#67e8f9'],
+      titleColor: '#0891b2',
       icon: faTheaterMasks,
       stats: { bookings: 0, available: 0 },
       modalData: {
@@ -234,8 +234,8 @@ const DashboardMNWC = ({ navigation }) => {
       title: 'Auditorium',
       description: 'Plan large events with full auditorium facilities.',
       badge: 'Capacity: 400',
-      gradient: ['#f1f5f9', '#cbd5e1'],
-      titleColor: '#475569',
+      gradient: ['#f9f1f1', '#f7f4f4'],
+      titleColor: '#560101',
       icon: faMusic,
       stats: { bookings: 0, available: 0 },
       modalData: {
@@ -301,37 +301,37 @@ const DashboardMNWC = ({ navigation }) => {
       
     case 'gym':
       console.log('Navigating to Gym Membership Screen');
-      navigation.navigate('GymMembership');
+      navigation.navigate('GymBookingScreen');
       break;
       
     case 'library':
       console.log('Navigating to Library Access Screen');
-      navigation.navigate('LibraryAccess');
+      navigation.navigate('LibraryAccessBookingScreen');
       break;
       
     case 'office':
       console.log('Navigating to Office Space Screen');
-      navigation.navigate('OfficeSpace');
+      navigation.navigate('OfficeBookingScreen');
       break;
       
     case 'training':
       console.log('Navigating to Training Room Screen');
-      navigation.navigate('TrainingRoom');
+      navigation.navigate('TrainingBookingScreen');
       break;
       
     case 'seminar':
       console.log('Navigating to Seminar Hall Screen');
-      navigation.navigate('SeminarHall');
+      navigation.navigate('SeminarBookingScreen');
       break;
       
     case 'auditorium':
       console.log('Navigating to Auditorium Screen');
-      navigation.navigate('Auditorium');
+      navigation.navigate('AuditoriumBookingScreen');
       break;
       
     case 'creative':
       console.log('Navigating to Creative Studio Screen');
-      navigation.navigate('CreativeStudio');
+      navigation.navigate('StudioBookingScreen');
       break;
       
     default:
@@ -413,6 +413,7 @@ const DashboardMNWC = ({ navigation }) => {
     const modalGradient = isCreative ? ['#8B5CF6', '#7C3AED'] : ['#06B6D4', '#0891B2'];
 
     return (
+      
       <Modal
         animationType="slide"
         transparent={true}
@@ -597,7 +598,13 @@ const DashboardMNWC = ({ navigation }) => {
   };
 
   return (
+    
     <SafeAreaView style={styles.container}>
+       <AutoRegistration 
+      onUserReady={handleUserReady}
+      showCredentialsModal={true}
+      autoCloseDelay={5000}
+    ></AutoRegistration>
       <StatusBar backgroundColor="#036677" barStyle="light-content" />
       
       {/* Header */}

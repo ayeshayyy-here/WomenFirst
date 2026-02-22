@@ -110,8 +110,13 @@ import DigitalSkillsTracking from './src/SEHR/DigitalSkillsTracking';
 //MNWC
 import DashboardMNWC from './src/MNWC/DashboardMNWC';
 import DayCareBookingScreen from './src/MNWC/DayCareBookingScreen';
-
-
+import GymBookingScreen from './src/MNWC/GymBookingScreen';
+import LibraryAccessBookingScreen from './src/MNWC/LibraryAccessBookingScreen';
+import OfficeBookingScreen from './src/MNWC/OfficeBookingScreen';
+import TrainingBookingScreen from './src/MNWC/TrainingBookingScreen';
+import SeminarBookingScreen from './src/MNWC/SeminarBookingScreen';
+import AuditoriumBookingScreen from './src/MNWC/AuditoriumBookingScreen';
+import StudioBookingScreen from './src/MNWC/StudioBookingScreen';
 
 
 
@@ -249,7 +254,13 @@ const App = () => {
       {/* MNWC */}
       <Stack.Screen name="DashboardMNWC" component={DashboardMNWC} />
       <Stack.Screen name="DayCareBookingScreen" component={DayCareBookingScreen} />
-
+      <Stack.Screen name="GymBookingScreen" component={GymBookingScreen} />
+      <Stack.Screen name="LibraryAccessBookingScreen" component={LibraryAccessBookingScreen} />
+      <Stack.Screen name="OfficeBookingScreen" component={OfficeBookingScreen} />
+      <Stack.Screen name="TrainingBookingScreen" component={TrainingBookingScreen} />
+      <Stack.Screen name="SeminarBookingScreen" component={SeminarBookingScreen} />
+      <Stack.Screen name="AuditoriumBookingScreen" component={AuditoriumBookingScreen} />
+      <Stack.Screen name="StudioBookingScreen" component={StudioBookingScreen} />
       {/* //CentralizedLogins */}
       <Stack.Screen name="LoginC" component={LoginC} />
       <Stack.Screen name="RegisterC" component={RegisterC} />
