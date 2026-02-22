@@ -970,7 +970,7 @@ const DigitalSkillsRegistrationForm = () => {
             <View style={styles.headerContent}>
               <Icon name="account-tie-hat" size={28} color="white" />
               <View style={styles.headerText}>
-                <Text style={styles.headerTitle}>SHE Threads Registration</Text>
+                <Text style={styles.headerTitle}>SEHR Digital Skills Registration</Text>
                 <Text style={styles.headerSubtitle}>Digital Skill Training - Economic Empowerment</Text>
               </View>
             </View>
@@ -1149,13 +1149,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerText: {
+    
     marginLeft: 12,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: 'white',
     marginBottom: 4,
+    marginTop: 20,
   },
   headerSubtitle: {
     fontSize: 11,

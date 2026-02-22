@@ -107,6 +107,13 @@ import DigitalSkillsRegistrationForm from './src/SEHR/DigitalSkillsRegistrationF
 import BeauticianTracking from './src/SEHR/BeauticianTracking';
 import HospitalityTracking from './src/SEHR/HospitalityTracking';
 import DigitalSkillsTracking from './src/SEHR/DigitalSkillsTracking';
+//MNWC
+import DashboardMNWC from './src/MNWC/DashboardMNWC';
+import DayCareBookingScreen from './src/MNWC/DayCareBookingScreen';
+
+
+
+
 
 import { fetchAndShowNotifications } from './src/utils/notificationHandler';
 import NotificationsScreen from './src/components/NotificationsScreen'
@@ -239,8 +246,9 @@ const App = () => {
       <Stack.Screen name="BeauticianTracking" component={BeauticianTracking} />
       <Stack.Screen name="HospitalityTracking" component={HospitalityTracking} />
       <Stack.Screen name="DigitalSkillsTracking" component={DigitalSkillsTracking} />
-
-
+      {/* MNWC */}
+      <Stack.Screen name="DashboardMNWC" component={DashboardMNWC} />
+      <Stack.Screen name="DayCareBookingScreen" component={DayCareBookingScreen} />
 
       {/* //CentralizedLogins */}
       <Stack.Screen name="LoginC" component={LoginC} />

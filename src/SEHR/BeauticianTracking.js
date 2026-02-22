@@ -722,7 +722,7 @@ const BeauticianTracking = () => {
             <View style={styles.headerContent}>
               <Icon name="progress-check" size={28} color="white" />
               <View style={styles.headerText}>
-                <Text style={styles.headerTitle}>Application Tracking</Text>
+                <Text style={styles.headerTitle}>Beautician Application Tracking</Text>
                 <Text style={styles.headerSubtitle}>Real-time status updates</Text>
               </View>
             </View>
@@ -833,7 +833,7 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: 'rgba(255,255,255,0.9)',
   },

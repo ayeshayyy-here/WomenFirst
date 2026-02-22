@@ -22,6 +22,7 @@ import Wepx from '../../assets/images/wepx.png';
 import Pitch from '../../assets/images/pitch.jpg';
 import Ambassador from '../../assets/images/ambassador.jpg';
 import SEHR_LOGO from '../../assets/images/SEHR_LOGO.png';
+import WBIC_LOGO from '../../assets/images/WBIC_LOGO.png';
 import Hostel from '../../assets/images/hostel.png';
 import FloatingButton from '../components/FloatingButton';
 import notifee, { AndroidImportance } from '@notifee/react-native';
@@ -114,28 +115,27 @@ const DashboardWDD = ({ navigation, notifications }) => {
       colors: ['#ffffff', '#ffffff'],
       shadow: '#ef5350'
     },
+
+      { 
+      title: "WBIC", 
+      image: WBIC_LOGO,
+      screen: "ProjectDateScreen",
+      colors: ['#ffffff', '#ffffff'],
+      shadow: '#26a69a'
+    },
+    { 
+      title: "MNWC", 
+      icon: <Icon3 name="tools" size={28} color="#66bb6a" />,
+      screen: "DashboardMNWC",
+      colors: ['#ffffff', '#ffffff'],
+      shadow: '#66bb6a'
+    },
     { 
       title: "Day Care", 
       icon: <Icon3 name="baby-carriage" size={28} color="#7e57c2" />,
       screen: "DayCareScreen",
       colors: ['#ffffff', '#ffffff'],
       shadow: '#7e57c2'
-    },
-   
-    { 
-      title: "Empowerment", 
-      icon: <Icon3 name="account-cash" size={28} color="#26a69a" />,
-      screen: "ProjectDateScreen",
-      colors: ['#ffffff', '#ffffff'],
-      shadow: '#26a69a'
-    },
-   
-    { 
-      title: "Skill Dev", 
-      icon: <Icon3 name="tools" size={28} color="#66bb6a" />,
-      screen: "SkillDevelopmentScreen",
-      colors: ['#ffffff', '#ffffff'],
-      shadow: '#66bb6a'
     }
   ];
 
@@ -196,7 +196,7 @@ const DashboardWDD = ({ navigation, notifications }) => {
 
  const handleProjectPress = (project) => {
     // Check if the project is WEPX or Women Hostel
-    if (project.title === "WEPX" || project.title === "Working Women Hostel" || project.title === "Female Ambassador Program" || project.title === "Youth Pitch" || project.title === "SEHR") {
+    if (project.title === "WEPX" || project.title === "Working Women Hostel" || project.title === "Female Ambassador Program" || project.title === "Youth Pitch" || project.title === "SEHR" || project.title === "MNWC") {
       navigation.navigate(project.screen);
     } else {
       // Show "Coming Soon" toast for all other projects

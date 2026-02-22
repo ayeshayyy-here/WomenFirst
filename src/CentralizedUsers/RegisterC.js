@@ -230,7 +230,8 @@ const RegisterC = ({ navigation }) => {
         {/* Combined Header Content */}
         <View style={styles.headerContent}>
           <Image 
-            source={{uri: 'https://cmp.punjab.gov.pk/img/maryam.png'}} 
+          source={require('../../assets/images/logocm.png')}
+       // source={{uri: 'https://cmp.punjab.gov.pk/img/maryam.png'}} 
             style={styles.headerLogo}
             resizeMode="contain"
           />
@@ -245,7 +246,7 @@ const RegisterC = ({ navigation }) => {
     
           <Image 
             source={require('../../assets/images/women.png')}
-            style={styles.headerLogo}
+            style={styles.headerLogoo}
             resizeMode="contain"
           />
         </View>
@@ -452,6 +453,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 5,
+  },
+     headerLogoo: {
+    width: 70,
+    height: 70,
+    shadowColor: '#a39d9d',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
+    color: '#fff',
+     backgroundColor: '#fff',
+    borderRadius: 35,
+    paddingVertical: 3,
+    paddingHorizontal: 2,
   },
   headerTextContainer: {
     flex: 1,

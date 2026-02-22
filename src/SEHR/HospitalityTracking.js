@@ -761,7 +761,7 @@ const HospitalityTracking = () => {
             <View style={styles.headerContent}>
               <Icon name="briefcase-account" size={28} color="white" />
               <View style={styles.headerText}>
-                <Text style={styles.headerTitle}>Hospitality Tracking</Text>
+                <Text style={styles.headerTitle}>Hospitality Application Tracking</Text>
                 <Text style={styles.headerSubtitle}>Real-time status updates</Text>
               </View>
             </View>
@@ -872,7 +872,7 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: 'rgba(255,255,255,0.9)',
   },

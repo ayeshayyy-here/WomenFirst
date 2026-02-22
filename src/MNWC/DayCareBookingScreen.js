@@ -1,0 +1,1504 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  Image,
+  ActivityIndicator,
+  SafeAreaView,
+  Platform,
+  PermissionsAndroid,
+  Modal,
+  ActionSheetIOS,
+} from 'react-native';
+import { Picker } from '@react-native-picker/picker';
+import axios from 'axios';
+import DocumentPicker from 'react-native-document-picker';
+import { launchCamera, openGallery } from 'react-native-image-picker';
+import SyncStorage from 'react-native-sync-storage';
+
+// ============ API CONFIGURATION ============
+const API_BASE_URL = 'https://regions-jade-beatles-sessions.trycloudflare.com/api';
+
+// ============ THEME CONSTANTS ============
+const COLORS = {
+  primary: '#940775',
+  primaryLight: '#b32b9e',
+  primaryDark: '#6d0557',
+  secondary: '#f3e5f5',
+  background: '#faf5fb',
+  surface: '#ffffff',
+  text: '#1a1a1a',
+  textLight: '#666666',
+  border: '#e0d0e8',
+  success: '#10b981',
+  warning: '#f59e0b',
+  error: '#ef4444',
+  info: '#3b82f6',
+};
+
+// ============ DaycareBookingScreen Component ============
+const DaycareBookingScreen = ({ route, navigation }) => {
+  // ============ STATE MANAGEMENT ============
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [showHelperFields, setShowHelperFields] = useState(false);
+  const [showHealthFields, setShowHealthFields] = useState(false);
+  const [activeImagePicker, setActiveImagePicker] = useState(null);
+  const [showImagePickerModal, setShowImagePickerModal] = useState(false);
+  const [authToken, setAuthToken] = useState(null);
+  const [capturedImage, setCapturedImage] = useState(null);
+  const [expandedSections, setExpandedSections] = useState({
+    parent: true,
+    auth: false,
+    child: false,
+    helper: false,
+    health: false,
+    booking: false,
+  });
+
+  const booking = route.params?.booking || null;
+  const isEditMode = !!booking;
+
+  // Form state
+  const [formData, setFormData] = useState({
+    parent_name: '',
+    parent_cnic: '',
+    parent_contact: '',
+    parent_address: '',
+    parent_cnic_pic: null,
+    auth_name: '',
+    auth_cnic: '',
+    auth_contact: '',
+    relationship: '',
+    auth_cnic_pic: null,
+    child_name: '',
+    child_gender: '',
+    child_years: '',
+    child_months: '',
+    child_pic: null,
+    has_helper: 'no',
+    helper_name: '',
+    helper_cnic: '',
+    helper_contact: '',
+    helper_pic: null,
+    has_allergies: 'no',
+    health_details: '',
+    hours_required: '',
+    require_services: '',
+    consent: false,
+  });
+
+  // Load user profile from sync storage
+  useEffect(() => {
+    loadUserProfile();
+  
+    if (booking) {
+      loadBookingData();
+    }
+  }, []);
+
+  const loadUserProfile = () => {
+    try {
+      const userProfile = SyncStorage.get('user_profile');
+      if (userProfile) {
+        const userData = JSON.parse(userProfile);
+        
+        setFormData(prev => ({
+          ...prev,
+          parent_name: userData.name || '',
+          parent_cnic: userData.cnic || '',
+          parent_contact: userData.contact || '',
+          parent_address: userData.address || '',
+        }));
+      }
+    } catch (error) {
+      console.log('Error loading user profile:', error);
+    }
+  };
+
+  const loadAuthToken = async () => {
+    try {
+      const token = await AsyncStorage.getItem('auth_token');
+      setAuthToken(token);
+    } catch (error) {
+      console.log('Error loading token:', error);
+    }
+  };
+
+  const loadBookingData = () => {
+    if (booking) {
+      setFormData({
+        ...booking,
+        parent_cnic_pic: booking.parent_cnic_pic ? { uri: booking.parent_cnic_pic } : null,
+        auth_cnic_pic: booking.auth_cnic_pic ? { uri: booking.auth_cnic_pic } : null,
+        child_pic: booking.child_pic ? { uri: booking.child_pic } : null,
+        helper_pic: booking.helper_pic ? { uri: booking.helper_pic } : null,
+      });
+      setShowHelperFields(booking.has_helper === 'yes');
+      setShowHealthFields(booking.has_allergies === 'yes');
+    }
+  };
+
+  // ============ FIXED CAMERA AND GALLERY FUNCTIONS ============
+// ============ FIXED CAMERA AND GALLERY FUNCTIONS ============
+const openCamera = async () => {
+  setShowImagePickerModal(false);
+  
+  try {
+    // Request camera permission for Android
+    if (Platform.OS === 'android') {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.CAMERA,
+        {
+          title: 'Camera Permission',
+          message: 'App needs camera access to take photos',
+          buttonNeutral: 'Ask Me Later',
+          buttonNegative: 'Cancel',
+          buttonPositive: 'OK',
+        }
+      );
+
+      if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+        Alert.alert('Permission Denied', 'Camera permission is required to take photos');
+        return;
+      }
+    }
+
+    const options = {
+      mediaType: 'photo',
+      includeBase64: false,
+      maxHeight: 2000,
+      maxWidth: 2000,
+      quality: 0.8,
+      saveToPhotos: false,
+    };
+
+    launchCamera(options, (response) => {
+      if (response.didCancel) {
+        console.log('User cancelled camera');
+      } else if (response.error) {
+        console.log('Camera Error: ', response.error);
+        Alert.alert('Error', 'Failed to capture image. Please try again.');
+      } else if (response.assets && response.assets[0]) {
+        const asset = response.assets[0];
+        
+        // Validate file size (max 10MB)
+        if (asset.fileSize > 10 * 1024 * 1024) {
+          Alert.alert('Error', 'Image size should be less than 10MB');
+          return;
+        }
+
+        const imageFile = {
+          uri: asset.uri,
+          type: asset.type || 'image/jpeg',
+          name: asset.fileName || `camera_${Date.now()}.jpg`,
+          fileSize: asset.fileSize,
+        };
+
+        setCapturedImage(imageFile.uri);
+        handleInputChange(activeImagePicker, imageFile);
+      }
+    });
+  } catch (err) {
+    console.warn(err);
+    Alert.alert('Error', 'Failed to access camera');
+  }
+};
+
+// FIXED: Use launchImageLibrary for gallery
+const openGallery = async () => {
+  setShowImagePickerModal(false);
+  
+  try {
+    // Request storage permission for Android
+    if (Platform.OS === 'android') {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
+        {
+          title: 'Storage Permission',
+          message: 'App needs storage access to pick photos',
+          buttonNeutral: 'Ask Me Later',
+          buttonNegative: 'Cancel',
+          buttonPositive: 'OK',
+        }
+      );
+
+      if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+        Alert.alert('Permission Denied', 'Storage permission is required to pick photos');
+        return;
+      }
+    }
+
+    const options = {
+      mediaType: 'photo',
+      includeBase64: false,
+      maxHeight: 2000,
+      maxWidth: 2000,
+      quality: 0.8,
+      selectionLimit: 1,
+    };
+
+    launchImageLibrary(options, (response) => {
+      if (response.didCancel) {
+        console.log('User cancelled gallery');
+      } else if (response.error) {
+        console.log('Gallery Error: ', response.error);
+        Alert.alert('Error', 'Failed to pick image. Please try again.');
+      } else if (response.assets && response.assets[0]) {
+        const asset = response.assets[0];
+        
+        // Validate file size (max 10MB)
+        if (asset.fileSize > 10 * 1024 * 1024) {
+          Alert.alert('Error', 'Image size should be less than 10MB');
+          return;
+        }
+
+        // Validate file type
+        if (!asset.type || !['image/jpeg', 'image/png', 'image/jpg'].includes(asset.type)) {
+          Alert.alert('Error', 'Only PNG, JPG, and JPEG files are allowed.');
+          return;
+        }
+
+        const imageFile = {
+          uri: asset.uri,
+          type: asset.type || 'image/jpeg',
+          name: asset.fileName || `gallery_${Date.now()}.jpg`,
+          fileSize: asset.fileSize,
+        };
+
+        setCapturedImage(imageFile.uri);
+        handleInputChange(activeImagePicker, imageFile);
+      }
+    });
+  } catch (error) {
+    console.error('Gallery error:', error);
+    Alert.alert('Error', 'Failed to open gallery. Please try again.');
+  }
+};
+
+// REMOVED loadAuthToken function completely
+
+// ============ SUBMIT HANDLER (Simplified - no auth token) ============
+const submitBookingToAPI = async (formData) => {
+  try {
+    // Create FormData object for multipart/form-data
+    const apiFormData = new FormData();
+    
+    // Helper function to append form fields
+    const appendField = (key, value) => {
+      if (value !== null && value !== undefined && value !== '') {
+        apiFormData.append(key, value.toString());
+      }
+    };
+
+    // Append all text fields
+    appendField('parent_name', formData.parent_name);
+    appendField('parent_cnic', formData.parent_cnic);
+    appendField('parent_contact', formData.parent_contact);
+    appendField('parent_address', formData.parent_address);
+    
+    appendField('auth_name', formData.auth_name);
+    appendField('auth_cnic', formData.auth_cnic);
+    appendField('auth_contact', formData.auth_contact);
+    appendField('relationship', formData.relationship);
+    
+    appendField('child_name', formData.child_name);
+    appendField('child_gender', formData.child_gender);
+    appendField('child_years', formData.child_years);
+    appendField('child_months', formData.child_months || '0');
+    
+    appendField('has_helper', formData.has_helper);
+    if (formData.has_helper === 'yes') {
+      appendField('helper_name', formData.helper_name);
+      appendField('helper_cnic', formData.helper_cnic);
+      appendField('helper_contact', formData.helper_contact);
+    }
+    
+    appendField('has_allergies', formData.has_allergies);
+    if (formData.has_allergies === 'yes') {
+      appendField('health_details', formData.health_details);
+    }
+    
+    appendField('hours_required', formData.hours_required);
+    appendField('require_services', formData.require_services);
+    appendField('consent', formData.consent ? '1' : '0');
+
+    // Append image files
+    const imageFields = [
+      { key: 'parent_cnic_pic', value: formData.parent_cnic_pic },
+      { key: 'auth_cnic_pic', value: formData.auth_cnic_pic },
+      { key: 'child_pic', value: formData.child_pic },
+      { key: 'helper_pic', value: formData.helper_pic }
+    ];
+
+    imageFields.forEach(({ key, value }) => {
+      if (value && value.uri) {
+        // Get file extension from URI or name
+        const fileName = value.name || value.uri.split('/').pop() || `${key}.jpg`;
+        const fileType = value.type || 'image/jpeg';
+        
+        apiFormData.append(key, {
+          uri: value.uri,
+          type: fileType,
+          name: fileName,
+        });
+      }
+    });
+
+    // Make API request - NO AUTH TOKEN NEEDED
+    const response = await fetch('https://regions-jade-beatles-sessions.trycloudflare.com/api/daycare-booking', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        // No Authorization header
+      },
+      body: apiFormData,
+    });
+
+    const responseData = await response.json();
+
+    if (!response.ok) {
+      throw new Error(responseData.message || 'Failed to submit booking');
+    }
+
+    return responseData;
+  } catch (error) {
+    console.error('API Error:', error);
+    throw error;
+  }
+};
+
+// REMOVED getApiClient function completely
+
+// Update handleSubmit to use the simplified submit function
+const handleSubmit = async () => {
+  if (!validateForm()) return;
+
+  setSubmitting(true);
+  try {
+    const response = await submitBookingToAPI(formData);
+    
+    Alert.alert(
+      'Success',
+      response.message || 'Booking submitted successfully',
+      [{ text: 'OK', onPress: () => navigation.goBack() }]
+    );
+  } catch (error) {
+    console.log('Submit error:', error);
+    Alert.alert(
+      'Error',
+      error.message || 'Failed to submit booking. Please try again.'
+    );
+  } finally {
+    setSubmitting(false);
+  }
+};
+
+// REMOVED handleDelete function since it uses auth token
+
+  const handleImagePick = (field) => {
+    setActiveImagePicker(field);
+    
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Cancel', 'Take Photo', 'Choose from Gallery'],
+          cancelButtonIndex: 0,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) {
+            openCamera();
+          } else if (buttonIndex === 2) {
+            openGallery();
+          }
+        }
+      );
+    } else {
+      setShowImagePickerModal(true);
+    }
+  };
+
+  // ============ FORM HANDLERS ============
+  const handleInputChange = (field, value) => {
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+      
+      if (field === 'has_helper') {
+        setShowHelperFields(value === 'yes');
+      }
+      if (field === 'has_allergies') {
+        setShowHealthFields(value === 'yes');
+      }
+      
+      return newData;
+    });
+  };
+
+  const toggleSection = (section) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
+  // ============ FORM VALIDATION ============
+ // ============ FORM VALIDATION (FIXED) ============
+const validateForm = () => {
+  const required = [
+    'parent_name', 'parent_cnic', 'parent_contact', 'parent_address',
+    'auth_name', 'auth_cnic', 'auth_contact', 'relationship',
+    'child_name', 'child_gender', 'child_years',
+    'hours_required', 'require_services'
+  ];
+
+  for (const field of required) {
+    if (!formData[field]) {
+      Alert.alert('Validation Error', `${field.replace(/_/g, ' ')} is required`);
+      return false;
+    }
+  }
+
+  if (!/^\d{13}$/.test(formData.parent_cnic)) {
+    Alert.alert('Validation Error', 'Parent CNIC must be exactly 13 digits');
+    return false;
+  }
+
+  if (!/^\d{13}$/.test(formData.auth_cnic)) {
+    Alert.alert('Validation Error', 'Authorized Person CNIC must be exactly 13 digits');
+    return false;
+  }
+
+  // FIXED: Contact validation - Pakistani mobile numbers
+  // Format: 03XXXXXXXXX (11 digits starting with 03)
+  if (!/^03\d{9}$/.test(formData.parent_contact)) {
+    Alert.alert('Validation Error', 'Parent contact must be a valid Pakistani mobile number (03XXXXXXXXX)');
+    return false;
+  }
+
+  if (!/^03\d{9}$/.test(formData.auth_contact)) {
+    Alert.alert('Validation Error', 'Authorized Person contact must be a valid Pakistani mobile number (03XXXXXXXXX)');
+    return false;
+  }
+
+  // Optional: Helper contact validation if helper exists
+  if (formData.has_helper === 'yes' && formData.helper_contact) {
+    if (!/^03\d{9}$/.test(formData.helper_contact)) {
+      Alert.alert('Validation Error', 'Helper contact must be a valid Pakistani mobile number (03XXXXXXXXX)');
+      return false;
+    }
+  }
+
+  if (!isEditMode) {
+    if (!formData.parent_cnic_pic) {
+      Alert.alert('Validation Error', 'Parent CNIC picture is required');
+      return false;
+    }
+    if (!formData.auth_cnic_pic) {
+      Alert.alert('Validation Error', 'Authorized Person CNIC picture is required');
+      return false;
+    }
+    if (!formData.child_pic) {
+      Alert.alert('Validation Error', 'Child picture is required');
+      return false;
+    }
+  }
+
+  if (formData.has_helper === 'yes') {
+    if (!formData.helper_name || !formData.helper_cnic || !formData.helper_contact) {
+      Alert.alert('Validation Error', 'All helper fields are required when helper is selected');
+      return false;
+    }
+    
+    // Validate helper CNIC if provided
+    if (formData.helper_cnic && !/^\d{13}$/.test(formData.helper_cnic)) {
+      Alert.alert('Validation Error', 'Helper CNIC must be exactly 13 digits');
+      return false;
+    }
+  }
+
+  if (formData.has_allergies === 'yes' && !formData.health_details) {
+    Alert.alert('Validation Error', 'Please specify medical details');
+    return false;
+  }
+
+  if (!formData.consent) {
+    Alert.alert('Validation Error', 'You must agree to the terms and conditions');
+    return false;
+  }
+
+  return true;
+};
+  // ============ PREPARE FORM DATA ============
+  const prepareFormData = () => {
+    const data = new FormData();
+
+    const textFields = [
+      'parent_name', 'parent_cnic', 'parent_contact', 'parent_address',
+      'auth_name', 'auth_cnic', 'auth_contact', 'relationship',
+      'child_name', 'child_gender', 'child_years', 'child_months',
+      'has_helper', 'helper_name', 'helper_cnic', 'helper_contact',
+      'has_allergies', 'health_details',
+      'hours_required', 'require_services'
+    ];
+
+    textFields.forEach(key => {
+      if (formData[key] && formData[key].toString().trim()) {
+        data.append(key, formData[key].toString());
+      }
+    });
+
+    data.append('consent', formData.consent ? '1' : '0');
+
+    const imageFields = [
+      { key: 'parent_cnic_pic', name: 'parent_cnic' },
+      { key: 'auth_cnic_pic', name: 'auth_cnic' },
+      { key: 'child_pic', name: 'child' },
+      { key: 'helper_pic', name: 'helper' }
+    ];
+
+    imageFields.forEach(({ key, name }) => {
+      if (formData[key] && formData[key].uri) {
+        data.append(key, {
+          uri: formData[key].uri,
+          type: formData[key].type || 'image/jpeg',
+          name: formData[key].name || `${name}_${Date.now()}.jpg`,
+        });
+      }
+    });
+
+    return data;
+  };
+
+
+
+
+
+
+
+  const handleDelete = async () => {
+    if (!booking) return;
+    
+    Alert.alert(
+      'Confirm Delete',
+      'Are you sure you want to delete this booking?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setLoading(true);
+            try {
+              const api = await getApiClient();
+              await api.delete(`/daycare/bookings/${booking.id}`);
+              Alert.alert('Success', 'Booking deleted successfully', [
+                { text: 'OK', onPress: () => navigation.goBack() }
+              ]);
+            } catch (error) {
+              Alert.alert('Error', error.message || 'Failed to delete booking');
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // ============ RENDER FUNCTIONS ============
+  const renderSectionHeader = (title, icon, section) => (
+    <TouchableOpacity 
+      style={styles.sectionHeader}
+      onPress={() => toggleSection(section)}
+      activeOpacity={0.7}
+    >
+      <View style={styles.sectionHeaderLeft}>
+        <Text style={styles.sectionIcon}>{icon}</Text>
+        <Text style={styles.sectionTitle}>{title}</Text>
+      </View>
+      <Text style={styles.sectionToggle}>
+        {expandedSections[section] ? '−' : '+'}
+      </Text>
+    </TouchableOpacity>
+  );
+
+  const renderImagePicker = (field, label, required = false) => (
+    <View style={styles.imagePickerContainer}>
+      <Text style={styles.label}>
+        {label} {required && <Text style={styles.required}>*</Text>}
+      </Text>
+      <TouchableOpacity
+        style={styles.imagePicker}
+        onPress={() => handleImagePick(field)}
+        activeOpacity={0.8}
+      >
+        {formData[field] ? (
+          <Image source={{ uri: formData[field].uri }} style={styles.previewImage} />
+        ) : (
+          <View style={styles.placeholderImage}>
+            <Text style={styles.placeholderIcon}>📸</Text>
+            <Text style={styles.placeholderText}>Tap to upload {label}</Text>
+            <Text style={styles.placeholderSubtext}>JPG, PNG • Max 10MB</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderInput = (placeholder, field, options = {}) => (
+    <TextInput
+      style={[styles.input, options.multiline && styles.textArea]}
+      placeholder={placeholder}
+      placeholderTextColor={COLORS.textLight}
+      value={formData[field]}
+      onChangeText={(text) => handleInputChange(field, text)}
+      keyboardType={options.keyboardType || 'default'}
+      maxLength={options.maxLength}
+      multiline={options.multiline}
+      numberOfLines={options.numberOfLines}
+      secureTextEntry={options.secureTextEntry}
+    />
+  );
+
+  // ============ MAIN RENDER ============
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* Custom Header */}
+      <View style={styles.header}>
+        <View style={styles.headerGradient}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Text style={styles.backIcon}>←</Text>
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>
+              {isEditMode ? 'Update Booking' : 'Day Care Registration'}
+            </Text>
+            <Text style={styles.headerSubtitle}>Complete all required fields</Text>
+          </View>
+          {isEditMode && (
+            <TouchableOpacity onPress={handleDelete} style={styles.deleteButton}>
+              <Text style={styles.deleteIcon}>🗑️</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
+      {/* Progress Indicator */}
+      <View style={styles.progressBar}>
+        <View style={[styles.progressFill, { width: '35%' }]} />
+      </View>
+
+      {/* Info Cards */}
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false} 
+        style={styles.infoCardsScroll}
+        contentContainerStyle={styles.infoCardsContent}
+      >
+        {[
+          { icon: '🕘', text: '9AM-5PM', subtext: 'Operating Hours' },
+          { icon: '⏱️', text: '30min slots', subtext: 'Flexible Timing' },
+          { icon: '📅', text: 'Multi-slot', subtext: 'Book Multiple' },
+          { icon: '📍', text: 'On-site', subtext: 'Facility Based' },
+        ].map((item, index) => (
+          <View key={index} style={styles.infoCard}>
+            <Text style={styles.infoIcon}>{item.icon}</Text>
+            <View>
+              <Text style={styles.infoText}>{item.text}</Text>
+              <Text style={styles.infoSubtext}>{item.subtext}</Text>
+            </View>
+          </View>
+        ))}
+      </ScrollView>
+
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* PARENT SECTION */}
+        <View style={styles.section}>
+          {renderSectionHeader('Parent Information', '👤', 'parent')}
+          
+          {expandedSections.parent && (
+            <View style={styles.sectionContent}>
+              {renderInput('Full Name *', 'parent_name')}
+              {renderInput('CNIC Number (13 digits) *', 'parent_cnic', { keyboardType: 'numeric', maxLength: 13 })}
+              {renderInput('Contact Number (03XX-XXXXXXX) *', 'parent_contact', { keyboardType: 'phone-pad' })}
+              {renderInput('Residential Address *', 'parent_address', { multiline: true, numberOfLines: 2 })}
+              {renderImagePicker('parent_cnic_pic', 'CNIC Picture', !isEditMode)}
+            </View>
+          )}
+        </View>
+
+        {/* AUTHORIZED PERSON SECTION */}
+        <View style={styles.section}>
+          {renderSectionHeader('Authorized Person', '✓', 'auth')}
+          
+          {expandedSections.auth && (
+            <View style={styles.sectionContent}>
+              {renderInput('Authorized Person Name *', 'auth_name')}
+              {renderInput('CNIC Number (13 digits) *', 'auth_cnic', { keyboardType: 'numeric', maxLength: 13 })}
+              {renderInput('Contact Number *', 'auth_contact', { keyboardType: 'phone-pad' })}
+              
+              <View style={styles.pickerWrapper}>
+                <Picker
+                  selectedValue={formData.relationship}
+                  onValueChange={(value) => handleInputChange('relationship', value)}
+                  style={styles.picker}
+                >
+                  <Picker.Item label="Select Relationship *" value="" />
+                  <Picker.Item label="Mother" value="mother" />
+                  <Picker.Item label="Father" value="father" />
+                  <Picker.Item label="Sibling" value="sibling" />
+                  <Picker.Item label="Grandparent" value="grandparent" />
+                  <Picker.Item label="Other" value="other" />
+                </Picker>
+              </View>
+
+              {renderImagePicker('auth_cnic_pic', 'CNIC Picture', !isEditMode)}
+            </View>
+          )}
+        </View>
+
+        {/* CHILD SECTION */}
+        <View style={styles.section}>
+          {renderSectionHeader('Child Information', '🧒', 'child')}
+          
+          {expandedSections.child && (
+            <View style={styles.sectionContent}>
+              {renderInput("Child's Full Name *", 'child_name')}
+              
+              <Text style={styles.label}>Gender *</Text>
+              <View style={styles.radioGroup}>
+                <TouchableOpacity
+                  style={styles.radioItem}
+                  onPress={() => handleInputChange('child_gender', 'male')}
+                >
+                  <View style={[styles.radioCircle, formData.child_gender === 'male' && styles.radioSelected]}>
+                    {formData.child_gender === 'male' && <View style={styles.radioInner} />}
+                  </View>
+                  <Text style={styles.radioText}>Male</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={styles.radioItem}
+                  onPress={() => handleInputChange('child_gender', 'female')}
+                >
+                  <View style={[styles.radioCircle, formData.child_gender === 'female' && styles.radioSelected]}>
+                    {formData.child_gender === 'female' && <View style={styles.radioInner} />}
+                  </View>
+                  <Text style={styles.radioText}>Female</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.row}>
+                <View style={styles.halfWidth}>
+                  <Text style={styles.label}>Years *</Text>
+                  {renderInput('0', 'child_years', { keyboardType: 'numeric' })}
+                </View>
+                <View style={styles.halfWidth}>
+                  <Text style={styles.label}>Months</Text>
+                  {renderInput('0', 'child_months', { keyboardType: 'numeric' })}
+                </View>
+              </View>
+
+              {renderImagePicker('child_pic', 'Child Photo', !isEditMode)}
+            </View>
+          )}
+        </View>
+
+        {/* HELPER SECTION */}
+        <View style={styles.section}>
+          {renderSectionHeader('Helper Information', '👥', 'helper')}
+          
+          {expandedSections.helper && (
+            <View style={styles.sectionContent}>
+              <Text style={styles.label}>Will a helper accompany the child? *</Text>
+              <View style={styles.radioGroup}>
+                <TouchableOpacity
+                  style={styles.radioItem}
+                  onPress={() => handleInputChange('has_helper', 'yes')}
+                >
+                  <View style={[styles.radioCircle, formData.has_helper === 'yes' && styles.radioSelected]}>
+                    {formData.has_helper === 'yes' && <View style={styles.radioInner} />}
+                  </View>
+                  <Text style={styles.radioText}>Yes</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={styles.radioItem}
+                  onPress={() => handleInputChange('has_helper', 'no')}
+                >
+                  <View style={[styles.radioCircle, formData.has_helper === 'no' && styles.radioSelected]}>
+                    {formData.has_helper === 'no' && <View style={styles.radioInner} />}
+                  </View>
+                  <Text style={styles.radioText}>No</Text>
+                </TouchableOpacity>
+              </View>
+              
+              <Text style={styles.helperNote}>Only female helpers are permitted.</Text>
+
+              {showHelperFields && (
+                <View style={styles.conditionalFields}>
+                  {renderInput('Helper Name', 'helper_name')}
+                  {renderInput('CNIC or B-Form', 'helper_cnic', { keyboardType: 'numeric', maxLength: 13 })}
+                  {renderInput('Contact Number', 'helper_contact', { keyboardType: 'phone-pad' })}
+                  {renderImagePicker('helper_pic', 'Helper Photo')}
+                </View>
+              )}
+            </View>
+          )}
+        </View>
+
+        {/* HEALTH SECTION */}
+        <View style={styles.section}>
+          {renderSectionHeader('Health Information', '❤️', 'health')}
+          
+          {expandedSections.health && (
+            <View style={styles.sectionContent}>
+              <Text style={styles.label}>Does the child have allergies or medical conditions?</Text>
+              <View style={styles.radioGroup}>
+                <TouchableOpacity
+                  style={styles.radioItem}
+                  onPress={() => handleInputChange('has_allergies', 'yes')}
+                >
+                  <View style={[styles.radioCircle, formData.has_allergies === 'yes' && styles.radioSelected]}>
+                    {formData.has_allergies === 'yes' && <View style={styles.radioInner} />}
+                  </View>
+                  <Text style={styles.radioText}>Yes</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={styles.radioItem}
+                  onPress={() => handleInputChange('has_allergies', 'no')}
+                >
+                  <View style={[styles.radioCircle, formData.has_allergies === 'no' && styles.radioSelected]}>
+                    {formData.has_allergies === 'no' && <View style={styles.radioInner} />}
+                  </View>
+                  <Text style={styles.radioText}>No</Text>
+                </TouchableOpacity>
+              </View>
+
+              {showHealthFields && (
+                <View style={styles.conditionalFields}>
+                  {renderInput('Please specify medical conditions...', 'health_details', { 
+                    multiline: true, 
+                    numberOfLines: 3 
+                  })}
+                </View>
+              )}
+            </View>
+          )}
+        </View>
+
+        {/* BOOKING SECTION */}
+        <View style={styles.section}>
+          {renderSectionHeader('Booking Details', '📅', 'booking')}
+          
+          {expandedSections.booking && (
+            <View style={styles.sectionContent}>
+              <View style={styles.pickerWrapper}>
+                <Picker
+                  selectedValue={formData.hours_required}
+                  onValueChange={(value) => handleInputChange('hours_required', value)}
+                  style={styles.picker}
+                >
+                  <Picker.Item label="Select Duration *" value="" />
+                  <Picker.Item label="0.5 hours (1 slot)" value="0.5" />
+                  <Picker.Item label="1 hour (2 slots)" value="1" />
+                  <Picker.Item label="1.5 hours (3 slots)" value="1.5" />
+                  <Picker.Item label="2 hours (4 slots)" value="2" />
+                  <Picker.Item label="2.5 hours (5 slots)" value="2.5" />
+                  <Picker.Item label="3 hours (6 slots)" value="3" />
+                  <Picker.Item label="4 hours (8 slots)" value="4" />
+                  <Picker.Item label="5 hours (10 slots)" value="5" />
+                  <Picker.Item label="6 hours (12 slots)" value="6" />
+                  <Picker.Item label="7 hours (14 slots)" value="7" />
+                  <Picker.Item label="8 hours (16 slots)" value="8" />
+                </Picker>
+              </View>
+
+              <Text style={styles.label}>MNWC Caretaker Services *</Text>
+              <View style={styles.radioGroup}>
+                <TouchableOpacity
+                  style={styles.radioItem}
+                  onPress={() => handleInputChange('require_services', 'yes')}
+                >
+                  <View style={[styles.radioCircle, formData.require_services === 'yes' && styles.radioSelected]}>
+                    {formData.require_services === 'yes' && <View style={styles.radioInner} />}
+                  </View>
+                  <Text style={styles.radioText}>Yes</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={styles.radioItem}
+                  onPress={() => handleInputChange('require_services', 'no')}
+                >
+                  <View style={[styles.radioCircle, formData.require_services === 'no' && styles.radioSelected]}>
+                    {formData.require_services === 'no' && <View style={styles.radioInner} />}
+                  </View>
+                  <Text style={styles.radioText}>No</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* GUIDELINES */}
+        <View style={styles.guidelinesContainer}>
+          <Text style={styles.guidelinesTitle}>📋 Important Guidelines</Text>
+          {[
+            'MNWC does not provide meals. Please arrange meals for your child.',
+            'Only caretaking services are available at the facility.',
+            'All cleanliness, hygiene, and safety SOPs must be followed.',
+            'Child will be released only to the authorized person listed above.',
+          ].map((text, index) => (
+            <View key={index} style={styles.guidelineItem}>
+              <Text style={styles.guidelineBullet}>•</Text>
+              <Text style={styles.guidelineText}>{text}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* CONSENT */}
+        <TouchableOpacity
+          style={styles.consentContainer}
+          onPress={() => handleInputChange('consent', !formData.consent)}
+          activeOpacity={0.8}
+        >
+          <View style={[styles.checkbox, formData.consent && styles.checkboxChecked]}>
+            {formData.consent && <Text style={styles.checkmark}>✓</Text>}
+          </View>
+          <Text style={styles.consentText}>
+            I confirm that all information provided is accurate. I agree to comply with the rules and SOPs.
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
+
+      {/* SUBMIT BUTTON */}
+      <View style={styles.footer}>
+        <TouchableOpacity
+          style={[styles.submitButton, submitting && styles.disabledButton]}
+          onPress={handleSubmit}
+          disabled={submitting}
+          activeOpacity={0.8}
+        >
+          {submitting ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <>
+              <Text style={styles.submitButtonText}>
+                {isEditMode ? 'Update Booking' : 'Submit Booking Request'}
+              </Text>
+              <Text style={styles.submitButtonSubtext}>
+                {isEditMode ? 'Update your booking details' : 'Create new daycare booking'}
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* IMAGE PICKER MODAL */}
+      <Modal
+        visible={showImagePickerModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowImagePickerModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select Image Source</Text>
+            
+            <TouchableOpacity 
+              style={styles.modalOption} 
+              onPress={openCamera}
+              activeOpacity={0.7}
+            >
+              <View style={styles.modalOptionIconContainer}>
+                <Text style={styles.modalOptionIcon}>📷</Text>
+              </View>
+              <View style={styles.modalOptionTextContainer}>
+                <Text style={styles.modalOptionTitle}>Take Photo</Text>
+                <Text style={styles.modalOptionDescription}>Use camera to capture new photo</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.modalOption} 
+              onPress={openGallery}
+              activeOpacity={0.7}
+            >
+              <View style={styles.modalOptionIconContainer}>
+                <Text style={styles.modalOptionIcon}>🖼️</Text>
+              </View>
+              <View style={styles.modalOptionTextContainer}>
+                <Text style={styles.modalOptionTitle}>Choose from Gallery</Text>
+                <Text style={styles.modalOptionDescription}>Select existing photo from gallery</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.modalCancel}
+              onPress={() => setShowImagePickerModal(false)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
+  );
+};
+
+// ============ STYLES ============
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  header: {
+    backgroundColor: COLORS.primary,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    overflow: 'hidden',
+  },
+  headerGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    paddingTop: Platform.OS === 'ios' ? 16 : 16,
+    backgroundColor: COLORS.primary,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backIcon: {
+    fontSize: 20,
+    color: '#fff',
+    fontWeight: '600',
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#fff',
+    letterSpacing: 0.5,
+  },
+  headerSubtitle: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 2,
+  },
+  deleteButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteIcon: {
+    fontSize: 18,
+    color: '#fff',
+  },
+  progressBar: {
+    height: 4,
+    backgroundColor: COLORS.secondary,
+    width: '100%',
+  },
+  progressFill: {
+    height: 4,
+    backgroundColor: COLORS.primary,
+    borderTopRightRadius: 4,
+    borderBottomRightRadius: 4,
+  },
+  infoCardsScroll: {
+    maxHeight: 80,
+    marginTop: 12,
+  },
+  infoCardsContent: {
+    paddingHorizontal: 12,
+  },
+  infoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginHorizontal: 4,
+    borderRadius: 20,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 7, 117, 0.1)',
+  },
+  infoIcon: {
+    fontSize: 18,
+    marginRight: 8,
+  },
+  infoText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
+  infoSubtext: {
+    fontSize: 9,
+    color: COLORS.textLight,
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 100,
+  },
+  section: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    marginBottom: 12,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 7, 117, 0.1)',
+    overflow: 'hidden',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    backgroundColor: 'rgba(148, 7, 117, 0.02)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(148, 7, 117, 0.1)',
+  },
+  sectionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  sectionIcon: {
+    fontSize: 18,
+    marginRight: 10,
+  },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.primary,
+    letterSpacing: 0.3,
+  },
+  sectionToggle: {
+    fontSize: 20,
+    color: COLORS.primary,
+    fontWeight: '300',
+  },
+  sectionContent: {
+    padding: 16,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: 'rgba(148, 7, 117, 0.2)',
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 12,
+    marginBottom: 12,
+    backgroundColor: '#fff',
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
+    color: COLORS.text,
+  },
+  textArea: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  halfWidth: {
+    width: '48%',
+  },
+  label: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: COLORS.textLight,
+    marginBottom: 6,
+    marginLeft: 4,
+  },
+  required: {
+    color: COLORS.error,
+  },
+  radioGroup: {
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
+  radioItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 24,
+  },
+  radioCircle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+    marginRight: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  radioSelected: {
+    borderColor: COLORS.primary,
+  },
+  radioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.primary,
+  },
+  radioText: {
+    fontSize: 12,
+    color: COLORS.text,
+  },
+  helperNote: {
+    fontSize: 10,
+    color: COLORS.primary,
+    marginTop: -4,
+    marginBottom: 8,
+    fontStyle: 'italic',
+  },
+  pickerWrapper: {
+    borderWidth: 1,
+    borderColor: 'rgba(148, 7, 117, 0.2)',
+    borderRadius: 12,
+    marginBottom: 12,
+    backgroundColor: '#fff',
+    overflow: 'hidden',
+  },
+  picker: {
+    height: 45,
+    color: COLORS.text,
+  },
+  conditionalFields: {
+    marginTop: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(148, 7, 117, 0.1)',
+  },
+  imagePickerContainer: {
+    marginBottom: 12,
+  },
+  imagePicker: {
+    borderWidth: 1.5,
+    borderColor: 'rgba(148, 7, 117, 0.2)',
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    backgroundColor: 'rgba(148, 7, 117, 0.02)',
+    minHeight: 120,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  placeholderImage: {
+    alignItems: 'center',
+    padding: 16,
+  },
+  placeholderIcon: {
+    fontSize: 24,
+    marginBottom: 4,
+    color: COLORS.primary,
+  },
+  placeholderText: {
+    fontSize: 11,
+    color: COLORS.textLight,
+    marginBottom: 2,
+  },
+  placeholderSubtext: {
+    fontSize: 9,
+    color: COLORS.textLight,
+  },
+  previewImage: {
+    width: '100%',
+    height: 140,
+    resizeMode: 'cover',
+  },
+  guidelinesContainer: {
+    backgroundColor: 'rgba(148, 7, 117, 0.03)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.primary,
+  },
+  guidelinesTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.primary,
+    marginBottom: 10,
+  },
+  guidelineItem: {
+    flexDirection: 'row',
+    marginBottom: 6,
+  },
+  guidelineBullet: {
+    fontSize: 11,
+    color: COLORS.primary,
+    marginRight: 8,
+    width: 10,
+  },
+  guidelineText: {
+    flex: 1,
+    fontSize: 10,
+    color: COLORS.text,
+    lineHeight: 14,
+  },
+  consentContainer: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(16, 185, 129, 0.05)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.2)',
+    alignItems: 'center',
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: COLORS.success,
+    marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: COLORS.success,
+  },
+  checkmark: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  consentText: {
+    flex: 1,
+    fontSize: 11,
+    color: '#065f46',
+    lineHeight: 16,
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(148, 7, 117, 0.1)',
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  submitButton: {
+    backgroundColor: COLORS.primary,
+    padding: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  disabledButton: {
+    opacity: 0.6,
+  },
+  submitButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+  submitButtonSubtext: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 10,
+    marginTop: 2,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.primary,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(148, 7, 117, 0.1)',
+  },
+  modalOptionIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(148, 7, 117, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  modalOptionIcon: {
+    fontSize: 24,
+  },
+  modalOptionTextContainer: {
+    flex: 1,
+  },
+  modalOptionTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.text,
+    marginBottom: 2,
+  },
+  modalOptionDescription: {
+    fontSize: 11,
+    color: COLORS.textLight,
+  },
+  modalCancel: {
+    marginTop: 16,
+    padding: 14,
+    backgroundColor: 'rgba(148, 7, 117, 0.05)',
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    fontSize: 14,
+    color: COLORS.primary,
+    fontWeight: '500',
+  },
+});
+
+export default DaycareBookingScreen;

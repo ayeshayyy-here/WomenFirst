@@ -46,39 +46,48 @@ const DigitalSkillsTracking = () => {
       count: '260',
       status: 'completed', 
       date: null, 
-      icon: 'account-check',
+      icon: 'account',
       description: 'Application submitted successfully'
     },
     { 
       id: 2, 
-      title: 'Document\nVerification', 
+      title: 'Shortlisted', 
       count: '0',
       status: 'pending', 
       date: null, 
-      icon: 'file-document-check',
+      icon: 'account-check',
       description: 'Documents under verification'
     },
     { 
       id: 3, 
-      title: 'Skill\nAssessment', 
+      title: 'Laptop\nProvision', 
       count: '0',
       status: 'pending', 
       date: null, 
       icon: 'clipboard-text',
-      description: 'Skill assessment pending'
+      description: ' pending'
     },
     { 
       id: 4, 
-      title: 'Training\nAllocated', 
+      title: 'Stipend', 
       count: '0',
       status: 'pending', 
       date: null, 
       icon: 'calendar-check',
-      description: 'Awaiting training allocation'
+      description: 'Awaiting'
     },
     { 
       id: 5, 
-      title: 'Certificate\nIssued', 
+      title: 'Assessment', 
+      count: '0',
+      status: 'pending', 
+      date: null, 
+      icon: 'certificate',
+      description: 'pending'
+    },
+      { 
+      id: 6, 
+      title: 'Certification', 
       count: '0',
       status: 'pending', 
       date: null, 
@@ -745,7 +754,7 @@ const DigitalSkillsTracking = () => {
             <View style={styles.headerContent}>
               <Icon name="progress-check" size={28} color="white" />
               <View style={styles.headerText}>
-                <Text style={styles.headerTitle}>SHE Threads Tracking</Text>
+                <Text style={styles.headerTitle}>SEHR Digital Skills Tracking</Text>
                 <Text style={styles.headerSubtitle}>Digital Skill Training Registration</Text>
               </View>
             </View>
@@ -853,12 +862,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerText: {
+    
     marginLeft: 12,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: 'rgba(255,255,255,0.9)',
+    marginTop: 20,
   },
   headerSubtitle: {
     fontSize: 11,
@@ -981,7 +992,7 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   stepLabel: {
-    fontSize: 10,
+    fontSize: 8,
     fontWeight: 'bold',
     color: 'rgba(255,255,255,0.7)',
     textAlign: 'center',
