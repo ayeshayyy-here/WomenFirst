@@ -23,7 +23,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 // ============ API CONFIGURATION ============
-const API_BASE_URL = 'https://regions-jade-beatles-sessions.trycloudflare.com/api';
+const API_BASE_URL = 'https://mnwc-wdd.punjab.gov.pk/api';
 
 // ============ THEME CONSTANTS ============
 const COLORS = {
@@ -67,6 +67,7 @@ const COLORS = {
 };
 
 const SeminarBookingScreen = ({ route, navigation }) => {
+   const { user_id, user } = route.params || {};
   // ============ STATE MANAGEMENT ============
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -517,6 +518,7 @@ const SeminarBookingScreen = ({ route, navigation }) => {
       const apiFormData = new FormData();
       
       const textFields = {
+         user_id: user_id, 
         applicant_name: formData.applicant_name,
         cnic: formData.cnic,
         contact: formData.contact,

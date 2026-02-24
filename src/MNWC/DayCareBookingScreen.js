@@ -23,7 +23,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 // ============ API CONFIGURATION ============
-const API_BASE_URL = 'https://regions-jade-beatles-sessions.trycloudflare.com/api';
+const API_BASE_URL = 'https://mnwc-wdd.punjab.gov.pk/api';
 
 // ============ THEME CONSTANTS ============
 const COLORS = {
@@ -51,6 +51,7 @@ const COLORS = {
 };
 
 const DaycareBookingScreen = ({ route, navigation }) => {
+  const { user_id, user } = route.params || {};
   // ============ STATE MANAGEMENT ============
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -104,6 +105,16 @@ const DaycareBookingScreen = ({ route, navigation }) => {
 
   // Load user profile from sync storage
   useEffect(() => {
+     console.log('Received user_id in daycareform:', user_id);
+    console.log('Received user:', user);
+      if (!user_id) {
+      Alert.alert(
+        'Error',
+        'User ID not found. Please go back and try again.',
+        [{ text: 'OK', onPress: () => navigation.goBack() }]
+      );
+      return;
+    }
     loadUserProfile();
     if (booking) {
       loadBookingData();
@@ -507,6 +518,7 @@ const DaycareBookingScreen = ({ route, navigation }) => {
       
       // Append all text fields
       const textFields = {
+        user_id: user_id, 
         parent_name: formData.parent_name,
         parent_cnic: formData.parent_cnic,
         parent_contact: formData.parent_contact,

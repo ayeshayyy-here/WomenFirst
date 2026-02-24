@@ -50,13 +50,23 @@ import {
   faParking,
   faAccessibleIcon
 } from '@fortawesome/free-solid-svg-icons';
-import AutoRegistrationMNWC from './components/AutoRegistrationMNWC';
+import AutoRegistrationMNWC from '../components/AutoRegistrationMNWC';
 const { width, height } = Dimensions.get('window');
 
 const DashboardMNWC = ({ navigation }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedFacility, setSelectedFacility] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [showAutoRegModal, setShowAutoRegModal] = useState(true);
+
+  // Handle user ready from AutoRegistration
+  const handleUserReady = (user) => {
+    console.log('User is ready:', user);
+    setCurrentUser(user);
+    // Store user in context or state for global access
+    // You can also store in AsyncStorage if needed
+  };
 
   // Facility Icons Mapping
   const getFacilityIcon = (id) => {
@@ -289,57 +299,89 @@ const DashboardMNWC = ({ navigation }) => {
     setSelectedFacility(null);
   };
 
- const handleDirectNavigation = (facilityId) => {
-  closeModal();
-  // Demo screen names with comments
-  
-  switch(facilityId) {
-    case 'daycare':
-      console.log('Navigating to DayCare Booking Screen');
-      navigation.navigate('DayCareBookingScreen');
-      break;
-      
-    case 'gym':
-      console.log('Navigating to Gym Membership Screen');
-      navigation.navigate('GymBookingScreen');
-      break;
-      
-    case 'library':
-      console.log('Navigating to Library Access Screen');
-      navigation.navigate('LibraryAccessBookingScreen');
-      break;
-      
-    case 'office':
-      console.log('Navigating to Office Space Screen');
-      navigation.navigate('OfficeBookingScreen');
-      break;
-      
-    case 'training':
-      console.log('Navigating to Training Room Screen');
-      navigation.navigate('TrainingBookingScreen');
-      break;
-      
-    case 'seminar':
-      console.log('Navigating to Seminar Hall Screen');
-      navigation.navigate('SeminarBookingScreen');
-      break;
-      
-    case 'auditorium':
-      console.log('Navigating to Auditorium Screen');
-      navigation.navigate('AuditoriumBookingScreen');
-      break;
-      
-    case 'creative':
-      console.log('Navigating to Creative Studio Screen');
-      navigation.navigate('StudioBookingScreen');
-      break;
-      
-    default:
-      console.log(`No screen found for ${facilityId}`);
-  }
-  
-  closeModal(); // Close modal after navigation
-};
+  const handleDirectNavigation = (facilityId) => {
+    closeModal();
+    
+    // Check if user is ready
+    if (!currentUser) {
+      console.log('User not ready yet, waiting...');
+      // You might want to show a loading indicator or retry
+      return;
+    }
+
+    console.log('Navigating with user_id:', currentUser.id);
+    
+    switch(facilityId) {
+      case 'daycare':
+        console.log('Navigating to DayCare Booking Screen');
+        navigation.navigate('DayCareBookingScreen', { 
+          user_id: currentUser.id,
+          user: currentUser 
+        });
+        break;
+        
+      case 'gym':
+        console.log('Navigating to Gym Membership Screen');
+        navigation.navigate('GymBookingScreen', { 
+          user_id: currentUser.id,
+          user: currentUser 
+        });
+        break;
+        
+      case 'library':
+        console.log('Navigating to Library Access Screen');
+        navigation.navigate('LibraryAccessBookingScreen', { 
+          user_id: currentUser.id,
+          user: currentUser 
+        });
+        break;
+        
+      case 'office':
+        console.log('Navigating to Office Space Screen');
+        navigation.navigate('OfficeBookingScreen', { 
+          user_id: currentUser.id,
+          user: currentUser 
+        });
+        break;
+        
+      case 'training':
+        console.log('Navigating to Training Room Screen');
+        navigation.navigate('TrainingBookingScreen', { 
+          user_id: currentUser.id,
+          user: currentUser 
+        });
+        break;
+        
+      case 'seminar':
+        console.log('Navigating to Seminar Hall Screen');
+        navigation.navigate('SeminarBookingScreen', { 
+          user_id: currentUser.id,
+          user: currentUser 
+        });
+        break;
+        
+      case 'auditorium':
+        console.log('Navigating to Auditorium Screen');
+        navigation.navigate('AuditoriumBookingScreen', { 
+          user_id: currentUser.id,
+          user: currentUser 
+        });
+        break;
+        
+      case 'creative':
+        console.log('Navigating to Creative Studio Screen');
+        navigation.navigate('StudioBookingScreen', { 
+          user_id: currentUser.id,
+          user: currentUser 
+        });
+        break;
+        
+      default:
+        console.log(`No screen found for ${facilityId}`);
+    }
+    
+    closeModal();
+  };
 
   const handleTapForDetails = (facility) => {
     // This opens the modal for details
@@ -357,6 +399,7 @@ const DashboardMNWC = ({ navigation }) => {
           <TouchableOpacity 
             onPress={() => handleDirectNavigation(facility.id)}
             activeOpacity={0.7}
+            disabled={!currentUser} // Disable if user not ready
           >
             <View style={styles.cardHeader}>
               <View style={styles.cardBadgeContainer}>
@@ -396,8 +439,11 @@ const DashboardMNWC = ({ navigation }) => {
             <TouchableOpacity 
               style={[styles.openButton, { backgroundColor: facility.titleColor }]}
               onPress={() => handleDirectNavigation(facility.id)}
+              disabled={!currentUser}
             >
-              <Text style={styles.openButtonText}>Tap to Open Form</Text>
+              <Text style={styles.openButtonText}>
+                {currentUser ? 'Tap to Open Form' : 'Loading...'}
+              </Text>
               <FontAwesomeIcon icon={faChevronRight} size={12} color="#fff" />
             </TouchableOpacity>
           </View>
@@ -413,7 +459,6 @@ const DashboardMNWC = ({ navigation }) => {
     const modalGradient = isCreative ? ['#8B5CF6', '#7C3AED'] : ['#06B6D4', '#0891B2'];
 
     return (
-      
       <Modal
         animationType="slide"
         transparent={true}
@@ -569,7 +614,7 @@ const DashboardMNWC = ({ navigation }) => {
                 <TouchableOpacity 
                   style={[styles.primaryButton, isCreative && styles.disabledButton]}
                   onPress={() => handleDirectNavigation(selectedFacility.id)}
-                  disabled={isCreative}
+                  disabled={isCreative || !currentUser}
                 >
                   <LinearGradient
                     colors={modalGradient}
@@ -577,7 +622,7 @@ const DashboardMNWC = ({ navigation }) => {
                   >
                     <FontAwesomeIcon icon={faCalendarAlt} size={18} color="#fff" />
                     <Text style={styles.buttonText}>
-                      {isCreative ? 'Coming Soon' : 'Tap to open Form'}
+                      {isCreative ? 'Coming Soon' : currentUser ? 'Tap to open Form' : 'Loading...'}
                     </Text>
                     <FontAwesomeIcon icon={faArrowRight} size={16} color="#fff" />
                   </LinearGradient>
@@ -598,82 +643,90 @@ const DashboardMNWC = ({ navigation }) => {
   };
 
   return (
-    
     <SafeAreaView style={styles.container}>
-       <AutoRegistration 
-      onUserReady={handleUserReady}
-      showCredentialsModal={true}
-      autoCloseDelay={5000}
-    ></AutoRegistration>
-      <StatusBar backgroundColor="#036677" barStyle="light-content" />
-      
-      {/* Header */}
-      <LinearGradient colors={['#036677', '#076c86']} style={styles.header}>
-        <View style={styles.headerContent}>
-          <View style={styles.logoSection}>
-            <View style={styles.logoIcon}>
-              <Text style={styles.logoText}>MN</Text>
-            </View>
-            <View style={styles.headerTitleContainer}>
-              <Text style={styles.headerTitle}>Maryam Nawaz Women Complex</Text>
-            </View>
-          </View>
-
-          <View style={styles.headerNav}>
-            {isLoggedIn ? (
-              <>
-                <TouchableOpacity style={styles.profileButton}>
-                  <LinearGradient
-                    colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)']}
-                    style={styles.profileGradient}
-                  >
-                    <Text style={styles.profileInitials}>JD</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <TouchableOpacity style={styles.loginButton}>
-                <FontAwesomeIcon icon={faSignInAlt} size={16} color="#036677" />
-                <Text style={styles.loginText}>Login</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-      </LinearGradient>
-
-      {/* Main Content */}
-      <ScrollView 
-        style={styles.mainContent} 
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.mainContentContainer}
+      <AutoRegistrationMNWC 
+        onUserReady={handleUserReady}
+        showCredentialsModal={showAutoRegModal}
+        autoCloseDelay={500}
       >
-        <View style={styles.pageHeader}>
-          <View>
-            <Text style={styles.pageTitle}>Facility Dashboard</Text>
-            <Text style={styles.pageSubtitle}>
-              Quickly access registration and booking for all facilities.
-            </Text>
+        {/* The children will be rendered after AutoRegistration initializes */}
+        <StatusBar backgroundColor="#036677" barStyle="light-content" />
+        
+        {/* Header */}
+        <LinearGradient colors={['#036677', '#076c86']} style={styles.header}>
+          <View style={styles.headerContent}>
+            <View style={styles.logoSection}>
+              <View style={styles.logoIcon}>
+                <Text style={styles.logoText}>MN</Text>
+              </View>
+              <View style={styles.headerTitleContainer}>
+                <Text style={styles.headerTitle}>Maryam Nawaz Women Complex</Text>
+                {currentUser && (
+                  <Text style={styles.headerUserText}>
+                    Welcome, {currentUser.name?.split(' ')[0] || 'User'}
+                  </Text>
+                )}
+              </View>
+            </View>
+
+            <View style={styles.headerNav}>
+              {isLoggedIn && currentUser ? (
+                <>
+                  <TouchableOpacity style={styles.profileButton}>
+                    <LinearGradient
+                      colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)']}
+                      style={styles.profileGradient}
+                    >
+                      <Text style={styles.profileInitials}>
+                        {currentUser.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'JD'}
+                      </Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <TouchableOpacity style={styles.loginButton}>
+                  <FontAwesomeIcon icon={faSignInAlt} size={16} color="#036677" />
+                  <Text style={styles.loginText}>Login</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
-          <View style={styles.statsBadge}>
-            <FontAwesomeIcon icon={faBuilding} size={8} color="#06B6D4" />
-            <Text style={styles.statsBadgeText}>8 Facilities</Text>
+        </LinearGradient>
+
+        {/* Main Content */}
+        <ScrollView 
+          style={styles.mainContent} 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.mainContentContainer}
+        >
+          <View style={styles.pageHeader}>
+            <View>
+              <Text style={styles.pageTitle}>Facility Dashboard</Text>
+              <Text style={styles.pageSubtitle}>
+                Quickly access registration and booking for all facilities.
+              </Text>
+            </View>
+            <View style={styles.statsBadge}>
+              <FontAwesomeIcon icon={faBuilding} size={8} color="#06B6D4" />
+              <Text style={styles.statsBadgeText}>8 Facilities</Text>
+            </View>
           </View>
-        </View>
 
-        <View style={styles.facilitiesGrid}>
-          {facilities.map(renderFacilityCard)}
-        </View>
-      </ScrollView>
+          <View style={styles.facilitiesGrid}>
+            {facilities.map(renderFacilityCard)}
+          </View>
+        </ScrollView>
 
-      {/* Footer */}
-      <LinearGradient colors={['#036677', '#076c86']} style={styles.footer}>
-        <Text style={styles.footerText}>
-          © {new Date().getFullYear()} Maryam Nawaz Women Complex
-        </Text>
-      </LinearGradient>
+        {/* Footer */}
+        <LinearGradient colors={['#036677', '#076c86']} style={styles.footer}>
+          <Text style={styles.footerText}>
+            © {new Date().getFullYear()} Maryam Nawaz Women Complex
+          </Text>
+        </LinearGradient>
 
-      {/* Modal */}
-      {renderModal()}
+        {/* Modal */}
+        {renderModal()}
+      </AutoRegistrationMNWC>
     </SafeAreaView>
   );
 };
@@ -731,6 +784,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#fff',
     letterSpacing: -0.2,
+  },
+  headerUserText: {
+    fontSize: 10,
+    fontWeight: '400',
+    color: 'rgba(255,255,255,0.9)',
+    marginTop: 2,
   },
   headerSubtitle: {
     fontSize: 14,
@@ -800,7 +859,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   pageSubtitle: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#6B7280',
     marginTop: 4,
   },

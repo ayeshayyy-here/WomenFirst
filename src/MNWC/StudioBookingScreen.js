@@ -46,7 +46,8 @@ const COLORS = {
   }
 };
 
-const StudioBookingScreen = ({ navigation }) => {
+const StudioBookingScreen = ({ navigation, route }) => {
+     const { user_id, user } = route.params || {};
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.3)).current;

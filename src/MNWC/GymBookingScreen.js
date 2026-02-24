@@ -23,7 +23,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 // ============ API CONFIGURATION ============
-const API_BASE_URL = 'https://systems-stop-webpage-muscles.trycloudflare.com/api';
+const API_BASE_URL = 'https://mnwc-wdd.punjab.gov.pk/api';
 
 // ============ THEME CONSTANTS ============
 const COLORS = {
@@ -54,6 +54,7 @@ const COLORS = {
 };
 
 const GymBookingScreen = ({ route, navigation }) => {
+     const { user_id, user } = route.params || {};
   // ============ STATE MANAGEMENT ============
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -90,6 +91,8 @@ const GymBookingScreen = ({ route, navigation }) => {
 
   // Load user profile from sync storage
   useEffect(() => {
+     console.log('Received user_id in gymform:', user_id);
+    console.log('Received user:', user);
     loadUserProfile();
     if (booking) {
       loadBookingData();
@@ -463,6 +466,7 @@ const GymBookingScreen = ({ route, navigation }) => {
       const apiFormData = new FormData();
       
       const textFields = {
+         user_id: user_id, 
         applicant_name: formData.applicant_name,
         cnic: formData.cnic,
         contact: formData.contact,

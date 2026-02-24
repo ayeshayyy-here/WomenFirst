@@ -20,7 +20,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const { width } = Dimensions.get('window');
 
-const API_BASE_URL = 'https://regions-jade-beatles-sessions.trycloudflare.com/api';
+const API_BASE_URL = 'https://mnwc-wdd.punjab.gov.pk/api';
 
 const COLORS = {
   primary: '#2563eb',
