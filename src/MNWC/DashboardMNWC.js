@@ -10,7 +10,8 @@ import {
   StatusBar,
   Dimensions,
   SafeAreaView,
-  Platform
+  Platform,
+  RefreshControl,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
@@ -48,10 +49,19 @@ import {
   faWifi,
   faCoffee,
   faParking,
-  faAccessibleIcon
+  faAccessibleIcon,
+  faChartLine,
+  faHistory,
+  faFilter,
+  faEye,
+  faTimesCircle,
+  faCheckDouble,
+  faSpinner,
 } from '@fortawesome/free-solid-svg-icons';
 import AutoRegistrationMNWC from '../components/AutoRegistrationMNWC';
+
 const { width, height } = Dimensions.get('window');
+const API_BASE_URL = 'https://karma-roots-rankings-handhelds.trycloudflare.com/api';
 
 const DashboardMNWC = ({ navigation }) => {
   const [modalVisible, setModalVisible] = useState(false);
@@ -59,13 +69,73 @@ const DashboardMNWC = ({ navigation }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
   const [showAutoRegModal, setShowAutoRegModal] = useState(true);
+  const [bookingStats, setBookingStats] = useState(null);
+  const [loadingStats, setLoadingStats] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showAllBookingsModal, setShowAllBookingsModal] = useState(false);
+  const [selectedTab, setSelectedTab] = useState('all');
+
+  // Fetch booking stats when user is ready
+  useEffect(() => {
+    if (currentUser) {
+      fetchBookingStats();
+    }
+  }, [currentUser]);
+
+  const fetchBookingStats = async () => {
+    if (!currentUser) return;
+    
+    setLoadingStats(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/user/booking-counts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({ user_id: currentUser.id }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setBookingStats(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching booking stats:', error);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    fetchBookingStats().finally(() => setRefreshing(false));
+  }, [currentUser]);
 
   // Handle user ready from AutoRegistration
   const handleUserReady = (user) => {
     console.log('User is ready:', user);
     setCurrentUser(user);
-    // Store user in context or state for global access
-    // You can also store in AsyncStorage if needed
+  };
+
+  // const viewAllBookings = () => {
+  //   setShowAllBookingsModal(true);
+  // };
+
+  const viewAllBookings = () => {
+  navigation.navigate('MyBookings', {
+    user_id: currentUser.id,
+    user: currentUser,
+  });
+};
+  const viewFacilityBookings = (facilityId) => {
+    setShowAllBookingsModal(false);
+    navigation.navigate('FacilityBookingsScreen', {
+      facility: facilityId,
+      user_id: currentUser.id,
+      user: currentUser,
+    });
   };
 
   // Facility Icons Mapping
@@ -92,7 +162,6 @@ const DashboardMNWC = ({ navigation }) => {
       gradient: ['#fdf2f8', '#fbcfe8'],
       titleColor: '#940775',
       icon: faUserPlus,
-      stats: { bookings: 0, available: 0 },
       modalData: {
         about: 'Professional childcare services providing a safe and nurturing environment for children while parents focus on their work and development.',
         hours: '9:00 AM – 5:00 PM',
@@ -116,7 +185,6 @@ const DashboardMNWC = ({ navigation }) => {
       gradient: ['#f9faeb', '#ddf176'],
       titleColor: '#ae6c09',
       icon: faDumbbell,
-      stats: { bookings: 0, available: 0 },
       modalData: {
         about: 'State-of-the-art fitness center equipped with modern equipment and professional trainers to support your health and wellness journey.',
         hours: '6:00 AM – 10:00 PM',
@@ -144,7 +212,6 @@ const DashboardMNWC = ({ navigation }) => {
       gradient: ['#f3e8ff', '#ddd6fe'],
       titleColor: '#51217b',
       icon: faBook,
-      stats: { bookings: 0, available: 0 },
       modalData: {
         about: 'Comprehensive library with extensive collection of books, journals, and digital resources to support learning and research.',
         hours: '8:00 AM – 8:00 PM',
@@ -172,7 +239,6 @@ const DashboardMNWC = ({ navigation }) => {
       gradient: ['#f1f7f0', '#e9f1eb'],
       titleColor: '#0f551c',
       icon: faChair,
-      stats: { bookings: 0, available: 0 },
       modalData: {
         about: 'The office space is intended for one-to-one meetings or small professional discussions. A maximum of 4 additional persons can be accommodated along with the applicant.',
         hours: '9:00 AM – 6:00 PM',
@@ -197,7 +263,6 @@ const DashboardMNWC = ({ navigation }) => {
        gradient: ['#fdf7f7', '#dedada'],
       titleColor: '#6b0606',
       icon: faChalkboardTeacher,
-      stats: { bookings: 0, available: 0 },
       modalData: {
         about: 'The training room is intended for workshops, trainings, and capacity-building sessions.',
         capacity: 'Maximum Capacity: 30 participants',
@@ -222,7 +287,6 @@ const DashboardMNWC = ({ navigation }) => {
        gradient: ['#cffafe', '#67e8f9'],
       titleColor: '#0891b2',
       icon: faTheaterMasks,
-      stats: { bookings: 0, available: 0 },
       modalData: {
         about: 'The seminar room is intended for seminars, panel discussions, lectures, and professional knowledge-sharing sessions.',
         capacity: 'Maximum Capacity: 70 participants',
@@ -247,7 +311,6 @@ const DashboardMNWC = ({ navigation }) => {
       gradient: ['#f9f1f1', '#f7f4f4'],
       titleColor: '#560101',
       icon: faMusic,
-      stats: { bookings: 0, available: 0 },
       modalData: {
         about: 'The auditorium is intended for conferences, conventions, large seminars, cultural programs, and official events.',
         capacity: 'Maximum Capacity: 400 participants',
@@ -272,7 +335,6 @@ const DashboardMNWC = ({ navigation }) => {
       gradient: ['#F3E8FF', '#EDE9FE'],
       titleColor: '#372359',
       icon: faMicrophone,
-      stats: { bookings: 0, available: 0 },
       modalData: {
         about: 'State-of-the-art creative studio equipped with professional recording equipment for podcasts, voiceovers, interviews, and creative content production.',
         hours: 'Coming Soon',
@@ -305,7 +367,6 @@ const DashboardMNWC = ({ navigation }) => {
     // Check if user is ready
     if (!currentUser) {
       console.log('User not ready yet, waiting...');
-      // You might want to show a loading indicator or retry
       return;
     }
 
@@ -313,69 +374,53 @@ const DashboardMNWC = ({ navigation }) => {
     
     switch(facilityId) {
       case 'daycare':
-        console.log('Navigating to DayCare Booking Screen');
         navigation.navigate('DayCareBookingScreen', { 
           user_id: currentUser.id,
           user: currentUser 
         });
         break;
-        
       case 'gym':
-        console.log('Navigating to Gym Membership Screen');
         navigation.navigate('GymBookingScreen', { 
           user_id: currentUser.id,
           user: currentUser 
         });
         break;
-        
       case 'library':
-        console.log('Navigating to Library Access Screen');
         navigation.navigate('LibraryAccessBookingScreen', { 
           user_id: currentUser.id,
           user: currentUser 
         });
         break;
-        
       case 'office':
-        console.log('Navigating to Office Space Screen');
         navigation.navigate('OfficeBookingScreen', { 
           user_id: currentUser.id,
           user: currentUser 
         });
         break;
-        
       case 'training':
-        console.log('Navigating to Training Room Screen');
         navigation.navigate('TrainingBookingScreen', { 
           user_id: currentUser.id,
           user: currentUser 
         });
         break;
-        
       case 'seminar':
-        console.log('Navigating to Seminar Hall Screen');
         navigation.navigate('SeminarBookingScreen', { 
           user_id: currentUser.id,
           user: currentUser 
         });
         break;
-        
       case 'auditorium':
-        console.log('Navigating to Auditorium Screen');
         navigation.navigate('AuditoriumBookingScreen', { 
           user_id: currentUser.id,
           user: currentUser 
         });
         break;
-        
       case 'creative':
-        console.log('Navigating to Creative Studio Screen');
         navigation.navigate('StudioBookingScreen', { 
           user_id: currentUser.id,
           user: currentUser 
         });
         break;
-        
       default:
         console.log(`No screen found for ${facilityId}`);
     }
@@ -384,8 +429,81 @@ const DashboardMNWC = ({ navigation }) => {
   };
 
   const handleTapForDetails = (facility) => {
-    // This opens the modal for details
     openModal(facility);
+  };
+
+  // Render Tracking Bar Component
+  const renderTrackingBar = () => {
+    if (!bookingStats) return null;
+
+    const total = bookingStats.total_bookings || 0;
+    const pending = bookingStats.pending || 0;
+    const approved = bookingStats.approved || 0;
+
+    return (
+      <LinearGradient
+        colors={['#ffffff', '#f8f9fa']}
+        style={styles.trackingBar}
+      >
+        <View style={styles.trackingHeader}>
+          <View style={styles.trackingTitleContainer}>
+            <FontAwesomeIcon icon={faChartLine} size={16} color="#036677" />
+            <Text style={styles.trackingTitle}>Your Bookings Overview</Text>
+          </View>
+          <TouchableOpacity 
+            style={styles.viewAllButton}
+            onPress={viewAllBookings}
+          >
+            <Text style={styles.viewAllText}>View All</Text>
+            <FontAwesomeIcon icon={faChevronRight} size={10} color="#036677" />
+          </TouchableOpacity>
+        </View>
+
+      
+
+        {/* Facility-wise counts */}
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          style={styles.facilityStatsScroll}
+        >
+          {Object.entries(bookingStats.counts).map(([key, count]) => (
+            <TouchableOpacity
+              key={key}
+              style={styles.facilityStatItem}
+              onPress={() => viewFacilityBookings(key)}
+            >
+              <View style={[styles.facilityStatIcon, { backgroundColor: getFacilityColor(key) }]}>
+                <FontAwesomeIcon 
+                  icon={getFacilityIcon(key)} 
+                  size={16} 
+                  color="#fff" 
+                />
+              </View>
+              <View>
+                <Text style={styles.facilityStatCount}>{count}</Text>
+                <Text style={styles.facilityStatLabel}>
+                  {key.charAt(0).toUpperCase() + key.slice(1)}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </LinearGradient>
+    );
+  };
+
+  const getFacilityColor = (facilityId) => {
+    const colors = {
+      daycare: '#940775',
+      gym: '#ae6c09',
+      library: '#51217b',
+      office: '#0f551c',
+      training: '#6b0606',
+      seminar: '#0891b2',
+      auditorium: '#560101',
+    };
+    return colors[facilityId] || '#6B7280';
   };
 
   const renderFacilityCard = (facility) => (
@@ -395,20 +513,21 @@ const DashboardMNWC = ({ navigation }) => {
         style={styles.cardGradient}
       >
         <View style={[styles.cardBorder, { borderColor: facility.gradient[1] }]}>
-          {/* Make the entire top section tappable for direct navigation */}
           <TouchableOpacity 
             onPress={() => handleDirectNavigation(facility.id)}
             activeOpacity={0.7}
-            disabled={!currentUser} // Disable if user not ready
+            disabled={!currentUser}
           >
             <View style={styles.cardHeader}>
               <View style={styles.cardBadgeContainer}>
                 <View style={[styles.cardBadge, { backgroundColor: facility.titleColor }]}>
                   <Text style={styles.cardBadgeText}>{facility.badge}</Text>
                 </View>
-                {facility.stats.available > 0 && (
-                  <View style={styles.availableBadge}>
-                    <Text style={styles.availableText}>{facility.stats.available} slots</Text>
+                {bookingStats?.counts[facility.id] > 0 && (
+                  <View style={[styles.countBadge, { backgroundColor: facility.titleColor }]}>
+                    <Text style={styles.countBadgeText}>
+                      {bookingStats.counts[facility.id]}
+                    </Text>
                   </View>
                 )}
               </View>
@@ -435,7 +554,6 @@ const DashboardMNWC = ({ navigation }) => {
               <Text style={styles.tapToOpen}>Tap for details</Text>
             </TouchableOpacity>
             
-            {/* Open button now navigates directly */}
             <TouchableOpacity 
               style={[styles.openButton, { backgroundColor: facility.titleColor }]}
               onPress={() => handleDirectNavigation(facility.id)}
@@ -450,6 +568,121 @@ const DashboardMNWC = ({ navigation }) => {
         </View>
       </LinearGradient>
     </View>
+  );
+
+  // All Bookings Modal
+  const renderAllBookingsModal = () => (
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={showAllBookingsModal}
+      onRequestClose={() => setShowAllBookingsModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <LinearGradient
+            colors={['#036677', '#076c86']}
+            style={styles.modalHeader}
+          >
+            <View style={styles.modalHeaderContent}>
+              <FontAwesomeIcon icon={faHistory} size={20} color="#fff" />
+              <Text style={styles.modalHeaderText}>All Bookings</Text>
+            </View>
+            <TouchableOpacity onPress={() => setShowAllBookingsModal(false)} style={styles.modalCloseButton}>
+              <FontAwesomeIcon icon={faTimesCircle} size={24} color="#fff" />
+            </TouchableOpacity>
+          </LinearGradient>
+
+          <View style={styles.modalBody}>
+            {/* Summary Cards */}
+            <View style={styles.summaryContainer}>
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryNumber}>{bookingStats?.total_bookings || 0}</Text>
+                <Text style={styles.summaryLabel}>Total</Text>
+              </View>
+              <View style={styles.summaryCard}>
+                <Text style={[styles.summaryNumber, { color: '#D97706' }]}>
+                  {bookingStats?.pending || 0}
+                </Text>
+                <Text style={styles.summaryLabel}>Pending</Text>
+              </View>
+              <View style={styles.summaryCard}>
+                <Text style={[styles.summaryNumber, { color: '#059669' }]}>
+                  {bookingStats?.approved || 0}
+                </Text>
+                <Text style={styles.summaryLabel}>Approved</Text>
+              </View>
+            </View>
+
+            {/* Facility Tabs */}
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              style={styles.tabContainer}
+            >
+              <TouchableOpacity
+                style={[styles.tab, selectedTab === 'all' && styles.activeTab]}
+                onPress={() => setSelectedTab('all')}
+              >
+                <Text style={[styles.tabText, selectedTab === 'all' && styles.activeTabText]}>
+                  All Facilities
+                </Text>
+              </TouchableOpacity>
+              {Object.keys(bookingStats?.counts || {}).map((facility) => (
+                <TouchableOpacity
+                  key={facility}
+                  style={[styles.tab, selectedTab === facility && styles.activeTab]}
+                  onPress={() => setSelectedTab(facility)}
+                >
+                  <Text style={[styles.tabText, selectedTab === facility && styles.activeTabText]}>
+                    {facility.charAt(0).toUpperCase() + facility.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            {/* Facility List */}
+            <ScrollView style={styles.facilityList}>
+              {(selectedTab === 'all' ? Object.keys(bookingStats?.counts || {}) : [selectedTab]).map((facility) => {
+                const count = bookingStats?.counts[facility] || 0;
+                if (count === 0) return null;
+
+                return (
+                  <TouchableOpacity
+                    key={facility}
+                    style={styles.facilityListItem}
+                    onPress={() => viewFacilityBookings(facility)}
+                  >
+                    <View style={styles.facilityListItemLeft}>
+                      <View style={[styles.facilityListIcon, { backgroundColor: getFacilityColor(facility) }]}>
+                        <FontAwesomeIcon icon={getFacilityIcon(facility)} size={20} color="#fff" />
+                      </View>
+                      <View>
+                        <Text style={styles.facilityListTitle}>
+                          {facility.charAt(0).toUpperCase() + facility.slice(1)}
+                        </Text>
+                        <Text style={styles.facilityListCount}>{count} booking(s)</Text>
+                      </View>
+                    </View>
+                    <FontAwesomeIcon icon={faChevronRight} size={16} color="#6B7280" />
+                  </TouchableOpacity>
+                );
+              })}
+
+              {bookingStats?.total_bookings === 0 && (
+                <View style={styles.emptyState}>
+                  <FontAwesomeIcon icon={faHistory} size={48} color="#E5E7EB" />
+                  <Text style={styles.emptyStateTitle}>No Bookings Yet</Text>
+                  <Text style={styles.emptyStateText}>
+                    Start by booking a facility from the dashboard
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </View>
+    </Modal>
   );
 
   const renderModal = () => {
@@ -485,7 +718,7 @@ const DashboardMNWC = ({ navigation }) => {
                 </View>
               </View>
               <TouchableOpacity onPress={closeModal} style={styles.modalCloseButton}>
-                <Text style={styles.modalCloseText}>×</Text>
+                <FontAwesomeIcon icon={faTimesCircle} size={24} color="#fff" />
               </TouchableOpacity>
             </LinearGradient>
 
@@ -647,9 +880,8 @@ const DashboardMNWC = ({ navigation }) => {
       <AutoRegistrationMNWC 
         onUserReady={handleUserReady}
         showCredentialsModal={showAutoRegModal}
-        autoCloseDelay={500}
+        autoCloseDelay={5000}
       >
-        {/* The children will be rendered after AutoRegistration initializes */}
         <StatusBar backgroundColor="#036677" barStyle="light-content" />
         
         {/* Header */}
@@ -671,18 +903,16 @@ const DashboardMNWC = ({ navigation }) => {
 
             <View style={styles.headerNav}>
               {isLoggedIn && currentUser ? (
-                <>
-                  <TouchableOpacity style={styles.profileButton}>
-                    <LinearGradient
-                      colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)']}
-                      style={styles.profileGradient}
-                    >
-                      <Text style={styles.profileInitials}>
-                        {currentUser.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'JD'}
-                      </Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                </>
+                <TouchableOpacity style={styles.profileButton}>
+                  <LinearGradient
+                    colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)']}
+                    style={styles.profileGradient}
+                  >
+                    <Text style={styles.profileInitials}>
+                      {currentUser.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'JD'}
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
               ) : (
                 <TouchableOpacity style={styles.loginButton}>
                   <FontAwesomeIcon icon={faSignInAlt} size={16} color="#036677" />
@@ -698,6 +928,9 @@ const DashboardMNWC = ({ navigation }) => {
           style={styles.mainContent} 
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.mainContentContainer}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
         >
           <View style={styles.pageHeader}>
             <View>
@@ -712,6 +945,16 @@ const DashboardMNWC = ({ navigation }) => {
             </View>
           </View>
 
+          {/* Tracking Bar */}
+          {bookingStats && renderTrackingBar()}
+
+          {/* Loading Indicator */}
+          {loadingStats && !bookingStats && (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>Loading your bookings...</Text>
+            </View>
+          )}
+
           <View style={styles.facilitiesGrid}>
             {facilities.map(renderFacilityCard)}
           </View>
@@ -724,8 +967,9 @@ const DashboardMNWC = ({ navigation }) => {
           </Text>
         </LinearGradient>
 
-        {/* Modal */}
+        {/* Modals */}
         {renderModal()}
+        {renderAllBookingsModal()}
       </AutoRegistrationMNWC>
     </SafeAreaView>
   );
@@ -791,11 +1035,6 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.9)',
     marginTop: 2,
   },
-  headerSubtitle: {
-    fontSize: 14,
-    fontWeight: '400',
-    color: 'rgba(255,255,255,0.8)',
-  },
   headerNav: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -850,7 +1089,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 16,
   },
   pageTitle: {
     fontSize: 16,
@@ -859,7 +1098,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   pageSubtitle: {
-    fontSize: 10,
+    fontSize: 12,
     color: '#6B7280',
     marginTop: 4,
   },
@@ -877,6 +1116,121 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#036677',
   },
+  
+  // Tracking Bar Styles
+  trackingBar: {
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+  },
+  trackingHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  trackingTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  trackingTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#E0F2FE',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+  },
+  viewAllText: {
+    fontSize: 10,
+    color: '#036677',
+    fontWeight: '500',
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  statCard: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 8,
+  },
+  statIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  statNumber: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  statLabel: {
+    fontSize: 10,
+    color: '#6B7280',
+  },
+  facilityStatsScroll: {
+    flexGrow: 0,
+    marginTop: 4,
+  },
+  facilityStatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 20,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  facilityStatIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  facilityStatCount: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  facilityStatLabel: {
+    fontSize: 10,
+    color: '#3c4048',
+  },
+  loadingContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  
+  // Card Styles
   facilitiesGrid: {
     gap: 16,
   },
@@ -919,16 +1273,15 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
     textTransform: 'uppercase',
   },
-  availableBadge: {
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    borderRadius: 12,
+  countBadge: {
+    borderRadius: 16,
     paddingVertical: 4,
     paddingHorizontal: 8,
   },
-  availableText: {
-    fontSize: 8,
+  countBadgeText: {
+    fontSize: 10,
     fontWeight: '600',
-    color: '#10B981',
+    color: '#fff',
   },
   cardTitleSection: {
     flexDirection: 'row',
@@ -985,6 +1338,8 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
   },
+  
+  // Footer
   footer: {
     paddingVertical: 16,
     paddingHorizontal: 20,
@@ -994,6 +1349,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     textAlign: 'center',
   },
+  
   // Modal Styles
   modalOverlay: {
     flex: 1,
@@ -1022,9 +1378,120 @@ const styles = StyleSheet.create({
   modalHeaderContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    gap: 12,
     flex: 1,
   },
+  modalHeaderText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  modalCloseButton: {
+    padding: 4,
+  },
+  modalBody: {
+    padding: 20,
+  },
+  
+  // All Bookings Modal Styles
+  summaryContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  summaryCard: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+  },
+  summaryNumber: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  summaryLabel: {
+    fontSize: 10,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  tabContainer: {
+    flexGrow: 0,
+    marginBottom: 16,
+  },
+  tab: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginRight: 8,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+  },
+  activeTab: {
+    backgroundColor: '#036677',
+  },
+  tabText: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  activeTabText: {
+    color: '#fff',
+    fontWeight: '500',
+  },
+  facilityList: {
+    maxHeight: height * 0.5,
+  },
+  facilityListItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  facilityListItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  facilityListIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  facilityListTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  facilityListCount: {
+    fontSize: 10,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  emptyState: {
+    alignItems: 'center',
+    padding: 40,
+  },
+  emptyStateTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginTop: 16,
+  },
+  emptyStateText: {
+    fontSize: 12,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  
+  // Facility Modal Styles
   modalIconContainer: {
     width: 28,
     height: 28,
@@ -1036,64 +1503,13 @@ const styles = StyleSheet.create({
   modalHeaderTextContainer: {
     flex: 1,
   },
-  modalHeaderText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
   modalHeaderSubtext: {
     color: 'rgba(255,255,255,0.8)',
     fontSize: 10,
     marginTop: 2,
   },
-  modalCloseButton: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalCloseText: {
-    color: '#fff',
-    fontSize: 28,
-    fontWeight: '300',
-    lineHeight: 28,
-  },
-  modalBody: {
-    maxHeight: height * 0.7,
-  },
   modalBodyContent: {
     padding: 24,
-  },
-  quickStatsContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#F8F9FA',
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 24,
-    justifyContent: 'space-around',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  statItem: {
-    alignItems: 'center',
-    gap: 4,
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginTop: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
-  statDivider: {
-    width: 1,
-    backgroundColor: '#E5E7EB',
   },
   modalSection: {
     marginBottom: 24,

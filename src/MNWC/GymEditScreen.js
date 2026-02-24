@@ -18,20 +18,18 @@ import {
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
-import SyncStorage from 'react-native-sync-storage';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 // ============ API CONFIGURATION ============
-//const API_BASE_URL = 'https://mnwc-wdd.punjab.gov.pk/api';
 const API_BASE_URL = 'https://karma-roots-rankings-handhelds.trycloudflare.com/api';
 
 // ============ THEME CONSTANTS ============
 const COLORS = {
-  primary: '#674006',
+  primary: '#ae6c09',
   primaryLight: '#ffb347',
   primaryDark: '#b36b00',
-  primaryGradient: ['#8b6120', '#775420', '#a46a12'],
+  primaryGradient: ['#ae6c09', '#9a5e08', '#b36b00'],
   primarySoft: '#fff5e6',
   secondary: '#f8f9fa',
   background: '#f4f7fb',
@@ -40,10 +38,10 @@ const COLORS = {
   textLight: '#5e6f8d',
   textLighter: '#8a9bb5',
   border: '#e2e8f0',
-  borderFocus: '#e68a00',
+  borderFocus: '#ae6c09',
   success: '#10b981',
   successLight: '#d1fae5',
-  warning: '#e68a00',
+  warning: '#f59e0b',
   error: '#ef4444',
   errorLight: '#fee2e2',
   info: '#3b82f6',
@@ -54,10 +52,11 @@ const COLORS = {
   shadow: '#000000',
 };
 
-const GymBookingScreen = ({ route, navigation }) => {
-     const { user_id, user } = route.params || {};
+const GymEditScreen = ({ route, navigation }) => {
+  const { record_id, user_id, user, isEditMode } = route.params || {};
+  
   // ============ STATE MANAGEMENT ============
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [serviceType, setServiceType] = useState('temporary');
   const [showBookingSection, setShowBookingSection] = useState(false);
@@ -68,9 +67,6 @@ const GymBookingScreen = ({ route, navigation }) => {
   const [showImagePickerModal, setShowImagePickerModal] = useState(false);
   const [focusedInput, setFocusedInput] = useState(null);
   
-  const booking = route.params?.booking || null;
-  const isEditMode = !!booking;
-
   // Form state
   const [formData, setFormData] = useState({
     applicant_name: '',
@@ -81,7 +77,7 @@ const GymBookingScreen = ({ route, navigation }) => {
     service_type: 'temporary',
     hours_required: '',
     membership_duration: '',
-    consent: false,
+    consent: true,
   });
 
   // Image preview states
@@ -89,15 +85,21 @@ const GymBookingScreen = ({ route, navigation }) => {
     applicant_pic: null,
     cnic_pic: null,
   });
+  const [originalImages, setOriginalImages] = useState({});
 
-  // Load user profile from sync storage
+  // Fetch booking data on mount
   useEffect(() => {
-     console.log('Received user_id in gymform:', user_id);
-    console.log('Received user:', user);
-    loadUserProfile();
-    if (booking) {
-      loadBookingData();
+    console.log('Edit Screen - Record ID:', record_id);
+    console.log('Edit Screen - User ID:', user_id);
+    
+    if (!record_id) {
+      Alert.alert('Error', 'No booking record found', [
+        { text: 'OK', onPress: () => navigation.goBack() }
+      ]);
+      return;
     }
+    
+    fetchBookingData();
   }, []);
 
   useEffect(() => {
@@ -105,39 +107,73 @@ const GymBookingScreen = ({ route, navigation }) => {
     setShowMembershipSection(serviceType === 'membership');
   }, [serviceType]);
 
-  const loadUserProfile = () => {
+  const fetchBookingData = async () => {
     try {
-      const userProfile = SyncStorage.get('user_profile');
-      if (userProfile) {
-        const userData = JSON.parse(userProfile);
-        setFormData(prev => ({
-          ...prev,
-          applicant_name: userData.name || '',
-          cnic: userData.cnic || '',
-          contact: userData.contact || '',
-        }));
+      setLoading(true);
+      const response = await fetch(`${API_BASE_URL}/gym-booking/${record_id}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+      console.log('Fetched booking data:', data);
+
+      if (data.success) {
+        const booking = data.data;
+        
+        // Set service type
+        setServiceType(booking.service_type || 'temporary');
+        
+        // Set form data
+        setFormData({
+          applicant_name: booking.applicant_name || '',
+          cnic: booking.cnic || '',
+          contact: booking.contact || '',
+          applicant_pic: booking.applicant_pic ? { uri: getFullImageUrl(booking.applicant_pic) } : null,
+          cnic_pic: booking.cnic_pic ? { uri: getFullImageUrl(booking.cnic_pic) } : null,
+          service_type: booking.service_type || 'temporary',
+          hours_required: booking.hours_required?.toString() || '',
+          membership_duration: booking.membership_duration || '',
+          consent: true,
+        });
+
+        // Set image previews
+        const previews = {};
+        if (booking.applicant_pic) previews.applicant_pic = getFullImageUrl(booking.applicant_pic);
+        if (booking.cnic_pic) previews.cnic_pic = getFullImageUrl(booking.cnic_pic);
+        
+        setImagePreviews(previews);
+        setOriginalImages(previews);
+        
+        // Set time slots if available
+        if (booking.time_slots) {
+          const slots = typeof booking.time_slots === 'string' 
+            ? JSON.parse(booking.time_slots) 
+            : booking.time_slots;
+          setSelectedTimeSlots(slots || []);
+          
+          // Generate time slots display if hours_required exists
+          if (booking.hours_required) {
+            generateTimeSlots(booking.hours_required.toString());
+          }
+        }
+      } else {
+        Alert.alert('Error', data.message || 'Failed to load booking data');
       }
     } catch (error) {
-      console.log('Error loading user profile:', error);
+      console.error('Error fetching booking:', error);
+      Alert.alert('Error', 'Failed to load booking data. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const loadBookingData = () => {
-    if (booking) {
-      setFormData({
-        ...booking,
-        applicant_pic: booking.applicant_pic ? { uri: booking.applicant_pic } : null,
-        cnic_pic: booking.cnic_pic ? { uri: booking.cnic_pic } : null,
-      });
-      setImagePreviews({
-        applicant_pic: booking.applicant_pic || null,
-        cnic_pic: booking.cnic_pic || null,
-      });
-      setServiceType(booking.service_type || 'temporary');
-      if (booking.time_slots) {
-        setSelectedTimeSlots(booking.time_slots);
-      }
-    }
+  const getFullImageUrl = (path) => {
+    if (!path) return null;
+    // Assuming images are stored in public storage
+    return `${API_BASE_URL.replace('/api', '')}/storage/${path}`;
   };
 
   // ============ PERMISSION HANDLING ============
@@ -359,7 +395,6 @@ const GymBookingScreen = ({ route, navigation }) => {
     }
 
     setTimeSlots(slots);
-    setSelectedTimeSlots([]);
   };
 
   const toggleTimeSlot = (slotValue) => {
@@ -442,17 +477,6 @@ const GymBookingScreen = ({ route, navigation }) => {
       }
     }
 
-    if (!isEditMode) {
-      if (!formData.applicant_pic) {
-        Alert.alert('Validation Error', 'Applicant picture is required');
-        return false;
-      }
-      if (!formData.cnic_pic) {
-        Alert.alert('Validation Error', 'CNIC picture is required');
-        return false;
-      }
-    }
-
     if (!formData.consent) {
       Alert.alert('Validation Error', 'You must agree to the terms and conditions');
       return false;
@@ -462,17 +486,20 @@ const GymBookingScreen = ({ route, navigation }) => {
   };
 
   // ============ API SUBMISSION ============
-  const submitBooking = async () => {
+  const updateBooking = async () => {
     try {
       const apiFormData = new FormData();
       
+      // Add booking ID and user_id
+      apiFormData.append('booking_id', record_id);
+      apiFormData.append('user_id', user_id);
+      
       const textFields = {
-         user_id: user_id, 
         applicant_name: formData.applicant_name,
         cnic: formData.cnic,
         contact: formData.contact,
         service_type: formData.service_type,
-        consent: formData.consent ? '1' : '0',
+        consent: '1',
       };
 
       if (formData.service_type === 'temporary') {
@@ -493,13 +520,15 @@ const GymBookingScreen = ({ route, navigation }) => {
         });
       }
 
+      // Handle images
       const imageFields = [
         { key: 'applicant_pic', value: formData.applicant_pic },
         { key: 'cnic_pic', value: formData.cnic_pic },
       ];
 
       imageFields.forEach(({ key, value }) => {
-        if (value && value.uri) {
+        // Check if this is a new image (has uri and is not from original preview)
+        if (value && value.uri && !originalImages[key]?.includes(value.uri)) {
           apiFormData.append(key, {
             uri: value.uri,
             type: value.type || 'image/jpeg',
@@ -508,8 +537,20 @@ const GymBookingScreen = ({ route, navigation }) => {
         }
       });
 
-      const response = await fetch(`${API_BASE_URL}/gym-booking`, {
-        method: 'POST',
+      // Add flags for images to keep
+      const imagesToKeep = {
+        keep_applicant_pic: imagePreviews.applicant_pic ? '1' : '0',
+        keep_cnic_pic: imagePreviews.cnic_pic ? '1' : '0',
+      };
+      
+      Object.entries(imagesToKeep).forEach(([key, value]) => {
+        apiFormData.append(key, value);
+      });
+
+      console.log('Updating gym booking with ID:', record_id);
+
+      const response = await fetch(`${API_BASE_URL}/gym-booking/${record_id}`, {
+        method: 'POST', // Using POST with _method=PUT for Laravel
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'multipart/form-data',
@@ -520,7 +561,7 @@ const GymBookingScreen = ({ route, navigation }) => {
       const responseData = await response.json();
 
       if (!response.ok) {
-        throw new Error(responseData.message || 'Failed to submit booking');
+        throw new Error(responseData.message || 'Failed to update booking');
       }
 
       return responseData;
@@ -535,16 +576,16 @@ const GymBookingScreen = ({ route, navigation }) => {
 
     setSubmitting(true);
     try {
-      const response = await submitBooking();
+      const response = await updateBooking();
       Alert.alert(
         'Success',
-        response.message || 'Gym booking submitted successfully!',
+        'Gym booking updated successfully!',
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
     } catch (error) {
       Alert.alert(
         'Error',
-        error.message || 'Failed to submit booking. Please try again.'
+        error.message || 'Failed to update booking. Please try again.'
       );
     } finally {
       setSubmitting(false);
@@ -609,9 +650,11 @@ const GymBookingScreen = ({ route, navigation }) => {
             >
               <Icon name="close-circle" size={22} color={COLORS.error} />
             </TouchableOpacity>
-            <View style={styles.previewBadge}>
-              <Icon name="check-decagram" size={16} color={COLORS.success} />
-            </View>
+            {originalImages[field] && (
+              <View style={styles.previewBadge}>
+                <Icon name="check-decagram" size={16} color={COLORS.success} />
+              </View>
+            )}
           </View>
         ) : (
           <View style={styles.placeholderContainer}>
@@ -743,9 +786,9 @@ const GymBookingScreen = ({ route, navigation }) => {
       </View>
       {[
         'MNWC does not provide an expert gym trainer.',
-'Users must have prior knowledge of gym equipment and tools usage.',
-'All users must strictly follow safety, cleanliness, and discipline-related SOPs.',
-'Gym equipment must be used responsibly and carefully. Any damage due to negligence may result in cancellation of access.'
+        'Users must have prior knowledge of gym equipment and tools usage.',
+        'All users must strictly follow safety, cleanliness, and discipline-related SOPs.',
+        'Gym equipment must be used responsibly and carefully. Any damage due to negligence may result in cancellation of access.'
       ].map((text, index) => (
         <View key={index} style={styles.noteItem}>
           <View style={styles.noteBullet} />
@@ -793,7 +836,15 @@ const GymBookingScreen = ({ route, navigation }) => {
     );
   };
 
-  // ============ MAIN RENDER ============
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.loadingText}>Loading booking data...</Text>
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor={COLORS.primaryDark} barStyle="light-content" />
@@ -812,9 +863,9 @@ const GymBookingScreen = ({ route, navigation }) => {
           
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>
-              Gym Facility Registration
+              Edit Gym Booking
             </Text>
-            <Text style={styles.headerSubtitle}>Complete the form below</Text>
+            <Text style={styles.headerSubtitle}>Booking #{record_id}</Text>
           </View>
           
           <View style={styles.headerRight}>
@@ -888,10 +939,10 @@ const GymBookingScreen = ({ route, navigation }) => {
 
             <View style={styles.uploadsRow}>
               <View style={styles.halfWidth}>
-                {renderImagePicker('applicant_pic', 'Applicant Photo', !isEditMode, 'JPG, PNG')}
+                {renderImagePicker('applicant_pic', 'Applicant Photo', false, 'JPG, PNG')}
               </View>
               <View style={styles.halfWidth}>
-                {renderImagePicker('cnic_pic', 'CNIC Photo', !isEditMode, 'JPG, PNG')}
+                {renderImagePicker('cnic_pic', 'CNIC Photo', false, 'JPG, PNG')}
               </View>
             </View>
           </View>
@@ -1003,11 +1054,13 @@ const GymBookingScreen = ({ route, navigation }) => {
                 {formData.consent && <Icon name="check" size={10} color="#fff" />}
               </View>
               <Text style={[styles.consentText, formData.consent && styles.consentTextChecked]}>
-              I confirm that I am aware that no expert trainer is provided. I understand the safe usage of gym equipment and agree to follow all SOPs, safety guidelines, and instructions of the Maryam Nawaz Women Complex.
+                I confirm that I am aware that no expert trainer is provided. I understand the safe usage of gym equipment and agree to follow all SOPs, safety guidelines, and instructions of the Maryam Nawaz Women Complex.
               </Text>
             </TouchableOpacity>
           </View>
         </View>
+
+   
       </ScrollView>
 
       {/* Submit Button */}
@@ -1030,7 +1083,7 @@ const GymBookingScreen = ({ route, navigation }) => {
               <View style={styles.submitButtonContent}>
                 <Icon name="check-circle" size={16} color="#fff" />
                 <Text style={styles.submitButtonText}>
-                  {isEditMode ? 'Update Booking' : 'Submit Request'}
+                  Update Booking
                 </Text>
               </View>
             )}
@@ -1097,11 +1150,20 @@ const GymBookingScreen = ({ route, navigation }) => {
   );
 };
 
-// ============ STYLES ============
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: COLORS.textLight,
   },
   header: {
     paddingTop: Platform.OS === 'ios' ? 50 : 45,
@@ -1154,7 +1216,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 12,
-    paddingBottom: 90,
+    paddingBottom: 100,
   },
   infoBar: {
     flexDirection: 'row',
@@ -1589,6 +1651,20 @@ const styles = StyleSheet.create({
     color: '#065f46',
     fontWeight: '500',
   },
+  noteBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.infoLight,
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 16,
+    gap: 8,
+  },
+  noteBoxText: {
+    fontSize: 11,
+    color: '#0c4a6e',
+    flex: 1,
+  },
   footer: {
     position: 'absolute',
     bottom: 0,
@@ -1596,7 +1672,7 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: COLORS.white,
     padding: 10,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 10,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 20,
     borderTopWidth: 1,
     borderTopColor: 'rgba(230, 138, 0, 0.1)',
     shadowColor: COLORS.shadow,
@@ -1604,7 +1680,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 8,
-    paddingBottom: 20,
   },
   submitButton: {
     borderRadius: 16,
@@ -1695,4 +1770,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default GymBookingScreen;
+export default GymEditScreen;

@@ -18,13 +18,12 @@ import {
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
-import SyncStorage from 'react-native-sync-storage';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 // ============ API CONFIGURATION ============
-//const API_BASE_URL = 'https://mnwc-wdd.punjab.gov.pk/api';
 const API_BASE_URL = 'https://karma-roots-rankings-handhelds.trycloudflare.com/api';
+
 // ============ THEME CONSTANTS ============
 const COLORS = {
   primary: '#940775',
@@ -50,10 +49,11 @@ const COLORS = {
   overlay: 'rgba(0,0,0,0.5)',
 };
 
-const DaycareBookingScreen = ({ route, navigation }) => {
-  const { user_id, user } = route.params || {};
+const DayCareEditScreen = ({ route, navigation }) => {
+  const { record_id, user_id, user, isEditMode } = route.params || {};
+  
   // ============ STATE MANAGEMENT ============
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showHelperFields, setShowHelperFields] = useState(false);
   const [showHealthFields, setShowHealthFields] = useState(false);
@@ -61,15 +61,12 @@ const DaycareBookingScreen = ({ route, navigation }) => {
   const [showImagePickerModal, setShowImagePickerModal] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
     parent: true,
-    auth: false,
-    child: false,
-    helper: false,
-    health: false,
-    booking: false,
+    auth: true,
+    child: true,
+    helper: true,
+    health: true,
+    booking: true,
   });
-
-  const booking = route.params?.booking || null;
-  const isEditMode = !!booking;
 
   // Form state
   const [formData, setFormData] = useState({
@@ -97,67 +94,131 @@ const DaycareBookingScreen = ({ route, navigation }) => {
     health_details: '',
     hours_required: '',
     require_services: '',
-    consent: false,
+    consent: true,
   });
 
   // Image preview states
   const [imagePreviews, setImagePreviews] = useState({});
+  const [originalImages, setOriginalImages] = useState({});
 
-  // Load user profile from sync storage
+  // Fetch booking data on mount
   useEffect(() => {
-     console.log('Received user_id in daycareform:', user_id);
-    console.log('Received user:', user);
-      if (!user_id) {
-      Alert.alert(
-        'Error',
-        'User ID not found. Please go back and try again.',
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
-      );
+    console.log('Edit Screen - Record ID:', record_id);
+    console.log('Edit Screen - User ID:', user_id);
+    
+    if (!record_id) {
+      Alert.alert('Error', 'No booking record found', [
+        { text: 'OK', onPress: () => navigation.goBack() }
+      ]);
       return;
     }
-    loadUserProfile();
-    if (booking) {
-      loadBookingData();
-    }
+    
+    fetchBookingData();
   }, []);
 
-  const loadUserProfile = () => {
+  const fetchBookingData = async () => {
     try {
-      const userProfile = SyncStorage.get('user_profile');
-      if (userProfile) {
-        const userData = JSON.parse(userProfile);
-        setFormData(prev => ({
-          ...prev,
-          parent_name: userData.name || '',
-          parent_cnic: userData.cnic || '',
-          parent_contact: userData.contact || '',
-          parent_address: userData.address || '',
-        }));
+      setLoading(true);
+      const response = await fetch(`${API_BASE_URL}/daycare-booking/${record_id}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+      console.log('Fetched booking data:', data);
+
+      if (data.success) {
+        const booking = data.data;
+        
+        // Set form data
+        setFormData({
+          parent_name: booking.parent_name || '',
+          parent_cnic: booking.parent_cnic || '',
+          parent_contact: booking.parent_contact || '',
+          parent_address: booking.parent_address || '',
+          parent_cnic_pic: booking.parent_cnic_pic ? { uri: getFullImageUrl(booking.parent_cnic_pic) } : null,
+          auth_name: booking.auth_name || '',
+          auth_cnic: booking.auth_cnic || '',
+          auth_contact: booking.auth_contact || '',
+          relationship: booking.relationship || '',
+          auth_cnic_pic: booking.auth_cnic_pic ? { uri: getFullImageUrl(booking.auth_cnic_pic) } : null,
+          child_name: booking.child_name || '',
+          child_gender: booking.child_gender || '',
+          child_years: booking.child_years?.toString() || '',
+          child_months: booking.child_months?.toString() || '0',
+          child_pic: booking.child_pic ? { uri: getFullImageUrl(booking.child_pic) } : null,
+          has_helper: booking.has_helper ? 'yes' : 'no',
+          helper_name: booking.helper_name || '',
+          helper_cnic: booking.helper_cnic || '',
+          helper_contact: booking.helper_contact || '',
+          helper_pic: booking.helper_pic ? { uri: getFullImageUrl(booking.helper_pic) } : null,
+          has_allergies: booking.has_allergies ? 'yes' : 'no',
+          health_details: booking.health_details || '',
+          hours_required: booking.hours_required?.toString() || '',
+          require_services: booking.require_services || '',
+          consent: true,
+        });
+
+        // Set image previews
+        const previews = {};
+        if (booking.parent_cnic_pic) previews.parent_cnic_pic = getFullImageUrl(booking.parent_cnic_pic);
+        if (booking.auth_cnic_pic) previews.auth_cnic_pic = getFullImageUrl(booking.auth_cnic_pic);
+        if (booking.child_pic) previews.child_pic = getFullImageUrl(booking.child_pic);
+        if (booking.helper_pic) previews.helper_pic = getFullImageUrl(booking.helper_pic);
+        
+        setImagePreviews(previews);
+        setOriginalImages(previews);
+        
+        // Set conditional fields visibility
+        setShowHelperFields(booking.has_helper === 1);
+        setShowHealthFields(booking.has_allergies === 1);
+      } else {
+        Alert.alert('Error', data.message || 'Failed to load booking data');
       }
     } catch (error) {
-      console.log('Error loading user profile:', error);
+      console.error('Error fetching booking:', error);
+      Alert.alert('Error', 'Failed to load booking data. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const loadBookingData = () => {
-    if (booking) {
-      setFormData({
-        ...booking,
-        parent_cnic_pic: booking.parent_cnic_pic ? { uri: booking.parent_cnic_pic } : null,
-        auth_cnic_pic: booking.auth_cnic_pic ? { uri: booking.auth_cnic_pic } : null,
-        child_pic: booking.child_pic ? { uri: booking.child_pic } : null,
-        helper_pic: booking.helper_pic ? { uri: booking.helper_pic } : null,
-      });
-      setImagePreviews({
-        parent_cnic_pic: booking.parent_cnic_pic || null,
-        auth_cnic_pic: booking.auth_cnic_pic || null,
-        child_pic: booking.child_pic || null,
-        helper_pic: booking.helper_pic || null,
-      });
-      setShowHelperFields(booking.has_helper === 'yes');
-      setShowHealthFields(booking.has_allergies === 'yes');
-    }
+  const getFullImageUrl = (path) => {
+    if (!path) return null;
+    // Assuming images are stored in public storage
+    return `${API_BASE_URL.replace('/api', '')}/storage/${path}`;
   };
+
+  // ============ INFO BAR COMPONENT ============
+  const renderInfoBar = () => (
+    <LinearGradient
+      colors={['#f9e6f5', '#f3e5f5']}
+      style={styles.infoBar}
+    >
+      <View style={styles.infoItem}>
+        <Icon name="clock-outline" size={12} color={COLORS.primary} />
+        <Text style={styles.infoText}>
+          <Text style={styles.infoTextBold}>Hours:</Text> 9:00 AM – 5:00 PM
+        </Text>
+      </View>
+      <View style={styles.infoDivider} />
+      <View style={styles.infoItem}>
+        <Icon name="timer-outline" size={12} color={COLORS.primary} />
+        <Text style={styles.infoText}>
+          <Text style={styles.infoTextBold}>Slot Duration:</Text> 30 minutes
+        </Text>
+      </View>
+      <View style={styles.infoDivider} />
+      <View style={styles.infoItem}>
+        <Icon name="calendar-multiple" size={12} color={COLORS.primary} />
+        <Text style={styles.infoText}>
+          <Text style={styles.infoTextBold}>Multiple Slots:</Text> Available
+        </Text>
+      </View>
+    </LinearGradient>
+  );
 
   // ============ PERMISSION HANDLING ============
   const requestGalleryPermission = async () => {
@@ -258,7 +319,6 @@ const DaycareBookingScreen = ({ route, navigation }) => {
             fileSize: asset.fileSize,
           };
 
-          // Update preview
           setImagePreviews(prev => ({
             ...prev,
             [activeImagePicker]: asset.uri
@@ -313,7 +373,6 @@ const DaycareBookingScreen = ({ route, navigation }) => {
             fileSize: asset.fileSize,
           };
 
-          // Update preview
           setImagePreviews(prev => ({
             ...prev,
             [activeImagePicker]: asset.uri
@@ -377,6 +436,24 @@ const DaycareBookingScreen = ({ route, navigation }) => {
       
       return newData;
     });
+  };
+
+  const handleMonthsChange = (text) => {
+    let value = parseInt(text) || '';
+    if (value > 11) {
+      value = 11;
+      Alert.alert('Validation', 'Months cannot exceed 11');
+    }
+    handleInputChange('child_months', value.toString());
+  };
+
+  const handleYearsChange = (text) => {
+    let value = parseInt(text) || '';
+    if (value > 18) {
+      value = 18;
+      Alert.alert('Validation', 'Age cannot exceed 18 years');
+    }
+    handleInputChange('child_years', value.toString());
   };
 
   const toggleSection = (section) => {
@@ -486,39 +563,20 @@ const DaycareBookingScreen = ({ route, navigation }) => {
       return false;
     }
 
-    // Image validations for new booking
-    if (!isEditMode) {
-      if (!formData.parent_cnic_pic) {
-        Alert.alert('Validation Error', 'Parent CNIC picture is required');
-        return false;
-      }
-      if (!formData.auth_cnic_pic) {
-        Alert.alert('Validation Error', 'Authorized person CNIC picture is required');
-        return false;
-      }
-      if (!formData.child_pic) {
-        Alert.alert('Validation Error', 'Child picture is required');
-        return false;
-      }
-    }
-
-    // Consent
-    if (!formData.consent) {
-      Alert.alert('Validation Error', 'You must agree to the terms and conditions');
-      return false;
-    }
-
     return true;
   };
 
   // ============ API SUBMISSION ============
-  const submitBooking = async () => {
+  const updateBooking = async () => {
     try {
       const apiFormData = new FormData();
       
+      // Add booking ID
+      apiFormData.append('booking_id', record_id);
+      apiFormData.append('user_id', user_id);
+      
       // Append all text fields
       const textFields = {
-        user_id: user_id, 
         parent_name: formData.parent_name,
         parent_cnic: formData.parent_cnic,
         parent_contact: formData.parent_contact,
@@ -535,7 +593,7 @@ const DaycareBookingScreen = ({ route, navigation }) => {
         has_allergies: formData.has_allergies,
         hours_required: formData.hours_required,
         require_services: formData.require_services,
-        consent: formData.consent ? '1' : '0',
+        consent: '1',
       };
 
       // Add helper fields if enabled
@@ -557,7 +615,7 @@ const DaycareBookingScreen = ({ route, navigation }) => {
         }
       });
 
-      // Append image files
+      // Append new image files (only if changed)
       const imageFields = [
         { key: 'parent_cnic_pic', value: formData.parent_cnic_pic },
         { key: 'auth_cnic_pic', value: formData.auth_cnic_pic },
@@ -566,7 +624,8 @@ const DaycareBookingScreen = ({ route, navigation }) => {
       ];
 
       imageFields.forEach(({ key, value }) => {
-        if (value && value.uri) {
+        // Check if this is a new image (has uri and is not from original preview)
+        if (value && value.uri && !originalImages[key]?.includes(value.uri)) {
           apiFormData.append(key, {
             uri: value.uri,
             type: value.type || 'image/jpeg',
@@ -575,8 +634,20 @@ const DaycareBookingScreen = ({ route, navigation }) => {
         }
       });
 
-      const response = await fetch(`${API_BASE_URL}/daycare-booking`, {
-        method: 'POST',
+      // Add flags for images to keep/delete
+      const imagesToKeep = {};
+      imageFields.forEach(({ key }) => {
+        imagesToKeep[`keep_${key}`] = imagePreviews[key] ? '1' : '0';
+      });
+      
+      Object.entries(imagesToKeep).forEach(([key, value]) => {
+        apiFormData.append(key, value);
+      });
+
+      console.log('Updating booking with ID:', record_id);
+
+      const response = await fetch(`${API_BASE_URL}/daycare-booking/${record_id}`, {
+        method: 'POST', // Using POST with _method=PUT for Laravel
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'multipart/form-data',
@@ -587,7 +658,7 @@ const DaycareBookingScreen = ({ route, navigation }) => {
       const responseData = await response.json();
 
       if (!response.ok) {
-        throw new Error(responseData.message || 'Failed to submit booking');
+        throw new Error(responseData.message || 'Failed to update booking');
       }
 
       return responseData;
@@ -602,16 +673,16 @@ const DaycareBookingScreen = ({ route, navigation }) => {
 
     setSubmitting(true);
     try {
-      const response = await submitBooking();
+      const response = await updateBooking();
       Alert.alert(
         'Success',
-        'Booking submitted successfully!',
+        'Booking updated successfully!',
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
     } catch (error) {
       Alert.alert(
         'Error',
-        error.message || 'Failed to submit booking. Please try again.'
+        error.message || 'Failed to update booking. Please try again.'
       );
     } finally {
       setSubmitting(false);
@@ -660,7 +731,15 @@ const DaycareBookingScreen = ({ route, navigation }) => {
           placeholder={options.placeholder || `Enter ${label.toLowerCase()}`}
           placeholderTextColor="#999"
           value={formData[field]}
-          onChangeText={(text) => handleInputChange(field, text)}
+          onChangeText={(text) => {
+            if (field === 'child_months') {
+              handleMonthsChange(text);
+            } else if (field === 'child_years') {
+              handleYearsChange(text);
+            } else {
+              handleInputChange(field, text);
+            }
+          }}
           keyboardType={options.keyboardType || 'default'}
           maxLength={options.maxLength}
           multiline={options.multiline}
@@ -691,6 +770,11 @@ const DaycareBookingScreen = ({ route, navigation }) => {
             >
               <Icon name="close-circle" size={24} color={COLORS.error} />
             </TouchableOpacity>
+            {originalImages[field] && (
+              <View style={styles.imageBadge}>
+                <Icon name="check-decagram" size={16} color={COLORS.success} />
+              </View>
+            )}
           </View>
         ) : (
           <View style={styles.placeholderContainer}>
@@ -752,33 +836,15 @@ const DaycareBookingScreen = ({ route, navigation }) => {
       </View>
     </View>
   );
- const renderInfoBar = () => (
-    <LinearGradient
-      colors={['#f9e6f5', '#f3e5f5']}
-      style={styles.infoBar}
-    >
-      <View style={styles.infoItem}>
-        <Icon name="clock-outline" size={12} color={COLORS.primary} />
-        <Text style={styles.infoText}>
-          <Text style={styles.infoTextBold}>Hours:</Text> 9:00 AM – 5:00 PM
-        </Text>
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.loadingText}>Loading booking data...</Text>
       </View>
-      <View style={styles.infoDivider} />
-      <View style={styles.infoItem}>
-        <Icon name="timer-outline" size={12} color={COLORS.primary} />
-        <Text style={styles.infoText}>
-          <Text style={styles.infoTextBold}>Slot Duration:</Text> 30 minutes
-        </Text>
-      </View>
-      <View style={styles.infoDivider} />
-      <View style={styles.infoItem}>
-        <Icon name="calendar-multiple" size={12} color={COLORS.primary} />
-        <Text style={styles.infoText}>
-          <Text style={styles.infoTextBold}>Multiple Slots:</Text> Available
-        </Text>
-      </View>
-    </LinearGradient>
-  );
+    );
+  }
 
   // ============ MAIN RENDER ============
   return (
@@ -794,16 +860,12 @@ const DaycareBookingScreen = ({ route, navigation }) => {
           
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>
-              {isEditMode ? 'Update Booking' : 'Day Care Registration'}
+              Edit Day Care Booking
             </Text>
-            <Text style={styles.headerSubtitle}>Complete all required fields</Text>
+            <Text style={styles.headerSubtitle}>Booking #{record_id}</Text>
           </View>
           
-          {isEditMode && (
-            <TouchableOpacity onPress={() => {}} style={styles.deleteButton}>
-              <Icon name="delete" size={20} color="#fff" />
-            </TouchableOpacity>
-          )}
+          <View style={styles.headerRight} />
         </View>
       </LinearGradient>
 
@@ -811,7 +873,9 @@ const DaycareBookingScreen = ({ route, navigation }) => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-         {renderInfoBar()}
+        {/* Info Bar */}
+        {renderInfoBar()}
+
         {/* Parent Section */}
         <View style={styles.section}>
           {renderSectionHeader('Parent Information', 'account', 'parent', true)}
@@ -838,7 +902,7 @@ const DaycareBookingScreen = ({ route, navigation }) => {
                 numberOfLines: 2,
                 required: true 
               })}
-              {renderImagePicker('parent_cnic_pic', 'CNIC Picture', !isEditMode, 'Front & back copy')}
+              {renderImagePicker('parent_cnic_pic', 'CNIC Picture', false, 'Front & back copy')}
             </View>
           )}
         </View>
@@ -871,7 +935,7 @@ const DaycareBookingScreen = ({ route, navigation }) => {
                 { label: 'Grandparent', value: 'grandparent' },
                 { label: 'Other', value: 'other' },
               ], true)}
-              {renderImagePicker('auth_cnic_pic', 'CNIC Picture', !isEditMode, 'Front & back copy')}
+              {renderImagePicker('auth_cnic_pic', 'CNIC Picture', false, 'Front & back copy')}
             </View>
           )}
         </View>
@@ -906,7 +970,7 @@ const DaycareBookingScreen = ({ route, navigation }) => {
                 </View>
               </View>
 
-              {renderImagePicker('child_pic', 'Child Photo', !isEditMode, 'Recent photograph')}
+              {renderImagePicker('child_pic', 'Child Photo', false, 'Recent photograph')}
             </View>
           )}
         </View>
@@ -1020,19 +1084,13 @@ const DaycareBookingScreen = ({ route, navigation }) => {
           ))}
         </LinearGradient>
 
-        {/* Consent */}
-        <TouchableOpacity
-          style={[styles.consentContainer, formData.consent && styles.consentContainerChecked]}
-          onPress={() => handleInputChange('consent', !formData.consent)}
-          activeOpacity={0.8}
-        >
-          <View style={[styles.checkbox, formData.consent && styles.checkboxChecked]}>
-            {formData.consent && <Icon name="check" size={12} color="#fff" />}
-          </View>
-          <Text style={[styles.consentText, formData.consent && styles.consentTextChecked]}>
-            I confirm that all information provided is accurate and I agree to comply with the rules.
+        {/* Note about user_id (read-only) */}
+        {/* <View style={styles.noteBox}>
+          <Icon name="information" size={16} color={COLORS.info} />
+          <Text style={styles.noteBoxText}>
+            User ID: {user_id} (cannot be changed)
           </Text>
-        </TouchableOpacity>
+        </View> */}
       </ScrollView>
 
       {/* Submit Button */}
@@ -1051,10 +1109,10 @@ const DaycareBookingScreen = ({ route, navigation }) => {
             ) : (
               <>
                 <Text style={styles.submitButtonText}>
-                  {isEditMode ? 'Update Booking' : 'Submit Booking'}
+                  Update Booking
                 </Text>
                 <Text style={styles.submitButtonSubtext}>
-                  {isEditMode ? 'Update your booking details' : 'Create new daycare booking'}
+                  Save changes to booking #{record_id}
                 </Text>
               </>
             )}
@@ -1118,6 +1176,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#faf5fb',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#666',
+  },
   header: {
     paddingTop: Platform.OS === 'ios' ? 50 : 50,
     paddingBottom: 16,
@@ -1157,13 +1225,38 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.9)',
     marginTop: 2,
   },
-  deleteButton: {
+  headerRight: {
     width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
+  },
+  infoBar: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 7, 117, 0.2)',
+  },
+  infoItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  infoText: {
+    fontSize: 8,
+    color: COLORS.text,
+  },
+  infoTextBold: {
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
+  infoDivider: {
+    width: 1,
+    height: 20,
+    backgroundColor: 'rgba(148, 7, 117, 0.2)',
   },
   scrollContent: {
     padding: 12,
@@ -1341,6 +1434,20 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     fontStyle: 'italic',
   },
+  noteBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.infoLight,
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 16,
+    gap: 8,
+  },
+  noteBoxText: {
+    fontSize: 11,
+    color: '#0c4a6e',
+    flex: 1,
+  },
   conditionalFields: {
     marginTop: 6,
     paddingTop: 14,
@@ -1407,6 +1514,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
+  imageBadge: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 2,
+  },
   guidelinesContainer: {
     borderRadius: 14,
     padding: 14,
@@ -1441,43 +1556,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#666',
     lineHeight: 16,
-  },
-  consentContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.2)',
-    alignItems: 'center',
-  },
-  consentContainerChecked: {
-    backgroundColor: '#d1fae5',
-    borderColor: '#10b981',
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 5,
-    borderWidth: 2,
-    borderColor: '#10b981',
-    marginRight: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-  checkboxChecked: {
-    backgroundColor: '#10b981',
-  },
-  consentText: {
-    flex: 1,
-    fontSize: 11,
-    color: '#666',
-    lineHeight: 16,
-  },
-  consentTextChecked: {
-    color: '#065f46',
   },
   footer: {
     position: 'absolute',
@@ -1576,36 +1654,6 @@ const styles = StyleSheet.create({
     color: '#ef4444',
     fontWeight: '600',
   },
-   infoBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(148, 7, 117, 0.2)',
-  },
-  infoItem: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  infoText: {
-    fontSize: 8,
-    color: COLORS.text,
-  },
-  infoTextBold: {
-    fontWeight: '600',
-    color: COLORS.primary,
-  },
-  infoDivider: {
-    width: 1,
-    height: 20,
-    backgroundColor: 'rgba(148, 7, 117, 0.2)',
-  },
 });
 
-export default DaycareBookingScreen;
+export default DayCareEditScreen;
