@@ -22,26 +22,28 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 // ============ API CONFIGURATION ============
-//const API_BASE_URL = 'https://karma-roots-rankings-handhelds.trycloudflare.com/api';
 const API_BASE_URL = 'https://mnwc-wdd.punjab.gov.pk/api';
+//const API_BASE_URL = 'https://cons-best-florida-wichita.trycloudflare.com/api';
+
 // ============ THEME CONSTANTS ============
 const COLORS = {
-  primary: '#ae6c09',
-  primaryLight: '#ffb347',
-  primaryDark: '#b36b00',
-  primaryGradient: ['#ae6c09', '#9a5e08', '#b36b00'],
-  primarySoft: '#fff5e6',
+  primary: '#b91c1c',
+  primaryLight: '#ef4444',
+  primaryDark: '#7f1d1d',
+  primaryGradient: ['#b91c1c', '#991b1b', '#7f1d1d'],
+  primarySoft: '#fee2e2',
   secondary: '#f8f9fa',
   background: '#f4f7fb',
   surface: '#ffffff',
-  text: '#2c3e50',
-  textLight: '#5e6f8d',
-  textLighter: '#8a9bb5',
+  text: '#334155',
+  textLight: '#64748b',
+  textLighter: '#94a3b8',
   border: '#e2e8f0',
-  borderFocus: '#ae6c09',
+  borderFocus: '#b91c1c',
   success: '#10b981',
   successLight: '#d1fae5',
   warning: '#f59e0b',
+  warningLight: '#fef3c7',
   error: '#ef4444',
   errorLight: '#fee2e2',
   info: '#3b82f6',
@@ -52,31 +54,35 @@ const COLORS = {
   shadow: '#000000',
 };
 
-const GymEditScreen = ({ route, navigation }) => {
+const TrainingEditScreen = ({ route, navigation }) => {
   const { record_id, user_id, user, isEditMode } = route.params || {};
   
   // ============ STATE MANAGEMENT ============
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [serviceType, setServiceType] = useState('temporary');
-  const [showBookingSection, setShowBookingSection] = useState(false);
-  const [showMembershipSection, setShowMembershipSection] = useState(false);
+  const [refreshments, setRefreshments] = useState('no');
   const [timeSlots, setTimeSlots] = useState([]);
   const [selectedTimeSlots, setSelectedTimeSlots] = useState([]);
   const [activeImagePicker, setActiveImagePicker] = useState(null);
   const [showImagePickerModal, setShowImagePickerModal] = useState(false);
   const [focusedInput, setFocusedInput] = useState(null);
+  const [minDate, setMinDate] = useState('');
   
   // Form state
   const [formData, setFormData] = useState({
     applicant_name: '',
     cnic: '',
     contact: '',
+    email: '',
+    organization: '',
     applicant_pic: null,
     cnic_pic: null,
-    service_type: 'temporary',
+    training_title: '',
+    num_participants: '',
+    training_description: '',
+    refreshments: 'no',
+    training_date: '',
     hours_required: '',
-    membership_duration: '',
     consent: true,
   });
 
@@ -86,6 +92,13 @@ const GymEditScreen = ({ route, navigation }) => {
     cnic_pic: null,
   });
   const [originalImages, setOriginalImages] = useState({});
+
+  // Set minimum date to tomorrow
+  useEffect(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    setMinDate(tomorrow.toISOString().split('T')[0]);
+  }, []);
 
   // Fetch booking data on mount
   useEffect(() => {
@@ -102,15 +115,10 @@ const GymEditScreen = ({ route, navigation }) => {
     fetchBookingData();
   }, []);
 
-  useEffect(() => {
-    setShowBookingSection(serviceType === 'temporary');
-    setShowMembershipSection(serviceType === 'membership');
-  }, [serviceType]);
-
   const fetchBookingData = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/gym-booking/${record_id}`, {
+      const response = await fetch(`${API_BASE_URL}/training-booking/${record_id}`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -118,24 +126,26 @@ const GymEditScreen = ({ route, navigation }) => {
       });
 
       const data = await response.json();
-      console.log('Fetched booking data:', data);
+      console.log('Fetched training booking data:', data);
 
       if (data.success) {
         const booking = data.data;
-        
-        // Set service type
-        setServiceType(booking.service_type || 'temporary');
         
         // Set form data
         setFormData({
           applicant_name: booking.applicant_name || '',
           cnic: booking.cnic || '',
           contact: booking.contact || '',
+          email: booking.email || '',
+          organization: booking.organization || '',
           applicant_pic: booking.applicant_pic ? { uri: getFullImageUrl(booking.applicant_pic) } : null,
           cnic_pic: booking.cnic_pic ? { uri: getFullImageUrl(booking.cnic_pic) } : null,
-          service_type: booking.service_type || 'temporary',
+          training_title: booking.training_title || '',
+          num_participants: booking.num_participants?.toString() || '',
+          training_description: booking.training_description || '',
+          refreshments: booking.refreshments || 'no',
+          training_date: booking.training_date || '',
           hours_required: booking.hours_required?.toString() || '',
-          membership_duration: booking.membership_duration || '',
           consent: true,
         });
 
@@ -146,6 +156,9 @@ const GymEditScreen = ({ route, navigation }) => {
         
         setImagePreviews(previews);
         setOriginalImages(previews);
+        
+        // Set refreshments
+        setRefreshments(booking.refreshments || 'no');
         
         // Set time slots if available
         if (booking.time_slots) {
@@ -172,7 +185,6 @@ const GymEditScreen = ({ route, navigation }) => {
 
   const getFullImageUrl = (path) => {
     if (!path) return null;
-    // Assuming images are stored in public storage
     return `${API_BASE_URL.replace('/api', '')}/storage/${path}`;
   };
 
@@ -416,29 +428,32 @@ const GymEditScreen = ({ route, navigation }) => {
         generateTimeSlots(value);
       }
       
+      if (field === 'refreshments') {
+        setRefreshments(value);
+      }
+      
       return newData;
     });
   };
 
-  const handleServiceTypeChange = (type) => {
-    setServiceType(type);
-    handleInputChange('service_type', type);
-    if (type === 'membership') {
-      handleInputChange('hours_required', '');
-      setSelectedTimeSlots([]);
-    } else {
-      handleInputChange('membership_duration', '');
+  // Enforce max participants
+  const handleParticipantsChange = (text) => {
+    let value = parseInt(text) || '';
+    if (value > 30) {
+      value = 30;
+      Alert.alert('Maximum Limit', 'Maximum 30 participants allowed');
     }
+    handleInputChange('num_participants', value.toString());
   };
 
   // ============ FORM VALIDATION ============
   const validateForm = () => {
     if (!formData.applicant_name?.trim()) {
-      Alert.alert('Validation Error', 'Name of applicant is required');
+      Alert.alert('Validation Error', 'Name of Applicant / Organizer is required');
       return false;
     }
     if (!formData.cnic?.trim()) {
-      Alert.alert('Validation Error', 'CNIC number is required');
+      Alert.alert('Validation Error', 'CNIC Number is required');
       return false;
     }
     if (!/^\d{13}$/.test(formData.cnic)) {
@@ -446,35 +461,66 @@ const GymEditScreen = ({ route, navigation }) => {
       return false;
     }
     if (!formData.contact?.trim()) {
-      Alert.alert('Validation Error', 'Contact number is required');
+      Alert.alert('Validation Error', 'Contact Number is required');
+      return false;
+    }
+    if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
+      Alert.alert('Validation Error', 'Please enter a valid email address');
       return false;
     }
 
-    if (!formData.service_type) {
-      Alert.alert('Validation Error', 'Please select service type');
+    if (!formData.training_title?.trim()) {
+      Alert.alert('Validation Error', 'Title of Training / Workshop is required');
       return false;
     }
 
-    if (formData.service_type === 'temporary') {
-      if (!formData.hours_required) {
-        Alert.alert('Validation Error', 'Please select number of hours/slots required');
-        return false;
-      }
-      if (selectedTimeSlots.length === 0) {
-        Alert.alert('Validation Error', 'Please select at least one time slot');
-        return false;
-      }
-      if (selectedTimeSlots.length !== parseFloat(formData.hours_required) * 2) {
-        Alert.alert('Validation Error', `Please select ${parseFloat(formData.hours_required) * 2} time slots`);
-        return false;
-      }
+    if (!formData.num_participants) {
+      Alert.alert('Validation Error', 'Expected Number of Participants is required');
+      return false;
+    }
+    if (parseInt(formData.num_participants) < 1 || parseInt(formData.num_participants) > 30) {
+      Alert.alert('Validation Error', 'Number of participants must be between 1 and 30');
+      return false;
     }
 
-    if (formData.service_type === 'membership') {
-      if (!formData.membership_duration) {
-        Alert.alert('Validation Error', 'Please select membership duration');
-        return false;
-      }
+    if (!formData.training_description?.trim()) {
+      Alert.alert('Validation Error', 'Purpose / Brief Description of Training is required');
+      return false;
+    }
+
+    if (!formData.refreshments) {
+      Alert.alert('Validation Error', 'Please select refreshments option');
+      return false;
+    }
+
+    if (!formData.training_date) {
+      Alert.alert('Validation Error', 'Training Date is required');
+      return false;
+    }
+
+    // Validate training date is in future
+    const selectedDate = new Date(formData.training_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (selectedDate <= today) {
+      Alert.alert('Validation Error', 'Training date must be in the future');
+      return false;
+    }
+
+    if (!formData.hours_required) {
+      Alert.alert('Validation Error', 'Please select number of hours/slots required');
+      return false;
+    }
+
+    if (selectedTimeSlots.length === 0) {
+      Alert.alert('Validation Error', 'Please select at least one time slot');
+      return false;
+    }
+
+    if (selectedTimeSlots.length !== parseFloat(formData.hours_required) * 2) {
+      Alert.alert('Validation Error', `Please select ${parseFloat(formData.hours_required) * 2} time slots`);
+      return false;
     }
 
     if (!formData.consent) {
@@ -490,23 +536,26 @@ const GymEditScreen = ({ route, navigation }) => {
     try {
       const apiFormData = new FormData();
       
-      // Add booking ID and user_id
-      apiFormData.append('booking_id', record_id);
-      apiFormData.append('user_id', user_id);
+      // Add record ID and user_id
+      apiFormData.append('record_id', record_id);
+      apiFormData.append('user_id', String(user_id));
+      
+      console.log('Updating training booking with user_id:', user_id);
       
       const textFields = {
         applicant_name: formData.applicant_name,
         cnic: formData.cnic,
         contact: formData.contact,
-        service_type: formData.service_type,
+        email: formData.email || '',
+        organization: formData.organization || '',
+        training_title: formData.training_title,
+        num_participants: formData.num_participants,
+        training_description: formData.training_description,
+        refreshments: formData.refreshments,
+        training_date: formData.training_date,
+        hours_required: formData.hours_required,
         consent: '1',
       };
-
-      if (formData.service_type === 'temporary') {
-        textFields.hours_required = formData.hours_required;
-      } else {
-        textFields.membership_duration = formData.membership_duration;
-      }
 
       Object.entries(textFields).forEach(([key, value]) => {
         if (value !== null && value !== undefined && value !== '') {
@@ -515,8 +564,8 @@ const GymEditScreen = ({ route, navigation }) => {
       });
 
       if (selectedTimeSlots.length > 0) {
-        selectedTimeSlots.forEach(slot => {
-          apiFormData.append('time_slots[]', slot);
+        selectedTimeSlots.forEach((slot, index) => {
+          apiFormData.append(`time_slots[${index}]`, slot);
         });
       }
 
@@ -547,18 +596,18 @@ const GymEditScreen = ({ route, navigation }) => {
         apiFormData.append(key, value);
       });
 
-      console.log('Updating gym booking with ID:', record_id);
+      console.log('Sending update request for ID:', record_id);
 
-      const response = await fetch(`${API_BASE_URL}/gym-booking/${record_id}`, {
-        method: 'POST', // Using POST with _method=PUT for Laravel
+      const response = await fetch(`${API_BASE_URL}/training-booking/${record_id}`, {
+        method: 'POST',
         headers: {
           'Accept': 'application/json',
-          'Content-Type': 'multipart/form-data',
         },
         body: apiFormData,
       });
 
       const responseData = await response.json();
+      console.log('Update response:', responseData);
 
       if (!response.ok) {
         throw new Error(responseData.message || 'Failed to update booking');
@@ -579,7 +628,7 @@ const GymEditScreen = ({ route, navigation }) => {
       const response = await updateBooking();
       Alert.alert(
         'Success',
-        'Gym booking updated successfully!',
+        'Training room booking updated successfully!',
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
     } catch (error) {
@@ -613,7 +662,13 @@ const GymEditScreen = ({ route, navigation }) => {
           placeholder={options.placeholder || `Enter ${label.toLowerCase()}`}
           placeholderTextColor={COLORS.textLighter}
           value={formData[field]}
-          onChangeText={(text) => handleInputChange(field, text)}
+          onChangeText={(text) => {
+            if (field === 'num_participants') {
+              handleParticipantsChange(text);
+            } else {
+              handleInputChange(field, text);
+            }
+          }}
           keyboardType={options.keyboardType || 'default'}
           maxLength={options.maxLength}
           multiline={options.multiline}
@@ -665,7 +720,7 @@ const GymEditScreen = ({ route, navigation }) => {
               <Icon name="camera-plus" size={24} color={COLORS.primary} />
             </LinearGradient>
             <Text style={styles.placeholderText}>Tap to upload {label}</Text>
-            <Text style={styles.placeholderSubtext}>PNG, JPG • Max 10MB</Text>
+            <Text style={styles.placeholderSubtext}>JPG, PNG • Max 10MB</Text>
           </View>
         )}
       </TouchableOpacity>
@@ -713,24 +768,44 @@ const GymEditScreen = ({ route, navigation }) => {
           <TouchableOpacity
             key={option.value}
             style={styles.radioItem}
-            onPress={() => handleServiceTypeChange(option.value)}
+            onPress={() => handleInputChange(field, option.value)}
           >
             <View style={[
               styles.radioCircle,
-              serviceType === option.value && styles.radioCircleSelected
+              formData[field] === option.value && styles.radioCircleSelected
             ]}>
-              {serviceType === option.value && (
+              {formData[field] === option.value && (
                 <View style={styles.radioInner} />
               )}
             </View>
             <Text style={[
               styles.radioText,
-              serviceType === option.value && styles.radioTextSelected
+              formData[field] === option.value && styles.radioTextSelected
             ]}>
               {option.label}
             </Text>
           </TouchableOpacity>
         ))}
+      </View>
+    </View>
+  );
+
+  const renderDatePicker = (label, field, required = false) => (
+    <View style={styles.inputGroup}>
+      {renderLabel(label, required)}
+      <View style={[
+        styles.inputWrapper,
+        focusedInput === field && styles.inputWrapperFocused
+      ]}>
+        <TextInput
+          style={styles.input}
+          placeholder="YYYY-MM-DD"
+          placeholderTextColor={COLORS.textLighter}
+          value={formData[field]}
+          onChangeText={(text) => handleInputChange(field, text)}
+          onFocus={() => setFocusedInput(field)}
+          onBlur={() => setFocusedInput(null)}
+        />
       </View>
     </View>
   );
@@ -765,13 +840,13 @@ const GymEditScreen = ({ route, navigation }) => {
           <Icon name="account-group" size={12} color={COLORS.primary} />
         </View>
         <Text style={styles.infoText}>
-          <Text style={styles.infoTextBold}>Max 8 persons</Text>
+          <Text style={styles.infoTextBold}>Max 30 participants</Text>
         </Text>
       </View>
     </LinearGradient>
   );
 
-  const renderImportantNotes = () => (
+  const renderImportantInstructions = () => (
     <LinearGradient 
       colors={['#fffbeb', '#fef3c7']} 
       style={styles.notesContainer}
@@ -782,13 +857,13 @@ const GymEditScreen = ({ route, navigation }) => {
         <View style={styles.notesIconContainer}>
           <Icon name="alert-circle-outline" size={14} color="#b45309" />
         </View>
-        <Text style={styles.notesTitle}>Important Information</Text>
+        <Text style={styles.notesTitle}>Important Instructions</Text>
       </View>
       {[
-        'MNWC does not provide an expert gym trainer.',
-        'Users must have prior knowledge of gym equipment and tools usage.',
-        'All users must strictly follow safety, cleanliness, and discipline-related SOPs.',
-        'Gym equipment must be used responsibly and carefully. Any damage due to negligence may result in cancellation of access.'
+        'The training room must be used strictly for professional, educational, or capacity-building purposes.',
+        'The applicant/organizer is responsible for maintaining discipline, cleanliness, and compliance with MNWC SOPs.',
+        'Furniture, equipment, and facilities must be used with care.',
+        'Any violation of SOPs may result in cancellation of booking and restriction of future access.',
       ].map((text, index) => (
         <View key={index} style={styles.noteItem}>
           <View style={styles.noteBullet} />
@@ -798,12 +873,29 @@ const GymEditScreen = ({ route, navigation }) => {
     </LinearGradient>
   );
 
+  const renderWarningBox = () => (
+    <LinearGradient 
+      colors={['#fef2f2', '#fee2e2']} 
+      style={styles.warningBox}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 0 }}
+    >
+      <View style={styles.warningHeader}>
+        <Icon name="alert-circle" size={14} color="#991b1b" />
+        <Text style={styles.warningTitle}>Important Note</Text>
+      </View>
+      <Text style={styles.warningText}>
+        MNWC does not provide refreshments. Applicants opting for refreshments must arrange them independently and ensure proper cleanliness and waste disposal after the session.
+      </Text>
+    </LinearGradient>
+  );
+
   const renderTimeSlots = () => {
     if (timeSlots.length === 0) return null;
 
     return (
       <View style={styles.timeSlotsContainer}>
-        <Text style={styles.timeSlotsLabel}>Select your preferred time slots:</Text>
+        <Text style={styles.timeSlotsLabel}>Preferred Time Slot(s) <Text style={styles.requiredStar}>*</Text></Text>
         <View style={styles.timeSlotsGrid}>
           {timeSlots.map((slot) => (
             <TouchableOpacity
@@ -863,13 +955,13 @@ const GymEditScreen = ({ route, navigation }) => {
           
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>
-              Edit Gym Booking
+              Edit Training Booking
             </Text>
             <Text style={styles.headerSubtitle}>Booking #{record_id}</Text>
           </View>
           
           <View style={styles.headerRight}>
-            <Icon name="dumbbell" size={20} color="#fff" />
+            <Icon name="brush" size={20} color="#fff" />
           </View>
         </View>
       </LinearGradient>
@@ -881,29 +973,7 @@ const GymEditScreen = ({ route, navigation }) => {
         {/* Info Bar */}
         {renderInfoBar()}
 
-        {/* Step 1: Service Type Selection */}
-        <View style={styles.section}>
-          <LinearGradient
-            colors={['transparent', COLORS.primarySoft]}
-            style={styles.sectionHeaderGradient}
-          >
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionIconContainer}>
-                <Icon name="format-list-checks" size={16} color={COLORS.primary} />
-              </View>
-              <Text style={styles.sectionTitle}>Step 1: Select Service Type</Text>
-            </View>
-          </LinearGradient>
-          
-          <View style={styles.sectionContent}>
-            {renderRadioGroup('Type of Request', 'service_type', [
-              { label: 'Temporary Booking', value: 'temporary' },
-              { label: 'Membership Card', value: 'membership' },
-            ], true)}
-          </View>
-        </View>
-
-        {/* Section A: Applicant Information */}
+        {/* Section A: Applicant / Organizer Information */}
         <View style={styles.section}>
           <LinearGradient
             colors={['transparent', COLORS.primarySoft]}
@@ -913,124 +983,168 @@ const GymEditScreen = ({ route, navigation }) => {
               <View style={styles.sectionIconContainer}>
                 <Icon name="card-account-details" size={16} color={COLORS.primary} />
               </View>
-              <Text style={styles.sectionTitle}>Section A: Applicant Information</Text>
+              <Text style={styles.sectionTitle}>Section A: Applicant / Organizer Information</Text>
             </View>
           </LinearGradient>
           
           <View style={styles.sectionContent}>
-            {renderInput('Name of Women Applicant', 'applicant_name', { 
-              required: true,
-              placeholder: 'Enter your full name'
-            })}
+            <View style={styles.row}>
+              <View style={styles.thirdWidth}>
+                {renderInput('Name of Applicant / Organizer', 'applicant_name', { 
+                  required: true,
+                  placeholder: 'Enter your full name'
+                })}
+              </View>
+              <View style={styles.thirdWidth}>
+                {renderInput('CNIC Number', 'cnic', { 
+                  keyboardType: 'numeric', 
+                  maxLength: 13,
+                  placeholder: '1234567890123',
+                  required: true,
+                })}
+              </View>
+              <View style={styles.thirdWidth}>
+                {renderInput('Contact Number', 'contact', { 
+                  keyboardType: 'phone-pad',
+                  placeholder: '+92-XXXXXXXXXX',
+                  required: true,
+                })}
+              </View>
+            </View>
             
-            {renderInput('CNIC Number', 'cnic', { 
-              keyboardType: 'numeric', 
-              maxLength: 13,
-              placeholder: '1234512345671',
-              required: true,
-              helper: '13 digits without dashes'
-            })}
-            
-            {renderInput('Contact Number', 'contact', { 
-              keyboardType: 'phone-pad',
-              placeholder: '03XXXXXXXXX',
-              required: true,
-            })}
+            <View style={styles.row}>
+              <View style={styles.halfWidth}>
+                {renderInput('Email Address', 'email', { 
+                  keyboardType: 'email-address',
+                  placeholder: 'your.email@example.com',
+                })}
+              </View>
+              <View style={styles.halfWidth}>
+                {renderInput('Name of Institute / Organization', 'organization', { 
+                  placeholder: 'Enter organization name (optional)',
+                })}
+              </View>
+            </View>
 
             <View style={styles.uploadsRow}>
               <View style={styles.halfWidth}>
-                {renderImagePicker('applicant_pic', 'Applicant Photo', false, 'JPG, PNG')}
+                {renderImagePicker('applicant_pic', 'Upload Recent Photograph of Applicant', false, 'JPG, PNG • Max 10MB')}
               </View>
               <View style={styles.halfWidth}>
-                {renderImagePicker('cnic_pic', 'CNIC Photo', false, 'JPG, PNG')}
+                {renderImagePicker('cnic_pic', 'Upload CNIC (Front Side)', false, 'JPG, PNG • Max 10MB')}
               </View>
             </View>
           </View>
         </View>
 
-        {/* Section B: Booking / Usage Details */}
-        {showBookingSection && (
-          <View style={styles.section}>
-            <LinearGradient
-              colors={['transparent', COLORS.primarySoft]}
-              style={styles.sectionHeaderGradient}
-            >
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionIconContainer}>
-                  <Icon name="calendar-check" size={16} color={COLORS.primary} />
-                </View>
-                <Text style={styles.sectionTitle}>Section B: Booking Details</Text>
+        {/* Section B: Training Details */}
+        <View style={styles.section}>
+          <LinearGradient
+            colors={['transparent', COLORS.primarySoft]}
+            style={styles.sectionHeaderGradient}
+          >
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionIconContainer}>
+                <Icon name="book-open-variant" size={16} color={COLORS.primary} />
               </View>
-            </LinearGradient>
-            
-            <View style={styles.sectionContent}>
-              {renderPicker('Duration Required', 'hours_required', [
-                { label: '0.5 hours (1 slot)', value: '0.5' },
-                { label: '1 hour (2 slots)', value: '1' },
-                { label: '1.5 hours (3 slots)', value: '1.5' },
-                { label: '2 hours (4 slots)', value: '2' },
-                { label: '2.5 hours (5 slots)', value: '2.5' },
-                { label: '3 hours (6 slots)', value: '3' },
-                { label: '3.5 hours (7 slots)', value: '3.5' },
-                { label: '4 hours (8 slots)', value: '4' },
-              ], true)}
-
-              {renderTimeSlots()}
+              <Text style={styles.sectionTitle}>Section B: Training Details</Text>
             </View>
-          </View>
-        )}
-
-        {/* Membership Section */}
-        {showMembershipSection && (
-          <View style={styles.section}>
-            <LinearGradient
-              colors={['transparent', COLORS.primarySoft]}
-              style={styles.sectionHeaderGradient}
-            >
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionIconContainer}>
-                  <Icon name="card-account-details-star" size={16} color={COLORS.primary} />
-                </View>
-                <Text style={styles.sectionTitle}>Membership Details</Text>
+          </LinearGradient>
+          
+          <View style={styles.sectionContent}>
+            <View style={styles.row}>
+              <View style={styles.halfWidth}>
+                {renderInput('Title of Training / Workshop', 'training_title', { 
+                  required: true,
+                  placeholder: 'Enter training title'
+                })}
               </View>
-            </LinearGradient>
-            
-            <View style={styles.sectionContent}>
-              <View style={styles.inputGroup}>
-                {renderLabel('Membership Duration', true)}
-                <View style={styles.membershipOptions}>
-                  {[
-                    { label: '1 Month', value: '1_month' },
-                    { label: '3 Months', value: '3_months' },
-                    { label: '6 Months', value: '6_months' },
-                  ].map((option) => (
-                    <TouchableOpacity
-                      key={option.value}
-                      style={[
-                        styles.membershipCard,
-                        formData.membership_duration === option.value && styles.membershipCardSelected
-                      ]}
-                      onPress={() => handleInputChange('membership_duration', option.value)}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={[
-                        styles.membershipCardText,
-                        formData.membership_duration === option.value && styles.membershipCardTextSelected
-                      ]}>
-                        {option.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+              <View style={styles.halfWidth}>
+                {renderInput('Expected Number of Participants', 'num_participants', { 
+                  keyboardType: 'numeric',
+                  maxLength: 2,
+                  placeholder: 'Max 30 participants',
+                  required: true,
+                  helper: 'Maximum 30 participants'
+                })}
               </View>
             </View>
+
+            {renderInput('Purpose / Brief Description of Training', 'training_description', { 
+              required: true,
+              multiline: true,
+              numberOfLines: 3,
+              placeholder: 'Describe the purpose and objectives of the training...'
+            })}
           </View>
-        )}
+        </View>
 
-        {/* Important Notes */}
-        {renderImportantNotes()}
+        {/* Section C: Refreshments Information */}
+        <View style={styles.section}>
+          <LinearGradient
+            colors={['transparent', COLORS.primarySoft]}
+            style={styles.sectionHeaderGradient}
+          >
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionIconContainer}>
+                <Icon name="cup" size={16} color={COLORS.primary} />
+              </View>
+              <Text style={styles.sectionTitle}>Section C: Refreshments Information</Text>
+            </View>
+          </LinearGradient>
+          
+          <View style={styles.sectionContent}>
+            {renderRadioGroup('Will you be using refreshments during the session?', 'refreshments', [
+              { label: 'Yes', value: 'yes' },
+              { label: 'No', value: 'no' },
+            ], true)}
 
-        {/* Section C: Declaration */}
+            {renderWarningBox()}
+          </View>
+        </View>
+
+        {/* Section D: Date & Time Selection */}
+        <View style={styles.section}>
+          <LinearGradient
+            colors={['transparent', COLORS.primarySoft]}
+            style={styles.sectionHeaderGradient}
+          >
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionIconContainer}>
+                <Icon name="calendar-check" size={16} color={COLORS.primary} />
+              </View>
+              <Text style={styles.sectionTitle}>Section D: Date & Time Selection</Text>
+            </View>
+          </LinearGradient>
+          
+          <View style={styles.sectionContent}>
+            <View style={styles.row}>
+              <View style={styles.halfWidth}>
+                {renderDatePicker('Training Date', 'training_date', true)}
+              </View>
+              <View style={styles.halfWidth}>
+                {renderPicker('Number of Hours / Slots Required', 'hours_required', [
+                  { label: '0.5 hours (1 slot)', value: '0.5' },
+                  { label: '1 hour (2 slots)', value: '1' },
+                  { label: '1.5 hours (3 slots)', value: '1.5' },
+                  { label: '2 hours (4 slots)', value: '2' },
+                  { label: '2.5 hours (5 slots)', value: '2.5' },
+                  { label: '3 hours (6 slots)', value: '3' },
+                  { label: '3.5 hours (7 slots)', value: '3.5' },
+                  { label: '4 hours (8 slots)', value: '4' },
+                  { label: '5 hours (10 slots)', value: '5' },
+                  { label: '6 hours (12 slots)', value: '6' },
+                  { label: '7 hours (14 slots)', value: '7' },
+                  { label: '8 hours (16 slots)', value: '8' },
+                ], true)}
+              </View>
+            </View>
+
+            {renderTimeSlots()}
+          </View>
+        </View>
+
+        {/* Section E: Rules, SOPs & Declaration */}
         <View style={styles.section}>
           <LinearGradient
             colors={['transparent', COLORS.primarySoft]}
@@ -1040,11 +1154,13 @@ const GymEditScreen = ({ route, navigation }) => {
               <View style={styles.sectionIconContainer}>
                 <Icon name="shield-check" size={16} color={COLORS.primary} />
               </View>
-              <Text style={styles.sectionTitle}>Section C: Declaration</Text>
+              <Text style={styles.sectionTitle}>Section E: Rules, SOPs & Declaration</Text>
             </View>
           </LinearGradient>
           
           <View style={styles.sectionContent}>
+            {renderImportantInstructions()}
+
             <TouchableOpacity
               style={[styles.consentContainer, formData.consent && styles.consentContainerChecked]}
               onPress={() => handleInputChange('consent', !formData.consent)}
@@ -1054,13 +1170,19 @@ const GymEditScreen = ({ route, navigation }) => {
                 {formData.consent && <Icon name="check" size={10} color="#fff" />}
               </View>
               <Text style={[styles.consentText, formData.consent && styles.consentTextChecked]}>
-                I confirm that I am aware that no expert trainer is provided. I understand the safe usage of gym equipment and agree to follow all SOPs, safety guidelines, and instructions of the Maryam Nawaz Women Complex.
+                I confirm that the information provided is accurate. I agree to comply with all rules, SOPs, and instructions issued by the Maryam Nawaz Women Complex.
               </Text>
             </TouchableOpacity>
           </View>
         </View>
 
-   
+        {/* Note about user_id */}
+        {/* <View style={styles.noteBox}>
+          <Icon name="information" size={16} color={COLORS.info} />
+          <Text style={styles.noteBoxText}>
+            User ID: {user_id} (cannot be changed)
+          </Text>
+        </View> */}
       </ScrollView>
 
       {/* Submit Button */}
@@ -1150,6 +1272,7 @@ const GymEditScreen = ({ route, navigation }) => {
   );
 };
 
+// ============ STYLES ============
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -1232,7 +1355,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
     borderWidth: 1,
-    borderColor: 'rgba(230, 138, 0, 0.1)',
+    borderColor: 'rgba(185, 28, 28, 0.1)',
   },
   infoItem: {
     flex: 1,
@@ -1260,7 +1383,7 @@ const styles = StyleSheet.create({
   infoDivider: {
     width: 1,
     height: 16,
-    backgroundColor: 'rgba(230, 138, 0, 0.2)',
+    backgroundColor: 'rgba(185, 28, 28, 0.2)',
   },
   section: {
     backgroundColor: COLORS.surface,
@@ -1272,7 +1395,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
     borderWidth: 1,
-    borderColor: 'rgba(230, 138, 0, 0.1)',
+    borderColor: 'rgba(185, 28, 28, 0.1)',
     overflow: 'hidden',
   },
   sectionHeaderGradient: {
@@ -1283,7 +1406,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 10,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(230, 138, 0, 0.1)',
+    borderBottomColor: 'rgba(185, 28, 28, 0.1)',
   },
   sectionIconContainer: {
     width: 26,
@@ -1353,13 +1476,21 @@ const styles = StyleSheet.create({
     minHeight: 70,
     textAlignVertical: 'top',
   },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 0,
+  },
+  thirdWidth: {
+    width: '31%',
+  },
+  halfWidth: {
+    width: '48%',
+  },
   uploadsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 4,
-  },
-  halfWidth: {
-    width: '48%',
   },
   pickerWrapper: {
     borderWidth: 1,
@@ -1392,7 +1523,7 @@ const styles = StyleSheet.create({
   radioItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 20,
   },
   radioCircle: {
     width: 14,
@@ -1482,7 +1613,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 4,
     borderWidth: 1,
-    borderColor: 'rgba(230, 138, 0, 0.2)',
+    borderColor: 'rgba(185, 28, 28, 0.2)',
   },
   placeholderText: {
     fontSize: 10,
@@ -1493,6 +1624,29 @@ const styles = StyleSheet.create({
   placeholderSubtext: {
     fontSize: 8,
     color: COLORS.textLighter,
+  },
+  warningBox: {
+    padding: 10,
+    borderRadius: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#dc2626',
+  },
+  warningHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  warningTitle: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#991b1b',
+    marginLeft: 6,
+  },
+  warningText: {
+    fontSize: 9,
+    color: '#7f1d1d',
+    lineHeight: 13,
   },
   timeSlotsContainer: {
     marginTop: 8,
@@ -1542,36 +1696,9 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     fontWeight: '500',
   },
-  membershipOptions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  membershipCard: {
-    flex: 1,
-    padding: 8,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 12,
-    alignItems: 'center',
-    backgroundColor: COLORS.white,
-  },
-  membershipCardSelected: {
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.primarySoft,
-  },
-  membershipCardText: {
-    fontSize: 10,
-    color: COLORS.textLight,
-    fontWeight: '500',
-  },
-  membershipCardTextSelected: {
-    color: COLORS.primary,
-    fontWeight: '600',
-  },
   notesContainer: {
-    borderRadius: 20,
-    padding: 12,
+    borderRadius: 16,
+    padding: 10,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: 'rgba(245, 158, 11, 0.3)',
@@ -1674,7 +1801,7 @@ const styles = StyleSheet.create({
     padding: 10,
     paddingBottom: Platform.OS === 'ios' ? 20 : 20,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(230, 138, 0, 0.1)',
+    borderTopColor: 'rgba(185, 28, 28, 0.1)',
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.05,
@@ -1749,7 +1876,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 6,
     borderWidth: 1,
-    borderColor: 'rgba(230, 138, 0, 0.2)',
+    borderColor: 'rgba(185, 28, 28, 0.2)',
   },
   modalOptionText: {
     fontSize: 11,
@@ -1770,4 +1897,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default GymEditScreen;
+export default TrainingEditScreen;

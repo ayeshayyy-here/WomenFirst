@@ -22,15 +22,15 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 // ============ API CONFIGURATION ============
-//const API_BASE_URL = 'https://karma-roots-rankings-handhelds.trycloudflare.com/api';
+//const API_BASE_URL = 'https://villas-producer-collecting-ultram.trycloudflare.com/api';
 const API_BASE_URL = 'https://mnwc-wdd.punjab.gov.pk/api';
 // ============ THEME CONSTANTS ============
 const COLORS = {
-  primary: '#ae6c09',
-  primaryLight: '#ffb347',
-  primaryDark: '#b36b00',
-  primaryGradient: ['#ae6c09', '#9a5e08', '#b36b00'],
-  primarySoft: '#fff5e6',
+  primary: '#9333ea',
+  primaryLight: '#a855f7',
+  primaryDark: '#7e22ce',
+  primaryGradient: ['#9333ea', '#7e22ce', '#6b21a5'],
+  primarySoft: '#f5f3ff',
   secondary: '#f8f9fa',
   background: '#f4f7fb',
   surface: '#ffffff',
@@ -38,10 +38,11 @@ const COLORS = {
   textLight: '#5e6f8d',
   textLighter: '#8a9bb5',
   border: '#e2e8f0',
-  borderFocus: '#ae6c09',
+  borderFocus: '#9333ea',
   success: '#10b981',
   successLight: '#d1fae5',
   warning: '#f59e0b',
+  warningLight: '#fef3c7',
   error: '#ef4444',
   errorLight: '#fee2e2',
   info: '#3b82f6',
@@ -52,15 +53,15 @@ const COLORS = {
   shadow: '#000000',
 };
 
-const GymEditScreen = ({ route, navigation }) => {
+const LibraryEditScreen = ({ route, navigation }) => {
   const { record_id, user_id, user, isEditMode } = route.params || {};
   
   // ============ STATE MANAGEMENT ============
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [serviceType, setServiceType] = useState('temporary');
-  const [showBookingSection, setShowBookingSection] = useState(false);
-  const [showMembershipSection, setShowMembershipSection] = useState(false);
+  const [accessType, setAccessType] = useState('temporary');
+  const [showUsageSection, setShowUsageSection] = useState(false);
+  const [showOtherPurpose, setShowOtherPurpose] = useState(false);
   const [timeSlots, setTimeSlots] = useState([]);
   const [selectedTimeSlots, setSelectedTimeSlots] = useState([]);
   const [activeImagePicker, setActiveImagePicker] = useState(null);
@@ -72,11 +73,13 @@ const GymEditScreen = ({ route, navigation }) => {
     applicant_name: '',
     cnic: '',
     contact: '',
+    email: '',
     applicant_pic: null,
     cnic_pic: null,
-    service_type: 'temporary',
+    access_type: 'temporary',
     hours_required: '',
-    membership_duration: '',
+    purpose: '',
+    other_purpose: '',
     consent: true,
   });
 
@@ -93,24 +96,23 @@ const GymEditScreen = ({ route, navigation }) => {
     console.log('Edit Screen - User ID:', user_id);
     
     if (!record_id) {
-      Alert.alert('Error', 'No booking record found', [
+      Alert.alert('Error', 'No record found', [
         { text: 'OK', onPress: () => navigation.goBack() }
       ]);
       return;
     }
     
-    fetchBookingData();
+    fetchAccessData();
   }, []);
 
   useEffect(() => {
-    setShowBookingSection(serviceType === 'temporary');
-    setShowMembershipSection(serviceType === 'membership');
-  }, [serviceType]);
+    setShowUsageSection(accessType === 'temporary');
+  }, [accessType]);
 
-  const fetchBookingData = async () => {
+  const fetchAccessData = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/gym-booking/${record_id}`, {
+      const response = await fetch(`${API_BASE_URL}/library-access/${record_id}`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -118,53 +120,58 @@ const GymEditScreen = ({ route, navigation }) => {
       });
 
       const data = await response.json();
-      console.log('Fetched booking data:', data);
+      console.log('Fetched library access data:', data);
 
       if (data.success) {
-        const booking = data.data;
+        const access = data.data;
         
-        // Set service type
-        setServiceType(booking.service_type || 'temporary');
+        // Set access type
+        setAccessType(access.access_type || 'temporary');
         
         // Set form data
         setFormData({
-          applicant_name: booking.applicant_name || '',
-          cnic: booking.cnic || '',
-          contact: booking.contact || '',
-          applicant_pic: booking.applicant_pic ? { uri: getFullImageUrl(booking.applicant_pic) } : null,
-          cnic_pic: booking.cnic_pic ? { uri: getFullImageUrl(booking.cnic_pic) } : null,
-          service_type: booking.service_type || 'temporary',
-          hours_required: booking.hours_required?.toString() || '',
-          membership_duration: booking.membership_duration || '',
+          applicant_name: access.applicant_name || '',
+          cnic: access.cnic || '',
+          contact: access.contact || '',
+          email: access.email || '',
+          applicant_pic: access.applicant_pic ? { uri: getFullImageUrl(access.applicant_pic) } : null,
+          cnic_pic: access.cnic_pic ? { uri: getFullImageUrl(access.cnic_pic) } : null,
+          access_type: access.access_type || 'temporary',
+          hours_required: access.hours_required?.toString() || '',
+          purpose: access.purpose || '',
+          other_purpose: access.other_purpose || '',
           consent: true,
         });
 
         // Set image previews
         const previews = {};
-        if (booking.applicant_pic) previews.applicant_pic = getFullImageUrl(booking.applicant_pic);
-        if (booking.cnic_pic) previews.cnic_pic = getFullImageUrl(booking.cnic_pic);
+        if (access.applicant_pic) previews.applicant_pic = getFullImageUrl(access.applicant_pic);
+        if (access.cnic_pic) previews.cnic_pic = getFullImageUrl(access.cnic_pic);
         
         setImagePreviews(previews);
         setOriginalImages(previews);
         
+        // Set show other purpose
+        setShowOtherPurpose(access.purpose === 'other');
+        
         // Set time slots if available
-        if (booking.time_slots) {
-          const slots = typeof booking.time_slots === 'string' 
-            ? JSON.parse(booking.time_slots) 
-            : booking.time_slots;
+        if (access.time_slots) {
+          const slots = typeof access.time_slots === 'string' 
+            ? JSON.parse(access.time_slots) 
+            : access.time_slots;
           setSelectedTimeSlots(slots || []);
           
           // Generate time slots display if hours_required exists
-          if (booking.hours_required) {
-            generateTimeSlots(booking.hours_required.toString());
+          if (access.hours_required) {
+            generateTimeSlots(access.hours_required.toString());
           }
         }
       } else {
-        Alert.alert('Error', data.message || 'Failed to load booking data');
+        Alert.alert('Error', data.message || 'Failed to load data');
       }
     } catch (error) {
-      console.error('Error fetching booking:', error);
-      Alert.alert('Error', 'Failed to load booking data. Please try again.');
+      console.error('Error fetching access data:', error);
+      Alert.alert('Error', 'Failed to load data. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -172,7 +179,6 @@ const GymEditScreen = ({ route, navigation }) => {
 
   const getFullImageUrl = (path) => {
     if (!path) return null;
-    // Assuming images are stored in public storage
     return `${API_BASE_URL.replace('/api', '')}/storage/${path}`;
   };
 
@@ -416,18 +422,24 @@ const GymEditScreen = ({ route, navigation }) => {
         generateTimeSlots(value);
       }
       
+      if (field === 'purpose') {
+        setShowOtherPurpose(value === 'other');
+        if (value !== 'other') {
+          newData.other_purpose = '';
+        }
+      }
+      
       return newData;
     });
   };
 
-  const handleServiceTypeChange = (type) => {
-    setServiceType(type);
-    handleInputChange('service_type', type);
+  const handleAccessTypeChange = (type) => {
+    setAccessType(type);
+    handleInputChange('access_type', type);
     if (type === 'membership') {
       handleInputChange('hours_required', '');
       setSelectedTimeSlots([]);
-    } else {
-      handleInputChange('membership_duration', '');
+      setTimeSlots([]);
     }
   };
 
@@ -449,13 +461,17 @@ const GymEditScreen = ({ route, navigation }) => {
       Alert.alert('Validation Error', 'Contact number is required');
       return false;
     }
-
-    if (!formData.service_type) {
-      Alert.alert('Validation Error', 'Please select service type');
+    if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
+      Alert.alert('Validation Error', 'Please enter a valid email address');
       return false;
     }
 
-    if (formData.service_type === 'temporary') {
+    if (!formData.access_type) {
+      Alert.alert('Validation Error', 'Please select access type');
+      return false;
+    }
+
+    if (formData.access_type === 'temporary') {
       if (!formData.hours_required) {
         Alert.alert('Validation Error', 'Please select number of hours/slots required');
         return false;
@@ -470,11 +486,14 @@ const GymEditScreen = ({ route, navigation }) => {
       }
     }
 
-    if (formData.service_type === 'membership') {
-      if (!formData.membership_duration) {
-        Alert.alert('Validation Error', 'Please select membership duration');
-        return false;
-      }
+    if (!formData.purpose) {
+      Alert.alert('Validation Error', 'Please select purpose of visit');
+      return false;
+    }
+
+    if (formData.purpose === 'other' && !formData.other_purpose?.trim()) {
+      Alert.alert('Validation Error', 'Please specify your purpose');
+      return false;
     }
 
     if (!formData.consent) {
@@ -490,33 +509,39 @@ const GymEditScreen = ({ route, navigation }) => {
     try {
       const apiFormData = new FormData();
       
-      // Add booking ID and user_id
-      apiFormData.append('booking_id', record_id);
-      apiFormData.append('user_id', user_id);
+      // Add record ID and user_id
+      apiFormData.append('record_id', record_id);
+      apiFormData.append('user_id', String(user_id));
       
-      const textFields = {
+      console.log('Updating with user_id:', user_id);
+      
+      // Add all text fields
+      const fields = {
         applicant_name: formData.applicant_name,
         cnic: formData.cnic,
         contact: formData.contact,
-        service_type: formData.service_type,
+        email: formData.email || '',
+        access_type: formData.access_type,
+        purpose: formData.purpose,
+        other_purpose: formData.other_purpose || '',
         consent: '1',
       };
 
-      if (formData.service_type === 'temporary') {
-        textFields.hours_required = formData.hours_required;
-      } else {
-        textFields.membership_duration = formData.membership_duration;
+      if (formData.access_type === 'temporary') {
+        fields.hours_required = formData.hours_required;
       }
 
-      Object.entries(textFields).forEach(([key, value]) => {
+      // Append all text fields
+      Object.entries(fields).forEach(([key, value]) => {
         if (value !== null && value !== undefined && value !== '') {
-          apiFormData.append(key, value.toString());
+          apiFormData.append(key, String(value));
         }
       });
 
+      // Append time slots
       if (selectedTimeSlots.length > 0) {
-        selectedTimeSlots.forEach(slot => {
-          apiFormData.append('time_slots[]', slot);
+        selectedTimeSlots.forEach((slot, index) => {
+          apiFormData.append(`time_slots[${index}]`, slot);
         });
       }
 
@@ -547,21 +572,21 @@ const GymEditScreen = ({ route, navigation }) => {
         apiFormData.append(key, value);
       });
 
-      console.log('Updating gym booking with ID:', record_id);
+      console.log('Sending update request for ID:', record_id);
 
-      const response = await fetch(`${API_BASE_URL}/gym-booking/${record_id}`, {
-        method: 'POST', // Using POST with _method=PUT for Laravel
+      const response = await fetch(`${API_BASE_URL}/library-access/${record_id}`, {
+        method: 'POST',
         headers: {
           'Accept': 'application/json',
-          'Content-Type': 'multipart/form-data',
         },
         body: apiFormData,
       });
 
       const responseData = await response.json();
+      console.log('Update response:', responseData);
 
       if (!response.ok) {
-        throw new Error(responseData.message || 'Failed to update booking');
+        throw new Error(responseData.message || 'Failed to update request');
       }
 
       return responseData;
@@ -579,13 +604,13 @@ const GymEditScreen = ({ route, navigation }) => {
       const response = await updateBooking();
       Alert.alert(
         'Success',
-        'Gym booking updated successfully!',
+        'Library access request updated successfully!',
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
     } catch (error) {
       Alert.alert(
         'Error',
-        error.message || 'Failed to update booking. Please try again.'
+        error.message || 'Failed to update request. Please try again.'
       );
     } finally {
       setSubmitting(false);
@@ -713,19 +738,19 @@ const GymEditScreen = ({ route, navigation }) => {
           <TouchableOpacity
             key={option.value}
             style={styles.radioItem}
-            onPress={() => handleServiceTypeChange(option.value)}
+            onPress={() => handleAccessTypeChange(option.value)}
           >
             <View style={[
               styles.radioCircle,
-              serviceType === option.value && styles.radioCircleSelected
+              accessType === option.value && styles.radioCircleSelected
             ]}>
-              {serviceType === option.value && (
+              {accessType === option.value && (
                 <View style={styles.radioInner} />
               )}
             </View>
             <Text style={[
               styles.radioText,
-              serviceType === option.value && styles.radioTextSelected
+              accessType === option.value && styles.radioTextSelected
             ]}>
               {option.label}
             </Text>
@@ -762,10 +787,10 @@ const GymEditScreen = ({ route, navigation }) => {
       <View style={styles.infoDivider} />
       <View style={styles.infoItem}>
         <View style={styles.infoIconContainer}>
-          <Icon name="account-group" size={12} color={COLORS.primary} />
+          <Icon name="book-open-page-variant" size={12} color={COLORS.primary} />
         </View>
         <Text style={styles.infoText}>
-          <Text style={styles.infoTextBold}>Max 8 persons</Text>
+          <Text style={styles.infoTextBold}>E-Library: Coming Soon</Text>
         </Text>
       </View>
     </LinearGradient>
@@ -782,19 +807,34 @@ const GymEditScreen = ({ route, navigation }) => {
         <View style={styles.notesIconContainer}>
           <Icon name="alert-circle-outline" size={14} color="#b45309" />
         </View>
-        <Text style={styles.notesTitle}>Important Information</Text>
+        <Text style={styles.notesTitle}>Important Instructions</Text>
       </View>
       {[
-        'MNWC does not provide an expert gym trainer.',
-        'Users must have prior knowledge of gym equipment and tools usage.',
-        'All users must strictly follow safety, cleanliness, and discipline-related SOPs.',
-        'Gym equipment must be used responsibly and carefully. Any damage due to negligence may result in cancellation of access.'
+        'The library facility is intended for quiet study and reading only.',
+        'Users must maintain silence, discipline, and cleanliness at all times.',
+        'Library furniture, books, and equipment must be handled with care.',
+        'E-Library services are currently not available.',
+        'Any violation of SOPs may result in revocation of access or membership.'
       ].map((text, index) => (
         <View key={index} style={styles.noteItem}>
           <View style={styles.noteBullet} />
           <Text style={styles.noteText}>{text}</Text>
         </View>
       ))}
+    </LinearGradient>
+  );
+
+  const renderInfoBox = () => (
+    <LinearGradient 
+      colors={['#e0f2fe', '#bae6fd']} 
+      style={styles.infoBox}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 0 }}
+    >
+      <Icon name="information" size={14} color="#0284c7" />
+      <Text style={styles.infoBoxText}>
+        Library Members may access the facility as per MNWC library policies.
+      </Text>
     </LinearGradient>
   );
 
@@ -863,13 +903,13 @@ const GymEditScreen = ({ route, navigation }) => {
           
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>
-              Edit Gym Booking
+              Edit Library Access
             </Text>
             <Text style={styles.headerSubtitle}>Booking #{record_id}</Text>
           </View>
           
           <View style={styles.headerRight}>
-            <Icon name="dumbbell" size={20} color="#fff" />
+            <Icon name="book" size={20} color="#fff" />
           </View>
         </View>
       </LinearGradient>
@@ -881,7 +921,7 @@ const GymEditScreen = ({ route, navigation }) => {
         {/* Info Bar */}
         {renderInfoBar()}
 
-        {/* Step 1: Service Type Selection */}
+        {/* Step 1: Access Type Selection */}
         <View style={styles.section}>
           <LinearGradient
             colors={['transparent', COLORS.primarySoft]}
@@ -891,15 +931,19 @@ const GymEditScreen = ({ route, navigation }) => {
               <View style={styles.sectionIconContainer}>
                 <Icon name="format-list-checks" size={16} color={COLORS.primary} />
               </View>
-              <Text style={styles.sectionTitle}>Step 1: Select Service Type</Text>
+              <Text style={styles.sectionTitle}>Step 1: Select Access Type</Text>
             </View>
           </LinearGradient>
           
           <View style={styles.sectionContent}>
-            {renderRadioGroup('Type of Request', 'service_type', [
-              { label: 'Temporary Booking', value: 'temporary' },
-              { label: 'Membership Card', value: 'membership' },
+            {renderRadioGroup('Type of Request', 'access_type', [
+              { label: 'Temporary Library Use', value: 'temporary' },
+              { label: 'Library Membership', value: 'membership' },
             ], true)}
+            <Text style={styles.sectionDescription}>
+              <Icon name="information-outline" size={10} color={COLORS.textLight} />
+              {' '} E-Library services are currently not functional and will be made available in a later phase.
+            </Text>
           </View>
         </View>
 
@@ -918,23 +962,34 @@ const GymEditScreen = ({ route, navigation }) => {
           </LinearGradient>
           
           <View style={styles.sectionContent}>
-            {renderInput('Name of Women Applicant', 'applicant_name', { 
+            {renderInput('Name of Applicant', 'applicant_name', { 
               required: true,
               placeholder: 'Enter your full name'
             })}
             
-            {renderInput('CNIC Number', 'cnic', { 
-              keyboardType: 'numeric', 
-              maxLength: 13,
-              placeholder: '1234512345671',
-              required: true,
-              helper: '13 digits without dashes'
-            })}
+            <View style={styles.row}>
+              <View style={styles.halfWidth}>
+                {renderInput('CNIC Number', 'cnic', { 
+                  keyboardType: 'numeric', 
+                  maxLength: 13,
+                  placeholder: '1234512345671',
+                  required: true,
+                  helper: '13 digits'
+                })}
+              </View>
+              <View style={styles.halfWidth}>
+                {renderInput('Contact', 'contact', { 
+                  keyboardType: 'phone-pad',
+                  placeholder: '03XXXXXXXXX',
+                  required: true,
+                })}
+              </View>
+            </View>
             
-            {renderInput('Contact Number', 'contact', { 
-              keyboardType: 'phone-pad',
-              placeholder: '03XXXXXXXXX',
-              required: true,
+            {renderInput('Email Address', 'email', { 
+              keyboardType: 'email-address',
+              placeholder: 'your.email@example.com',
+              helper: 'Optional'
             })}
 
             <View style={styles.uploadsRow}>
@@ -948,8 +1003,8 @@ const GymEditScreen = ({ route, navigation }) => {
           </View>
         </View>
 
-        {/* Section B: Booking / Usage Details */}
-        {showBookingSection && (
+        {/* Section B: Library Usage Details */}
+        {showUsageSection && (
           <View style={styles.section}>
             <LinearGradient
               colors={['transparent', COLORS.primarySoft]}
@@ -959,11 +1014,13 @@ const GymEditScreen = ({ route, navigation }) => {
                 <View style={styles.sectionIconContainer}>
                   <Icon name="calendar-check" size={16} color={COLORS.primary} />
                 </View>
-                <Text style={styles.sectionTitle}>Section B: Booking Details</Text>
+                <Text style={styles.sectionTitle}>Section B: Library Usage Details</Text>
               </View>
             </LinearGradient>
             
             <View style={styles.sectionContent}>
+              {renderInfoBox()}
+              
               {renderPicker('Duration Required', 'hours_required', [
                 { label: '0.5 hours (1 slot)', value: '0.5' },
                 { label: '1 hour (2 slots)', value: '1' },
@@ -980,57 +1037,41 @@ const GymEditScreen = ({ route, navigation }) => {
           </View>
         )}
 
-        {/* Membership Section */}
-        {showMembershipSection && (
-          <View style={styles.section}>
-            <LinearGradient
-              colors={['transparent', COLORS.primarySoft]}
-              style={styles.sectionHeaderGradient}
-            >
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionIconContainer}>
-                  <Icon name="card-account-details-star" size={16} color={COLORS.primary} />
-                </View>
-                <Text style={styles.sectionTitle}>Membership Details</Text>
+        {/* Section C: Purpose of Library Use */}
+        <View style={styles.section}>
+          <LinearGradient
+            colors={['transparent', COLORS.primarySoft]}
+            style={styles.sectionHeaderGradient}
+          >
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionIconContainer}>
+                <Icon name="help-circle" size={16} color={COLORS.primary} />
               </View>
-            </LinearGradient>
-            
-            <View style={styles.sectionContent}>
-              <View style={styles.inputGroup}>
-                {renderLabel('Membership Duration', true)}
-                <View style={styles.membershipOptions}>
-                  {[
-                    { label: '1 Month', value: '1_month' },
-                    { label: '3 Months', value: '3_months' },
-                    { label: '6 Months', value: '6_months' },
-                  ].map((option) => (
-                    <TouchableOpacity
-                      key={option.value}
-                      style={[
-                        styles.membershipCard,
-                        formData.membership_duration === option.value && styles.membershipCardSelected
-                      ]}
-                      onPress={() => handleInputChange('membership_duration', option.value)}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={[
-                        styles.membershipCardText,
-                        formData.membership_duration === option.value && styles.membershipCardTextSelected
-                      ]}>
-                        {option.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
+              <Text style={styles.sectionTitle}>Section C: Purpose of Library Use</Text>
             </View>
+          </LinearGradient>
+          
+          <View style={styles.sectionContent}>
+            {renderPicker('Purpose of Visit', 'purpose', [
+              { label: 'Study / Research', value: 'study' },
+              { label: 'Reading', value: 'reading' },
+              { label: 'Exam Preparation', value: 'exam' },
+              { label: 'Professional Work', value: 'work' },
+              { label: 'Other (Specify)', value: 'other' },
+            ], true)}
+
+            {showOtherPurpose && (
+              <View style={styles.conditionalFields}>
+                {renderInput('Please Specify', 'other_purpose', { 
+                  required: true,
+                  placeholder: 'Enter your specific purpose'
+                })}
+              </View>
+            )}
           </View>
-        )}
+        </View>
 
-        {/* Important Notes */}
-        {renderImportantNotes()}
-
-        {/* Section C: Declaration */}
+        {/* Section D: Rules, SOPs & Declaration */}
         <View style={styles.section}>
           <LinearGradient
             colors={['transparent', COLORS.primarySoft]}
@@ -1040,11 +1081,13 @@ const GymEditScreen = ({ route, navigation }) => {
               <View style={styles.sectionIconContainer}>
                 <Icon name="shield-check" size={16} color={COLORS.primary} />
               </View>
-              <Text style={styles.sectionTitle}>Section C: Declaration</Text>
+              <Text style={styles.sectionTitle}>Section D: Rules & Declaration</Text>
             </View>
           </LinearGradient>
           
           <View style={styles.sectionContent}>
+            {renderImportantNotes()}
+
             <TouchableOpacity
               style={[styles.consentContainer, formData.consent && styles.consentContainerChecked]}
               onPress={() => handleInputChange('consent', !formData.consent)}
@@ -1054,13 +1097,19 @@ const GymEditScreen = ({ route, navigation }) => {
                 {formData.consent && <Icon name="check" size={10} color="#fff" />}
               </View>
               <Text style={[styles.consentText, formData.consent && styles.consentTextChecked]}>
-                I confirm that I am aware that no expert trainer is provided. I understand the safe usage of gym equipment and agree to follow all SOPs, safety guidelines, and instructions of the Maryam Nawaz Women Complex.
+                I confirm that the information provided is correct. I agree to comply with all rules, SOPs, and instructions of the Maryam Nawaz Women Complex Library.
               </Text>
             </TouchableOpacity>
           </View>
         </View>
 
-   
+        {/* Note about user_id */}
+        <View style={styles.noteBox}>
+          <Icon name="information" size={16} color={COLORS.info} />
+          <Text style={styles.noteBoxText}>
+            User ID: {user_id} (cannot be changed)
+          </Text>
+        </View>
       </ScrollView>
 
       {/* Submit Button */}
@@ -1083,7 +1132,7 @@ const GymEditScreen = ({ route, navigation }) => {
               <View style={styles.submitButtonContent}>
                 <Icon name="check-circle" size={16} color="#fff" />
                 <Text style={styles.submitButtonText}>
-                  Update Booking
+                  Update Request
                 </Text>
               </View>
             )}
@@ -1150,6 +1199,7 @@ const GymEditScreen = ({ route, navigation }) => {
   );
 };
 
+// ============ STYLES ============
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -1232,7 +1282,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
     borderWidth: 1,
-    borderColor: 'rgba(230, 138, 0, 0.1)',
+    borderColor: 'rgba(147, 51, 234, 0.1)',
   },
   infoItem: {
     flex: 1,
@@ -1260,7 +1310,7 @@ const styles = StyleSheet.create({
   infoDivider: {
     width: 1,
     height: 16,
-    backgroundColor: 'rgba(230, 138, 0, 0.2)',
+    backgroundColor: 'rgba(147, 51, 234, 0.2)',
   },
   section: {
     backgroundColor: COLORS.surface,
@@ -1272,7 +1322,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
     borderWidth: 1,
-    borderColor: 'rgba(230, 138, 0, 0.1)',
+    borderColor: 'rgba(147, 51, 234, 0.1)',
     overflow: 'hidden',
   },
   sectionHeaderGradient: {
@@ -1283,7 +1333,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 10,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(230, 138, 0, 0.1)',
+    borderBottomColor: 'rgba(147, 51, 234, 0.1)',
   },
   sectionIconContainer: {
     width: 26,
@@ -1299,6 +1349,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.primary,
     letterSpacing: 0.2,
+  },
+  sectionDescription: {
+    fontSize: 10,
+    color: COLORS.textLight,
+    marginTop: 4,
   },
   sectionContent: {
     padding: 12,
@@ -1353,13 +1408,17 @@ const styles = StyleSheet.create({
     minHeight: 70,
     textAlignVertical: 'top',
   },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  halfWidth: {
+    width: '48%',
+  },
   uploadsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 4,
-  },
-  halfWidth: {
-    width: '48%',
   },
   pickerWrapper: {
     borderWidth: 1,
@@ -1482,7 +1541,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 4,
     borderWidth: 1,
-    borderColor: 'rgba(230, 138, 0, 0.2)',
+    borderColor: 'rgba(147, 51, 234, 0.2)',
   },
   placeholderText: {
     fontSize: 10,
@@ -1493,6 +1552,22 @@ const styles = StyleSheet.create({
   placeholderSubtext: {
     fontSize: 8,
     color: COLORS.textLighter,
+  },
+  infoBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#0284c7',
+  },
+  infoBoxText: {
+    flex: 1,
+    fontSize: 10,
+    color: '#0284c7',
+    marginLeft: 6,
+    fontWeight: '500',
   },
   timeSlotsContainer: {
     marginTop: 8,
@@ -1542,36 +1617,15 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     fontWeight: '500',
   },
-  membershipOptions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  membershipCard: {
-    flex: 1,
-    padding: 8,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 12,
-    alignItems: 'center',
-    backgroundColor: COLORS.white,
-  },
-  membershipCardSelected: {
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.primarySoft,
-  },
-  membershipCardText: {
-    fontSize: 10,
-    color: COLORS.textLight,
-    fontWeight: '500',
-  },
-  membershipCardTextSelected: {
-    color: COLORS.primary,
-    fontWeight: '600',
+  conditionalFields: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(147, 51, 234, 0.1)',
   },
   notesContainer: {
-    borderRadius: 20,
-    padding: 12,
+    borderRadius: 16,
+    padding: 10,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: 'rgba(245, 158, 11, 0.3)',
@@ -1672,9 +1726,9 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: COLORS.white,
     padding: 10,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 20,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 10,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(230, 138, 0, 0.1)',
+    borderTopColor: 'rgba(147, 51, 234, 0.1)',
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.05,
@@ -1749,7 +1803,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 6,
     borderWidth: 1,
-    borderColor: 'rgba(230, 138, 0, 0.2)',
+    borderColor: 'rgba(147, 51, 234, 0.2)',
   },
   modalOptionText: {
     fontSize: 11,
@@ -1770,4 +1824,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default GymEditScreen;
+export default LibraryEditScreen;

@@ -46,8 +46,8 @@ import {
   faTag,
 } from '@fortawesome/free-solid-svg-icons';
 
-const API_BASE_URL = 'https://karma-roots-rankings-handhelds.trycloudflare.com/api';
-
+//const API_BASE_URL = 'https://cons-best-florida-wichita.trycloudflare.com/api';
+const API_BASE_URL = 'https://mnwc-wdd.punjab.gov.pk/api';
 // Configuration for each facility type
 const FACILITY_CONFIG = {
   daycare: {
@@ -414,7 +414,7 @@ const FacilityBookingsScreen = ({ route, navigation }) => {
                   <View style={styles.timeSlotsPreview}>
                     <Text style={styles.timeSlotsLabel}>Time Slots:</Text>
                     <View style={styles.timeSlotsList}>
-                      {(typeof booking.time_slots === 'string' 
+                      {/* {(typeof booking.time_slots === 'string' 
                         ? JSON.parse(booking.time_slots) 
                         : booking.time_slots
                       ).slice(0, 2).map((slot, idx) => (
@@ -422,7 +422,7 @@ const FacilityBookingsScreen = ({ route, navigation }) => {
                           <FontAwesomeIcon icon={faClock} size={8} color={facilityColor} />
                           <Text style={styles.timeSlotChipText}>{slot}</Text>
                         </View>
-                      ))}
+                      ))} */}
                       {booking.time_slots.length > 2 && (
                         <Text style={styles.moreText}>+{booking.time_slots.length - 2} more</Text>
                       )}

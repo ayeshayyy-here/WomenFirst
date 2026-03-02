@@ -121,6 +121,11 @@ import FacilityBookingsScreen from './src/MNWC/FacilityBookingsScreen';
 import MyBookings from './src/MNWC/MyBookings';
 import DayCareEditScreen from './src/MNWC/DayCareEditScreen';
 import GymEditScreen from './src/MNWC/GymEditScreen';
+import LibraryEditScreen from './src/MNWC/LibraryEditScreen';
+import OfficeEditScreen from './src/MNWC/OfficeEditScreen';
+import TrainingEditScreen from './src/MNWC/TrainingEditScreen';
+import SeminarEditScreen from './src/MNWC/SeminarEditScreen';
+import AuditoriumEditScreen from './src/MNWC/AuditoriumEditScreen';
 
 
 
@@ -270,6 +275,12 @@ const App = () => {
       <Stack.Screen name="MyBookings" component={MyBookings} />
       <Stack.Screen name="DayCareEditScreen" component={DayCareEditScreen} />
       <Stack.Screen name="GymEditScreen" component={GymEditScreen} />
+      <Stack.Screen name="LibraryEditScreen" component={LibraryEditScreen} />
+      <Stack.Screen name="OfficeEditScreen" component={OfficeEditScreen} />
+      <Stack.Screen name="TrainingEditScreen" component={TrainingEditScreen} />
+      <Stack.Screen name="SeminarEditScreen" component={SeminarEditScreen} />
+      <Stack.Screen name="AuditoriumEditScreen" component={AuditoriumEditScreen} />
+
 
       {/* //CentralizedLogins */}
       <Stack.Screen name="LoginC" component={LoginC} />

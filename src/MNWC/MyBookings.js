@@ -41,8 +41,8 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 
 const { width } = Dimensions.get('window');
-const API_BASE_URL = 'https://karma-roots-rankings-handhelds.trycloudflare.com/api';
-
+//const API_BASE_URL = 'https://cons-best-florida-wichita.trycloudflare.com/api';
+const API_BASE_URL = 'https://mnwc-wdd.punjab.gov.pk/api';
 // Facility configuration
 const FACILITY_CONFIG = {
   daycare: {

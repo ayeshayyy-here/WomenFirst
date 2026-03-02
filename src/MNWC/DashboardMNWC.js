@@ -61,8 +61,8 @@ import {
 import AutoRegistrationMNWC from '../components/AutoRegistrationMNWC';
 
 const { width, height } = Dimensions.get('window');
-const API_BASE_URL = 'https://karma-roots-rankings-handhelds.trycloudflare.com/api';
-
+//const API_BASE_URL = 'https://cons-best-florida-wichita.trycloudflare.com/api';
+const API_BASE_URL = 'https://mnwc-wdd.punjab.gov.pk/api';
 const DashboardMNWC = ({ navigation }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedFacility, setSelectedFacility] = useState(null);

@@ -24,6 +24,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 // ============ API CONFIGURATION ============
 const API_BASE_URL = 'https://mnwc-wdd.punjab.gov.pk/api';
+//const API_BASE_URL = 'https://villas-producer-collecting-ultram.trycloudflare.com/api';
 
 // ============ THEME CONSTANTS ============
 const COLORS = {
@@ -103,14 +104,29 @@ const LibraryAccessBookingScreen = ({ route, navigation }) => {
     applicant_pic: null,
     cnic_pic: null,
   });
-
+useEffect(() => {
+  console.log("ROUTE PARAMS:", route.params);
+  console.log("EXTRACTED user_id:", user_id);
+}, []);
   // Load user profile from sync storage
   useEffect(() => {
-    loadUserProfile();
-    if (booking) {
-      loadBookingData();
-    }
-  }, []);
+  console.log('Received user_id in library form:', user_id);
+  console.log('Received user:', user);
+  
+  if (!user_id) {
+    Alert.alert(
+      'Error',
+      'User ID not found. Please go back and try again.',
+      [{ text: 'OK', onPress: () => navigation.goBack() }]
+    );
+    return;
+  }
+  
+  loadUserProfile();
+  if (booking) {
+    loadBookingData();
+  }
+}, []);
 
   useEffect(() => {
     setShowUsageSection(accessType === 'temporary');
@@ -486,75 +502,104 @@ const LibraryAccessBookingScreen = ({ route, navigation }) => {
     return true;
   };
 
-  // ============ API SUBMISSION ============
-  const submitBooking = async () => {
-    try {
-      const apiFormData = new FormData();
-      
-      const textFields = {
-         user_id: user_id, 
-        applicant_name: formData.applicant_name,
-        cnic: formData.cnic,
-        contact: formData.contact,
-        email: formData.email || '',
-        access_type: formData.access_type,
-        purpose: formData.purpose,
-        other_purpose: formData.other_purpose || '',
-        consent: formData.consent ? '1' : '0',
-      };
-
-      if (formData.access_type === 'temporary') {
-        textFields.hours_required = formData.hours_required;
-      }
-
-      Object.entries(textFields).forEach(([key, value]) => {
-        if (value !== null && value !== undefined && value !== '') {
-          apiFormData.append(key, value.toString());
-        }
-      });
-
-      if (selectedTimeSlots.length > 0) {
-        selectedTimeSlots.forEach(slot => {
-          apiFormData.append('time_slots[]', slot);
-        });
-      }
-
-      const imageFields = [
-        { key: 'applicant_pic', value: formData.applicant_pic },
-        { key: 'cnic_pic', value: formData.cnic_pic },
-      ];
-
-      imageFields.forEach(({ key, value }) => {
-        if (value && value.uri) {
-          apiFormData.append(key, {
-            uri: value.uri,
-            type: value.type || 'image/jpeg',
-            name: value.name || `${key}_${Date.now()}.jpg`,
-          });
-        }
-      });
-
-      const response = await fetch(`${API_BASE_URL}/library-access`, {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'multipart/form-data',
-        },
-        body: apiFormData,
-      });
-
-      const responseData = await response.json();
-
-      if (!response.ok) {
-        throw new Error(responseData.message || 'Failed to submit request');
-      }
-
-      return responseData;
-    } catch (error) {
-      console.error('API Error:', error);
-      throw error;
+// ============ API SUBMISSION ============
+const submitBooking = async () => {
+  try {
+    const apiFormData = new FormData();
+    
+    // CRITICAL: Check if user_id exists
+    if (!user_id) {
+      Alert.alert('Error', 'User ID is missing. Please go back and try again.');
+      return;
     }
-  };
+
+    console.log('=== SUBMITTING LIBRARY BOOKING ===');
+    console.log('user_id:', user_id);
+    console.log('user_id type:', typeof user_id);
+    
+    // IMPORTANT: Convert user_id to string and append FIRST
+    apiFormData.append('user_id', String(user_id));
+    
+    // Log to verify it was appended
+    console.log('user_id appended to FormData');
+
+    // Now append all other fields
+    const fields = {
+      applicant_name: formData.applicant_name,
+      cnic: formData.cnic,
+      contact: formData.contact,
+      email: formData.email || '',
+      access_type: formData.access_type,
+      purpose: formData.purpose,
+      other_purpose: formData.other_purpose || '',
+      consent: formData.consent ? '1' : '0',
+    };
+
+    if (formData.access_type === 'temporary') {
+      fields.hours_required = formData.hours_required;
+    }
+
+    // Append all text fields
+    Object.entries(fields).forEach(([key, value]) => {
+      if (value !== null && value !== undefined && value !== '') {
+        apiFormData.append(key, String(value));
+        console.log(`Appended ${key}:`, value);
+      }
+    });
+
+    // Append time slots
+    if (selectedTimeSlots.length > 0) {
+      selectedTimeSlots.forEach((slot, index) => {
+        apiFormData.append(`time_slots[${index}]`, slot);
+      });
+      console.log('Appended time slots:', selectedTimeSlots.length);
+    }
+
+    // Append images
+    const imageFields = [
+      { key: 'applicant_pic', value: formData.applicant_pic },
+      { key: 'cnic_pic', value: formData.cnic_pic },
+    ];
+
+    imageFields.forEach(({ key, value }) => {
+      if (value && value.uri) {
+        const imageFile = {
+          uri: value.uri,
+          type: value.type || 'image/jpeg',
+          name: value.name || `${key}_${Date.now()}.jpg`,
+        };
+        apiFormData.append(key, imageFile);
+        console.log(`Appended image ${key}:`, value.uri);
+      }
+    });
+
+    // Log the entire FormData (can't directly log, but we can log what we've added)
+    console.log('FormData prepared with fields:', Object.keys(fields).concat(['user_id']));
+    console.log('Sending request to:', `${API_BASE_URL}/library-access`);
+
+    const response = await fetch(`${API_BASE_URL}/library-access`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+      },
+      // Don't set Content-Type header - let browser set it with boundary
+      body: apiFormData,
+    });
+
+    const responseData = await response.json();
+    console.log('Response:', responseData);
+
+    if (!response.ok) {
+      throw new Error(responseData.message || 'Failed to submit request');
+    }
+
+    return responseData;
+  } catch (error) {
+    console.error('API Error:', error);
+    throw error;
+  }
+};
+
 
   const handleSubmit = async () => {
     if (!validateForm()) return;
@@ -768,10 +813,11 @@ const LibraryAccessBookingScreen = ({ route, navigation }) => {
         <Text style={styles.notesTitle}>Important Instructions</Text>
       </View>
       {[
-        'Quiet study and reading only',
-        'Maintain silence and cleanliness',
-        'Handle books and furniture with care',
-        'E-Library services coming soon',
+        'The library facility is intended for quiet study and reading only.',
+        'Users must maintain silence, discipline, and cleanliness at all times.',
+        'Library furniture, books, and equipment must be handled with care.',
+        'E-Library services are currently not available.',
+        'Any violation of SOPs may result in revocation of access or membership.'
       ].map((text, index) => (
         <View key={index} style={styles.noteItem}>
           <View style={styles.noteBullet} />
@@ -891,7 +937,7 @@ const LibraryAccessBookingScreen = ({ route, navigation }) => {
             ], true)}
             <Text style={styles.sectionDescription}>
               <Icon name="information-outline" size={10} color={COLORS.textLight} />
-              {' '}E-Library services coming soon
+              {' '} E-Library services are currently not functional and will be made available in a later phase.
             </Text>
           </View>
         </View>
@@ -911,7 +957,7 @@ const LibraryAccessBookingScreen = ({ route, navigation }) => {
           </LinearGradient>
           
           <View style={styles.sectionContent}>
-            {renderInput('Name of Women Applicant', 'applicant_name', { 
+            {renderInput('Name of Applicant', 'applicant_name', { 
               required: true,
               placeholder: 'Enter your full name'
             })}
@@ -1046,7 +1092,7 @@ const LibraryAccessBookingScreen = ({ route, navigation }) => {
                 {formData.consent && <Icon name="check" size={10} color="#fff" />}
               </View>
               <Text style={[styles.consentText, formData.consent && styles.consentTextChecked]}>
-                I confirm that the information provided is correct. I agree to comply with all rules, SOPs, and instructions.
+               I confirm that the information provided is correct. I agree to comply with all rules, SOPs, and instructions of the Maryam Nawaz Women Complex Library.
               </Text>
             </TouchableOpacity>
           </View>
