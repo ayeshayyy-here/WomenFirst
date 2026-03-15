@@ -179,9 +179,15 @@ const OfficeEditScreen = ({ route, navigation }) => {
   };
 
   const getFullImageUrl = (path) => {
-    if (!path) return null;
-    return `${API_BASE_URL.replace('/api', '')}/storage/${path}`;
-  };
+  if (!path) return null;
+  if (path.startsWith('http')) return path;
+  
+  // Remove any leading slashes
+  const cleanPath = path.replace(/^\/+/, '');
+  
+  // Return full URL (no /storage needed as files are in public/uploads)
+  return `${API_BASE_URL.replace('/api', '')}/${cleanPath}`;
+};
 
   // ============ PERMISSION HANDLING ============
   const requestGalleryPermission = async () => {

@@ -185,11 +185,19 @@ const DayCareEditScreen = ({ route, navigation }) => {
     }
   };
 
-  const getFullImageUrl = (path) => {
-    if (!path) return null;
-    // Assuming images are stored in public storage
-    return `${API_BASE_URL.replace('/api', '')}/storage/${path}`;
-  };
+ const getFullImageUrl = (path) => {
+  if (!path) return null;
+  
+  // If the path already starts with http, return as is
+  if (path.startsWith('http')) return path;
+  
+  // Remove any leading slashes
+  const cleanPath = path.replace(/^\/+/, '');
+  
+  // For web service storing in public/uploads, we don't need /storage/
+  // Just use the path directly from the base URL without /api
+  return `${API_BASE_URL.replace('/api', '')}/${cleanPath}`;
+};
 
   // ============ INFO BAR COMPONENT ============
   const renderInfoBar = () => (

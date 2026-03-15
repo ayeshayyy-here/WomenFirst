@@ -23,6 +23,7 @@ import Pitch from '../../assets/images/pitch.jpg';
 import Ambassador from '../../assets/images/ambassador.jpg';
 import SEHR_LOGO from '../../assets/images/SEHR_LOGO.png';
 import WBIC_LOGO from '../../assets/images/WBIC_LOGO.png';
+import MNWC_LOGO from '../../assets/images/MNWC_LOGO.png';
 import Hostel from '../../assets/images/hostel.png';
 import FloatingButton from '../components/FloatingButton';
 import notifee, { AndroidImportance } from '@notifee/react-native';
@@ -125,7 +126,7 @@ const DashboardWDD = ({ navigation, notifications }) => {
     },
     { 
       title: "MNWC", 
-      icon: <Icon3 name="tools" size={28} color="#66bb6a" />,
+      image: MNWC_LOGO,
       screen: "DashboardMNWC",
       colors: ['#ffffff', '#ffffff'],
       shadow: '#66bb6a'
