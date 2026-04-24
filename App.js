@@ -127,7 +127,11 @@ import TrainingEditScreen from './src/MNWC/TrainingEditScreen';
 import SeminarEditScreen from './src/MNWC/SeminarEditScreen';
 import AuditoriumEditScreen from './src/MNWC/AuditoriumEditScreen';
 
-
+import Step1Form from './src/WBIC/Step1Form';
+import Step2Form from './src/WBIC/Step2Form';
+import Step3Form from './src/WBIC/Step3Form';
+import WBICHomeScreen from './src/WBIC/WBICHomeScreen';
+import WBICProfile from './src/WBIC/WBICProfile';
 
 
 import { fetchAndShowNotifications } from './src/utils/notificationHandler';
@@ -280,6 +284,13 @@ const App = () => {
       <Stack.Screen name="TrainingEditScreen" component={TrainingEditScreen} />
       <Stack.Screen name="SeminarEditScreen" component={SeminarEditScreen} />
       <Stack.Screen name="AuditoriumEditScreen" component={AuditoriumEditScreen} />
+
+      {/* WBIC */}
+      <Stack.Screen name="Step1Form" component={Step1Form} />
+      <Stack.Screen name="Step2Form" component={Step2Form} />
+      <Stack.Screen name="Step3Form" component={Step3Form} />
+      <Stack.Screen name="WBICHomeScreen" component={WBICHomeScreen} />
+      <Stack.Screen name="WBICProfile" component={WBICProfile} />
 
 
       {/* //CentralizedLogins */}

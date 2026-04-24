@@ -23,8 +23,8 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 // ============ API CONFIGURATION ============
-const API_BASE_URL = 'https://mnwc-wdd.punjab.gov.pk/api';
-//const API_BASE_URL = 'https://villas-producer-collecting-ultram.trycloudflare.com/api';
+//const API_BASE_URL = 'https://mnwc-wdd.punjab.gov.pk/api';
+const API_BASE_URL = 'https://showed-donate-restaurant-mesa.trycloudflare.com/api';
 
 // ============ THEME CONSTANTS ============
 const COLORS = {

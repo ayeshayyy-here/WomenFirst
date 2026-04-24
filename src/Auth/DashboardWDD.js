@@ -120,7 +120,7 @@ const DashboardWDD = ({ navigation, notifications }) => {
       { 
       title: "WBIC", 
       image: WBIC_LOGO,
-      screen: "ProjectDateScreen",
+      screen: "WBICHomeScreen",
       colors: ['#ffffff', '#ffffff'],
       shadow: '#26a69a'
     },
@@ -197,7 +197,7 @@ const DashboardWDD = ({ navigation, notifications }) => {
 
  const handleProjectPress = (project) => {
     // Check if the project is WEPX or Women Hostel
-    if (project.title === "WEPX" || project.title === "Working Women Hostel" || project.title === "Female Ambassador Program" || project.title === "Youth Pitch" || project.title === "SEHR" || project.title === "MNWC") {
+    if (project.title === "WEPX" || project.title === "Working Women Hostel" || project.title === "Female Ambassador Program" || project.title === "Youth Pitch" || project.title === "SEHR" || project.title === "MNWC"|| project.title === "WBIC") {
       navigation.navigate(project.screen);
     } else {
       // Show "Coming Soon" toast for all other projects
