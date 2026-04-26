@@ -20,10 +20,11 @@ import { Picker } from '@react-native-picker/picker';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 // ============ API CONFIGURATION ============
-//const API_BASE_URL = 'https://karma-roots-rankings-handhelds.trycloudflare.com/api';
 const API_BASE_URL = 'https://mnwc-wdd.punjab.gov.pk/api';
+
 // ============ THEME CONSTANTS ============
 const COLORS = {
   primary: '#940775',
@@ -49,6 +50,32 @@ const COLORS = {
   overlay: 'rgba(0,0,0,0.5)',
 };
 
+// Generate time slots from 9:00 AM to 5:00 PM (30-minute intervals)
+const generateTimeSlots = () => {
+  const slots = [];
+  const startHour = 9;
+  const totalSlots = 16; // 8 hours * 2 slots per hour
+  
+  for (let i = 0; i < totalSlots; i++) {
+    const hour = startHour + Math.floor(i / 2);
+    const minutes = (i % 2) * 30;
+    const endMinutes = (minutes + 30) % 60;
+    const endHour = hour + (minutes + 30 >= 60 ? 1 : 0);
+    
+    const startTime = `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    const endTime = `${endHour.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
+    
+    slots.push({
+      id: i,
+      startTime: startTime,
+      endTime: endTime,
+      displayText: `${startTime} – ${endTime}`,
+      index: i,
+    });
+  }
+  return slots;
+};
+
 const DayCareEditScreen = ({ route, navigation }) => {
   const { record_id, user_id, user, isEditMode } = route.params || {};
   
@@ -59,6 +86,16 @@ const DayCareEditScreen = ({ route, navigation }) => {
   const [showHealthFields, setShowHealthFields] = useState(false);
   const [activeImagePicker, setActiveImagePicker] = useState(null);
   const [showImagePickerModal, setShowImagePickerModal] = useState(false);
+  
+  // Date picker states
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  
+  // Time slots states
+  const [availableTimeSlots, setAvailableTimeSlots] = useState(generateTimeSlots());
+  const [showTimeSlots, setShowTimeSlots] = useState(false);
+  const [selectedTimeSlots, setSelectedTimeSlots] = useState([]);
+  
   const [expandedSections, setExpandedSections] = useState({
     parent: true,
     auth: true,
@@ -92,14 +129,58 @@ const DayCareEditScreen = ({ route, navigation }) => {
     helper_pic: null,
     has_allergies: 'no',
     health_details: '',
+    start_date: '',
+    end_date: '',
     hours_required: '',
     require_services: '',
+    time_slots: [],
     consent: true,
   });
 
   // Image preview states
   const [imagePreviews, setImagePreviews] = useState({});
   const [originalImages, setOriginalImages] = useState({});
+
+  // Helper function to get slots count based on hours
+  const getSlotsCountFromHours = (hours) => {
+    if (!hours) return 0;
+    return Math.ceil(parseFloat(hours) * 2);
+  };
+
+  // Handle time slot selection (consecutive slots only)
+  const handleSlotSelection = (slotIndex, requiredSlots) => {
+    if (requiredSlots === 0) {
+      Alert.alert('Error', 'Please select duration first');
+      return;
+    }
+    
+    const canSelect = (slotIndex + requiredSlots) <= availableTimeSlots.length;
+    
+    if (!canSelect) {
+      Alert.alert('Error', `Not enough time slots available. Only ${availableTimeSlots.length - slotIndex} slots remaining from this time.`);
+      return;
+    }
+    
+    const newSelectedSlots = [];
+    for (let i = 0; i < requiredSlots; i++) {
+      newSelectedSlots.push(availableTimeSlots[slotIndex + i]);
+    }
+    
+    setSelectedTimeSlots(newSelectedSlots);
+    // Update form data with selected time slots display texts
+    handleInputChange('time_slots', newSelectedSlots.map(slot => slot.displayText));
+  };
+
+  // Check if a slot is selected
+  const isSlotSelected = (slotIndex) => {
+    return selectedTimeSlots.some(slot => slot.index === slotIndex);
+  };
+
+  // Get selected slot display text
+  const getSelectedSlotsText = () => {
+    if (selectedTimeSlots.length === 0) return '';
+    return selectedTimeSlots.map(slot => slot.displayText).join(', ');
+  };
 
   // Fetch booking data on mount
   useEffect(() => {
@@ -116,6 +197,16 @@ const DayCareEditScreen = ({ route, navigation }) => {
     fetchBookingData();
   }, []);
 
+  // Update time slots when hours_required changes
+  useEffect(() => {
+    if (formData.hours_required) {
+      setShowTimeSlots(true);
+    } else {
+      setShowTimeSlots(false);
+      setSelectedTimeSlots([]);
+    }
+  }, [formData.hours_required]);
+
   const fetchBookingData = async () => {
     try {
       setLoading(true);
@@ -131,6 +222,21 @@ const DayCareEditScreen = ({ route, navigation }) => {
 
       if (data.success) {
         const booking = data.data;
+        
+        // Parse time slots if they exist
+        let parsedTimeSlots = [];
+        let selectedSlots = [];
+        if (booking.time_slots) {
+          parsedTimeSlots = typeof booking.time_slots === 'string' 
+            ? JSON.parse(booking.time_slots) 
+            : booking.time_slots;
+          
+          // Restore selected time slots
+          selectedSlots = availableTimeSlots.filter(slot => 
+            parsedTimeSlots.includes(slot.displayText)
+          );
+          setSelectedTimeSlots(selectedSlots);
+        }
         
         // Set form data
         setFormData({
@@ -156,8 +262,11 @@ const DayCareEditScreen = ({ route, navigation }) => {
           helper_pic: booking.helper_pic ? { uri: getFullImageUrl(booking.helper_pic) } : null,
           has_allergies: booking.has_allergies ? 'yes' : 'no',
           health_details: booking.health_details || '',
+          start_date: booking.start_date || '',
+          end_date: booking.end_date || '',
           hours_required: booking.hours_required?.toString() || '',
           require_services: booking.require_services || '',
+          time_slots: parsedTimeSlots,
           consent: true,
         });
 
@@ -185,19 +294,40 @@ const DayCareEditScreen = ({ route, navigation }) => {
     }
   };
 
- const getFullImageUrl = (path) => {
-  if (!path) return null;
-  
-  // If the path already starts with http, return as is
-  if (path.startsWith('http')) return path;
-  
-  // Remove any leading slashes
-  const cleanPath = path.replace(/^\/+/, '');
-  
-  // For web service storing in public/uploads, we don't need /storage/
-  // Just use the path directly from the base URL without /api
-  return `${API_BASE_URL.replace('/api', '')}/${cleanPath}`;
-};
+  const getFullImageUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    const cleanPath = path.replace(/^\/+/, '');
+    return `${API_BASE_URL.replace('/api', '')}/${cleanPath}`;
+  };
+
+  // ============ DATE HANDLERS ============
+  const onStartDateChange = (event, selectedDate) => {
+    setShowStartDatePicker(false);
+    if (selectedDate) {
+      const formattedDate = selectedDate.toISOString().split('T')[0];
+      handleInputChange('start_date', formattedDate);
+      
+      // If end date is before start date, clear end date
+      if (formData.end_date && formData.end_date < formattedDate) {
+        handleInputChange('end_date', '');
+        setSelectedTimeSlots([]);
+      }
+    }
+  };
+
+  const onEndDateChange = (event, selectedDate) => {
+    setShowEndDatePicker(false);
+    if (selectedDate) {
+      const formattedDate = selectedDate.toISOString().split('T')[0];
+      handleInputChange('end_date', formattedDate);
+    }
+  };
+
+  const getMinDate = () => {
+    const today = new Date();
+    return today;
+  };
 
   // ============ INFO BAR COMPONENT ============
   const renderInfoBar = () => (
@@ -441,6 +571,10 @@ const DayCareEditScreen = ({ route, navigation }) => {
           newData.health_details = '';
         }
       }
+      if (field === 'hours_required') {
+        setSelectedTimeSlots([]);
+        newData.time_slots = [];
+      }
       
       return newData;
     });
@@ -561,13 +695,37 @@ const DayCareEditScreen = ({ route, navigation }) => {
       return false;
     }
 
-    // Booking Details
+    // Booking Details - NEW VALIDATIONS
+    if (!formData.start_date) {
+      Alert.alert('Validation Error', 'Please select start date');
+      return false;
+    }
+    if (!formData.end_date) {
+      Alert.alert('Validation Error', 'Please select end date');
+      return false;
+    }
+    if (formData.end_date < formData.start_date) {
+      Alert.alert('Validation Error', 'End date cannot be before start date');
+      return false;
+    }
     if (!formData.hours_required) {
       Alert.alert('Validation Error', 'Please select required hours');
       return false;
     }
     if (!formData.require_services) {
       Alert.alert('Validation Error', 'Please select caretaker service option');
+      return false;
+    }
+    
+    // Time slots validation
+    if (selectedTimeSlots.length === 0) {
+      Alert.alert('Validation Error', 'Please select preferred time slot(s)');
+      return false;
+    }
+    
+    const requiredSlotsCount = getSlotsCountFromHours(formData.hours_required);
+    if (selectedTimeSlots.length !== requiredSlotsCount) {
+      Alert.alert('Validation Error', `Please select exactly ${requiredSlotsCount} time slot(s) for ${formData.hours_required} hour(s)`);
       return false;
     }
 
@@ -579,8 +737,7 @@ const DayCareEditScreen = ({ route, navigation }) => {
     try {
       const apiFormData = new FormData();
       
-      // Add booking ID
-      apiFormData.append('booking_id', record_id);
+      // Add booking ID and user ID
       apiFormData.append('user_id', user_id);
       
       // Append all text fields
@@ -599,6 +756,8 @@ const DayCareEditScreen = ({ route, navigation }) => {
         child_months: formData.child_months || '0',
         has_helper: formData.has_helper,
         has_allergies: formData.has_allergies,
+        start_date: formData.start_date,
+        end_date: formData.end_date,
         hours_required: formData.hours_required,
         require_services: formData.require_services,
         consent: '1',
@@ -621,6 +780,11 @@ const DayCareEditScreen = ({ route, navigation }) => {
         if (value !== null && value !== undefined && value !== '') {
           apiFormData.append(key, value.toString());
         }
+      });
+
+      // Append time slots as array
+      selectedTimeSlots.forEach((slot, index) => {
+        apiFormData.append(`time_slots[]`, slot.displayText);
       });
 
       // Append new image files (only if changed)
@@ -655,7 +819,7 @@ const DayCareEditScreen = ({ route, navigation }) => {
       console.log('Updating booking with ID:', record_id);
 
       const response = await fetch(`${API_BASE_URL}/daycare-booking/${record_id}`, {
-        method: 'POST', // Using POST with _method=PUT for Laravel
+        method: 'POST',
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'multipart/form-data',
@@ -757,6 +921,92 @@ const DayCareEditScreen = ({ route, navigation }) => {
       </View>
     </View>
   );
+
+  const renderDatePicker = (label, field, required = false) => (
+    <View style={styles.inputGroup}>
+      {renderLabel(label, required)}
+      <TouchableOpacity
+        style={styles.datePickerButton}
+        onPress={() => field === 'start_date' ? setShowStartDatePicker(true) : setShowEndDatePicker(true)}
+      >
+        <Icon name="calendar" size={18} color={COLORS.primary} />
+        <Text style={[styles.datePickerText, formData[field] ? styles.datePickerTextSelected : null]}>
+          {formData[field] || `Select ${label}`}
+        </Text>
+      </TouchableOpacity>
+      
+      {(field === 'start_date' && showStartDatePicker) && (
+        <DateTimePicker
+          value={formData.start_date ? new Date(formData.start_date) : getMinDate()}
+          mode="date"
+          display="default"
+          onChange={onStartDateChange}
+          minimumDate={getMinDate()}
+        />
+      )}
+      
+      {(field === 'end_date' && showEndDatePicker) && (
+        <DateTimePicker
+          value={formData.end_date ? new Date(formData.end_date) : (formData.start_date ? new Date(formData.start_date) : getMinDate())}
+          mode="date"
+          display="default"
+          onChange={onEndDateChange}
+          minimumDate={formData.start_date ? new Date(formData.start_date) : getMinDate()}
+        />
+      )}
+    </View>
+  );
+
+  const renderTimeSlots = () => {
+    const requiredSlots = getSlotsCountFromHours(formData.hours_required);
+    
+    return (
+      <View style={styles.timeSlotsContainer}>
+        {renderLabel('Preferred Time Slot(s)', true)}
+        <View style={styles.timeSlotsGrid}>
+          {availableTimeSlots.map((slot) => (
+            <TouchableOpacity
+              key={slot.id}
+              style={[
+                styles.timeSlotItem,
+                isSlotSelected(slot.index) && styles.timeSlotItemSelected,
+                !formData.hours_required && styles.timeSlotItemDisabled
+              ]}
+              onPress={() => {
+                if (!formData.hours_required) {
+                  Alert.alert('Error', 'Please select duration first');
+                  return;
+                }
+                handleSlotSelection(slot.index, requiredSlots);
+              }}
+              disabled={!formData.hours_required}
+            >
+              <Text style={[
+                styles.timeSlotText,
+                isSlotSelected(slot.index) && styles.timeSlotTextSelected,
+                !formData.hours_required && styles.timeSlotTextDisabled
+              ]}>
+                {slot.displayText}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        {selectedTimeSlots.length > 0 && (
+          <View style={styles.selectedSlotsContainer}>
+            <Icon name="clock-check" size={14} color={COLORS.success} />
+            <Text style={styles.selectedSlotsText}>
+              Selected: {getSelectedSlotsText()}
+            </Text>
+          </View>
+        )}
+        {formData.hours_required && selectedTimeSlots.length !== requiredSlots && (
+          <Text style={styles.slotsWarning}>
+            ⚠️ Please select exactly {requiredSlots} time slot(s) for {formData.hours_required} hour(s)
+          </Text>
+        )}
+      </View>
+    );
+  };
 
   const renderImagePicker = (field, label, required = false, helper = '') => (
     <View style={styles.imagePickerGroup}>
@@ -1045,12 +1295,19 @@ const DayCareEditScreen = ({ route, navigation }) => {
           )}
         </View>
 
-        {/* Booking Section */}
+        {/* Booking Section - UPDATED with Date and Time Slots */}
         <View style={styles.section}>
           {renderSectionHeader('Booking Details', 'calendar-clock', 'booking', true)}
           
           {expandedSections.booking && (
             <View style={styles.sectionContent}>
+              {/* Start Date */}
+              {renderDatePicker('Start Date', 'start_date', true)}
+              
+              {/* End Date */}
+              {renderDatePicker('End Date', 'end_date', true)}
+              
+              {/* Duration */}
               {renderPicker('Duration Required', 'hours_required', [
                 { label: '0.5 hours (1 slot)', value: '0.5' },
                 { label: '1 hour (2 slots)', value: '1' },
@@ -1065,10 +1322,14 @@ const DayCareEditScreen = ({ route, navigation }) => {
                 { label: '8 hours (16 slots)', value: '8' },
               ], true)}
 
+              {/* Caretaker Services */}
               {renderRadioGroup('Need Caretaker Services?', 'require_services', [
                 { label: 'Yes', value: 'yes' },
                 { label: 'No', value: 'no' },
               ], true)}
+
+              {/* Time Slots */}
+              {showTimeSlots && renderTimeSlots()}
             </View>
           )}
         </View>
@@ -1091,14 +1352,6 @@ const DayCareEditScreen = ({ route, navigation }) => {
             </View>
           ))}
         </LinearGradient>
-
-        {/* Note about user_id (read-only) */}
-        {/* <View style={styles.noteBox}>
-          <Icon name="information" size={16} color={COLORS.info} />
-          <Text style={styles.noteBoxText}>
-            User ID: {user_id} (cannot be changed)
-          </Text>
-        </View> */}
       </ScrollView>
 
       {/* Submit Button */}
@@ -1442,20 +1695,6 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     fontStyle: 'italic',
   },
-  noteBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.infoLight,
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 16,
-    gap: 8,
-  },
-  noteBoxText: {
-    fontSize: 11,
-    color: '#0c4a6e',
-    flex: 1,
-  },
   conditionalFields: {
     marginTop: 6,
     paddingTop: 14,
@@ -1661,6 +1900,83 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#ef4444',
     fontWeight: '600',
+  },
+  // New styles for date picker and time slots
+  datePickerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 7, 117, 0.15)',
+    borderRadius: 10,
+    backgroundColor: '#fff',
+    gap: 10,
+  },
+  datePickerText: {
+    fontSize: 12,
+    color: '#999',
+    flex: 1,
+  },
+  datePickerTextSelected: {
+    color: '#1a1a1a',
+  },
+  timeSlotsContainer: {
+    marginTop: 12,
+  },
+  timeSlotsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  timeSlotItem: {
+    width: '48%',
+    padding: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 7, 117, 0.15)',
+    borderRadius: 8,
+    backgroundColor: '#f8fafc',
+    marginBottom: 8,
+    alignItems: 'center',
+  },
+  timeSlotItemSelected: {
+    borderColor: '#940775',
+    backgroundColor: '#f9e6f5',
+    borderWidth: 2,
+  },
+  timeSlotItemDisabled: {
+    opacity: 0.5,
+  },
+  timeSlotText: {
+    fontSize: 11,
+    color: '#666',
+  },
+  timeSlotTextSelected: {
+    color: '#940775',
+    fontWeight: '500',
+  },
+  timeSlotTextDisabled: {
+    color: '#999',
+  },
+  selectedSlotsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    padding: 10,
+    backgroundColor: '#d1fae5',
+    borderRadius: 8,
+    gap: 8,
+  },
+  selectedSlotsText: {
+    fontSize: 11,
+    color: '#065f46',
+    flex: 1,
+  },
+  slotsWarning: {
+    fontSize: 11,
+    color: '#ef4444',
+    marginTop: 8,
+    textAlign: 'center',
   },
 });
 

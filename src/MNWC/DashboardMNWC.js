@@ -327,6 +327,26 @@ const DashboardMNWC = ({ navigation }) => {
         ]
       }
     },
+     {
+      id: 'productdisplay',
+      title: 'Product Display',
+      description: 'Showcase products of women entrepreneurs during official visits and delegations',
+      badge: 'showcase',
+      gradient: ['#fdf2f8', '#fbcfe8'],
+      titleColor: '#dbb434',
+      icon: faUserPlus,
+      modalData: {
+        about: 'Showcase products of women entrepreneurs during official visits and delegations',
+        amenities: [' For: Women Entrepreneurs'],
+        features: [
+         'This initiative showcases selected products of women entrepreneurs at the Maryam Nawaz Women Complex. The display provides visibility to businesses during official visits and delegations, facilitating networking and potential opportunities.',
+         'Submission does not guarantee selection for display.',
+'Selected entrepreneurs will be notified via email/contact number.',
+'MNWC reserves the right to remove any product from display without prior notice.',
+'The entrepreneur is responsible for the delivery and collection of products.'
+        ]
+      }
+    },
     {
       id: 'creative',
       title: 'Creative Studio / Podcast',
@@ -349,6 +369,7 @@ const DashboardMNWC = ({ navigation }) => {
         ]
       }
     }
+    
   ];
 
   const openModal = (facility) => {
@@ -411,6 +432,12 @@ const DashboardMNWC = ({ navigation }) => {
         break;
       case 'auditorium':
         navigation.navigate('AuditoriumBookingScreen', { 
+          user_id: currentUser.id,
+          user: currentUser 
+        });
+        break;
+         case 'productdisplay':
+        navigation.navigate('ProductDisplayBookingScreen', { 
           user_id: currentUser.id,
           user: currentUser 
         });

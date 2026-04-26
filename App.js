@@ -126,6 +126,8 @@ import OfficeEditScreen from './src/MNWC/OfficeEditScreen';
 import TrainingEditScreen from './src/MNWC/TrainingEditScreen';
 import SeminarEditScreen from './src/MNWC/SeminarEditScreen';
 import AuditoriumEditScreen from './src/MNWC/AuditoriumEditScreen';
+import ProductDisplayBookingScreen from './src/MNWC/ProductDisplayBookingScreen';
+import ProductDisplayEditScreen from './src/MNWC/ProductDisplayEditScreen';
 
 import Step1Form from './src/WBIC/Step1Form';
 import Step2Form from './src/WBIC/Step2Form';
@@ -284,7 +286,8 @@ const App = () => {
       <Stack.Screen name="TrainingEditScreen" component={TrainingEditScreen} />
       <Stack.Screen name="SeminarEditScreen" component={SeminarEditScreen} />
       <Stack.Screen name="AuditoriumEditScreen" component={AuditoriumEditScreen} />
-
+      <Stack.Screen name="ProductDisplayBookingScreen" component={ProductDisplayBookingScreen} />
+      <Stack.Screen name="ProductDisplayEditScreen" component={ProductDisplayEditScreen} />
       {/* WBIC */}
       <Stack.Screen name="Step1Form" component={Step1Form} />
       <Stack.Screen name="Step2Form" component={Step2Form} />
