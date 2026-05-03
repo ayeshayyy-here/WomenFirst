@@ -536,7 +536,7 @@ const ProductDisplayEditScreen = ({ route, navigation }) => {
       const apiFormData = new FormData();
       
       apiFormData.append('user_id', user_id);
-      apiFormData.append('_method', 'PUT');
+      apiFormData.append('_method', 'POST');
       
       // Basic Information
       apiFormData.append('full_name', formData.full_name);

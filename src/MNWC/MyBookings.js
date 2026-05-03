@@ -41,7 +41,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 
 const { width } = Dimensions.get('window');
-//const API_BASE_URL = 'https://cons-best-florida-wichita.trycloudflare.com/api';
+//const API_BASE_URL = 'https://protecting-douglas-corps-hopefully.trycloudflare.com/api';
 const API_BASE_URL = 'https://mnwc-wdd.punjab.gov.pk/api';
 // Facility configuration
 const FACILITY_CONFIG = {
@@ -86,6 +86,12 @@ const FACILITY_CONFIG = {
     color: '#560101',
     gradient: ['#560101', '#3d0101'],
     icon: faMusic,
+  },
+  productdisplay: {
+    name: 'Product Display',
+    color: '#d9cc38',
+    gradient: ['#c9aa13', '#d8cb76'],
+    icon: faUserPlus,
   },
   creative: {
     name: 'Creative Studio',
@@ -256,6 +262,8 @@ const MyBookings = ({ navigation, route }) => {
         return booking.seminar_title || 'Seminar Booking';
       case 'auditorium':
         return booking.event_title || 'Auditorium Booking';
+        case 'productdisplay':
+        return booking.event_title || 'Product Display';
       default:
         return `Booking #${booking.id}`;
     }

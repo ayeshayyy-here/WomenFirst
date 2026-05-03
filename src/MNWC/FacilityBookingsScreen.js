@@ -141,6 +141,20 @@ const FACILITY_CONFIG = {
     ],
     deleteEndpoint: 'auditorium-bookings',
   },
+   productdisplay: {
+    title: 'Product Display Applications',
+    color: '#bca93f',
+    gradient: ['#b6d24a', '#cabe39'],
+    editScreen: 'ProductDisplayEditScreen',
+        displayFields: [
+      { key: 'applicant_name', label: 'Applicant', icon: faUser },
+      { key: 'business_name', label: 'Business Name', icon: faMusic },
+      { key: 'product_names', label: 'Product Name', icon: faUsers },
+      { key: 'product_description', label: 'Product Description', icon: faUsers },
+      { key: 'created_at', label: 'Application Submitted', icon: faCalendarAlt, type: 'date' },
+    ],
+    deleteEndpoint: 'productdisplay-bookings',
+  },
 };
 
 const FacilityBookingsScreen = ({ route, navigation }) => {
