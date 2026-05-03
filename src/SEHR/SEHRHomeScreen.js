@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,26 +14,204 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Image,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import LinearGradient from 'react-native-linear-gradient';
 import * as Animatable from 'react-native-animatable';
+import syncStorage from 'react-native-sync-storage';
+import axios from 'axios';
 import SEHR_LOGO from '../../assets/images/SEHR_LOGO.png';
 
 const { width, height } = Dimensions.get('window');
+
+// API Configuration
+const API_BASE_URL = 'https://sehr-wdd.punjab.gov.pk';
+const BEAUTICIAN_API_URL = `${API_BASE_URL}/api/check-registration/`;
+const HOSPITALITY_API_URL = `${API_BASE_URL}/api/check-registration-hospitality/`;
 
 const SEHRHomeScreen = () => {
   const navigation = useNavigation();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [registrationData, setRegistrationData] = useState(null);
   
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
+  // Helper function to get CNIC from storage
+  const getCNICFromStorage = async () => {
+    try {
+       const userProfile = syncStorage.get('user_profile');
+      if (userProfile) {
+        let syncStorageData = null;
+        try {
+          syncStorageData = typeof userProfile === 'string' ? JSON.parse(userProfile) : userProfile;
+        } catch (e) {
+          console.log('Error parsing syncStorage data:', e);
+        }
+        
+        if (syncStorageData?.cnic) {
+          return syncStorageData.cnic.replace(/-/g, '');
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting CNIC from storage:', error);
+      return null;
+    }
+  };
+
+  // Function to check beautician registration
+  const checkBeauticianRegistration = async (cnic) => {
+    try {
+      const response = await axios.get(`${BEAUTICIAN_API_URL}${cnic}`, {
+        timeout: 10000,
+      });
+      
+      if (response.data.success && response.data.data) {
+        return { success: true, data: response.data.data };
+      }
+      return { success: false, data: null };
+    } catch (error) {
+      console.error('Error checking beautician registration:', error);
+      return { success: false, data: null, error: error.message };
+    }
+  };
+
+  // Function to check hospitality registration
+  const checkHospitalityRegistration = async (cnic) => {
+    try {
+      const response = await axios.get(`${HOSPITALITY_API_URL}${cnic}`, {
+        timeout: 10000,
+      });
+      
+      if (response.data.success && response.data.data) {
+        return { success: true, data: response.data.data };
+      }
+      return { success: false, data: null };
+    } catch (error) {
+      console.error('Error checking hospitality registration:', error);
+      return { success: false, data: null, error: error.message };
+    }
+  };
+
+  const handleRegisterNow = async () => {
+    setModalVisible(false);
+    
+    if (selectedCourse === 'digital') {
+      // Digital skills - navigate to registration form
+      navigation.navigate('DigitalSkillsRegistrationForm');
+    } 
+    else if (selectedCourse === 'beautician') {
+      setLoading(true);
+      try {
+        // Get CNIC from storage
+        const cnic = await getCNICFromStorage();
+        
+        if (!cnic) {
+          Alert.alert(
+            'CNIC Not Found', 
+            'Please complete your profile registration first.',
+            [{ text: 'OK', onPress: () => navigation.goBack() }]
+          );
+          return;
+        }
+        
+        // Check beautician API for tracking
+        const result = await checkBeauticianRegistration(cnic);
+        
+        if (result.success && result.data) {
+          // Tracking found - navigate to tracking screen
+          navigation.navigate('BeauticianTracking', { registrationData: result.data });
+        } else {
+          // No tracking found - show registration closed message
+          Alert.alert(
+            'Registration Closed',
+            'You have not submitted any registration for Beautician course yet. Registration is currently closed.',
+            [{ text: 'OK' }]
+          );
+        }
+      } catch (error) {
+        console.error('Error in beautician registration check:', error);
+        Alert.alert(
+          'Error',
+          'Failed to check registration status. Please try again later.',
+          [{ text: 'OK' }]
+        );
+      } finally {
+        setLoading(false);
+      }
+    } 
+    else if (selectedCourse === 'hospitality') {
+      setLoading(true);
+      try {
+        // Get CNIC from storage
+        const cnic = await getCNICFromStorage();
+        
+        if (!cnic) {
+          Alert.alert(
+            'CNIC Not Found', 
+            'Please complete your profile registration first.',
+            [{ text: 'OK', onPress: () => navigation.goBack() }]
+          );
+          return;
+        }
+        
+        // Check hospitality API for tracking
+        const result = await checkHospitalityRegistration(cnic);
+        
+        if (result.success && result.data) {
+          // Tracking found - navigate to tracking screen
+          navigation.navigate('HospitalityTracking', { registrationData: result.data });
+        } else {
+          // No tracking found - show registration closed message
+          Alert.alert(
+            'Registration Closed',
+            'You have not submitted any registration for Hospitality course yet. Registration is currently closed.',
+            [{ text: 'OK' }]
+          );
+        }
+      } catch (error) {
+        console.error('Error in hospitality registration check:', error);
+        Alert.alert(
+          'Error',
+          'Failed to check registration status. Please try again later.',
+          [{ text: 'OK' }]
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleCoursePress = (course) => {
+    setSelectedCourse(course);
+    setModalVisible(true);
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handleSDGPress = (sdgNumber) => {
+    console.log(`SDG ${sdgNumber} pressed`);
+  };
+
+  const openWebsite = () => {
+    Linking.openURL('https://wdd.punjab.gov.pk/SEHR');
+  };
+
+  const openFacebook = () => {
+    Linking.openURL('https://facebook.com');
+  };
+
   const courseData = {
-  
     beautician: {
       title: 'Beautician Training',
       icon: 'face-woman-shimmer',
@@ -81,7 +259,7 @@ const SEHRHomeScreen = () => {
         startDate: 'March 2026'
       }
     },
-      digital: {
+    digital: {
       title: 'Digital Skills Training',
       icon: 'laptop',
       gradient: ['#0a040b', '#121213', '#6A1B9A'],
@@ -105,41 +283,6 @@ const SEHRHomeScreen = () => {
         startDate: 'March 2026'
       }
     }
-    
-  };
-
-  const handleCoursePress = (course) => {
-    setSelectedCourse(course);
-    setModalVisible(true);
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const handleRegisterNow = () => {
-    setModalVisible(false);
-    if (selectedCourse === 'digital') {
-     // navigation.navigate('DigitalSkillsTracking');
-      navigation.navigate('DigitalSkillsRegistrationForm');
-    } else if (selectedCourse === 'beautician') {
-      navigation.navigate('BeauticianRegistrationForm');
-    } else if (selectedCourse === 'hospitality') {
-      navigation.navigate('HospitalityRegistrationForm');
-    }
-  };
-
-  const handleSDGPress = (sdgNumber) => {
-    console.log(`SDG ${sdgNumber} pressed`);
-  };
-
-  const openWebsite = () => {
-    Linking.openURL('https://wdd.punjab.gov.pk/SEHR');
-  };
-
-  const openFacebook = () => {
-    Linking.openURL('https://facebook.com');
   };
 
   const renderCourseButton = (courseKey) => {
@@ -314,6 +457,7 @@ const SEHRHomeScreen = () => {
                     style={styles.registerButton}
                     onPress={handleRegisterNow}
                     activeOpacity={0.9}
+                    disabled={loading}
                   >
                     <LinearGradient
                       colors={course.gradient}
@@ -321,8 +465,14 @@ const SEHRHomeScreen = () => {
                       end={{ x: 1, y: 0 }}
                       style={styles.registerButtonGradient}
                     >
-                      <Icon name="arrow-right-circle" size={26} color="white" />
-                      <Text style={styles.registerButtonText}>Register Now</Text>
+                      {loading ? (
+                        <Text style={styles.registerButtonText}>Checking...</Text>
+                      ) : (
+                        <>
+                          <Icon name="arrow-right-circle" size={26} color="white" />
+                          <Text style={styles.registerButtonText}>Register Now</Text>
+                        </>
+                      )}
                     </LinearGradient>
                   </TouchableOpacity>
                 </View>
@@ -345,6 +495,16 @@ const SEHRHomeScreen = () => {
       </View>
     </View>
   );
+
+  // Loading indicator component (optional)
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#7C2B5E" />
+        <Text style={styles.loadingText}>Checking registration status...</Text>
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -890,6 +1050,17 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: 'rgba(255,255,255,0.6)',
     textAlign: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#7C2B5E',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: 'white',
   },
   // Modal Styles
   modalOverlay: {

@@ -88,8 +88,8 @@ const ActivityCalendarScreen = ({ route, navigation }) => {
     try {
       setLoading(true);
       
-      const API_URL = 'https://fa-wdd.punjab.gov.pk/api/activity-calendar/scheduled-activities';
-      
+     const API_URL = 'https://fa-wdd.punjab.gov.pk/api/activity-calendar/scheduled-activities';
+
       const requestBody = {
         cnic: userCnic,
         year: moment().year(),
@@ -241,7 +241,10 @@ const ActivityCalendarScreen = ({ route, navigation }) => {
     fetchCalendarData();
   };
 
-  const handleDateSelect = (day) => {
+ // CHANGE 1: In handleDateSelect function (around line 365-377)
+// REPLACE the entire function with this:
+
+const handleDateSelect = (day) => {
     console.log('[ACTION] 📅 Date selected:', day.dateString);
     setSelectedDate(day.dateString);
     
@@ -249,15 +252,13 @@ const ActivityCalendarScreen = ({ route, navigation }) => {
     if (activity) {
       setSelectedActivity(activity);
       setShowActivityModal(true);
-    } else if (moment(day.dateString).isSameOrAfter(moment(), 'day')) {
-      // Allow scheduling for today or future dates
+    } else {
+      // Allow scheduling for any date (past, present, or future)
       setFormData(prev => ({
         ...prev,
         activity_date: day.dateString,
       }));
       setShowScheduleModal(true);
-    } else {
-      Alert.alert('Past Date', 'Cannot schedule activities for past dates.');
     }
   };
 
@@ -413,7 +414,7 @@ const ActivityCalendarScreen = ({ route, navigation }) => {
         
         <Calendar
           current={selectedDate}
-          minDate={moment().format('YYYY-MM-DD')}
+          minDate={moment().subtract(2, 'years').format('YYYY-MM-DD')}
           maxDate={moment().add(6, 'months').format('YYYY-MM-DD')}
           onDayPress={handleDateSelect}
           onMonthChange={handleMonthChange}
